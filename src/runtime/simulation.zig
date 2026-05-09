@@ -118,17 +118,18 @@ pub const Simulation = struct {
             const stats = map_mod.defaultStats(attacker.kind);
             if (stats.damage_per_second <= 0) continue;
             const attack_range = effectiveAttackRange(attacker.kind, stats.range);
+            const attack_range_sq = attack_range * attack_range;
 
             var target_idx: ?usize = null;
-            var best_dist: f32 = 9999;
+            var best_dist_sq: f32 = 999999;
             for (game_map.objects[0..game_map.object_count], 0..) |target, j| {
                 if (!target.active or target.team == attacker.team) continue;
                 const dx: f32 = @floatFromInt(attacker.x - target.x);
                 const dy: f32 = @floatFromInt(attacker.y - target.y);
-                const d = @sqrt(dx * dx + dy * dy);
-                if (d <= attack_range and d < best_dist) {
+                const dist_sq = dx * dx + dy * dy;
+                if (dist_sq <= attack_range_sq and dist_sq < best_dist_sq) {
                     target_idx = j;
-                    best_dist = d;
+                    best_dist_sq = dist_sq;
                 }
             }
             if (target_idx) |j| {
@@ -168,6 +169,8 @@ pub const Simulation = struct {
         _ = self;
         const profile = path.MovementProfile{ .allow_diagonal_movement = true };
         game_map.rebuildGrid(grid_map);
+        const p0_goal = if (game_map.findObject(.citadel, 0)) |target| approachTile(grid_map, target.*, profile) else null;
+        const p1_goal = if (game_map.findObject(.citadel, 1)) |target| approachTile(grid_map, target.*, profile) else null;
         var i: usize = 0;
         while (i < game_map.object_count) : (i += 1) {
             var object = &game_map.objects[i];
@@ -177,12 +180,10 @@ pub const Simulation = struct {
                 else => continue,
             }
             const target_team: u8 = if (object.team == 0) 1 else 0;
-            const target = game_map.findObject(.citadel, target_team) orelse continue;
             const start = path.TileCoord{ .x = object.x, .y = object.y };
             if (hasAdjacentEnemyContact(game_map, object.*)) continue;
-            const goal = approachTile(grid_map, target.*, profile) orelse continue;
-            const sector_id = path.sector.sectorIdForCoord(grid_map, pathfinder.sector_size, start) orelse continue;
-            const field = pathfinder.getFlowField(grid_map, goal, sector_id, profile) catch {
+            const goal = if (target_team == 0) p0_goal orelse continue else p1_goal orelse continue;
+            const field = pathfinder.getFlowField(grid_map, goal, 0, profile) catch {
                 var route = pathfinder.findPath(grid_map, start, goal, profile) catch continue;
                 defer route.deinit();
                 if (route.tiles.len >= 2 and canAdvanceInto(game_map, route.tiles[1], object.*)) {
@@ -210,13 +211,13 @@ pub const Simulation = struct {
             const stats = map_mod.defaultStats(.healing_pod);
             const heal_per_second = -stats.damage_per_second;
             if (heal_per_second <= 0) continue;
+            const range_sq = stats.range * stats.range;
             for (game_map.objects[0..game_map.object_count]) |*target| {
                 if (!target.active or target.team != pod.team or target.id == pod.id) continue;
                 if (target.hp >= target.max_hp) continue;
                 const dx: f32 = @floatFromInt(pod.x - target.x);
                 const dy: f32 = @floatFromInt(pod.y - target.y);
-                const d = @sqrt(dx * dx + dy * dy);
-                if (d <= stats.range) {
+                if (dx * dx + dy * dy <= range_sq) {
                     target.hp = @min(target.max_hp, target.hp + heal_per_second * dt);
                     game_map.version += 1;
                 }
@@ -289,9 +290,10 @@ fn canAdvanceInto(game_map: *map_mod.GameMap, coord: path.TileCoord, moving: map
 }
 
 fn hasAdjacentEnemyContact(game_map: *map_mod.GameMap, object: map_mod.MapObject) bool {
+    const engagement_range_sq = EngagementRange * EngagementRange;
     for (game_map.objects[0..game_map.object_count]) |target| {
         if (!target.active or target.team == object.team or !isMobileUnit(target.kind)) continue;
-        if (tileDistance(object, target) <= EngagementRange) return true;
+        if (tileDistanceSq(object, target) <= engagement_range_sq) return true;
     }
     return false;
 }
@@ -300,10 +302,10 @@ fn effectiveAttackRange(kind: map_mod.ObjectKind, base_range: f32) f32 {
     return if (isMobileUnit(kind)) @max(base_range, EngagementRange) else base_range;
 }
 
-fn tileDistance(a: map_mod.MapObject, b: map_mod.MapObject) f32 {
+fn tileDistanceSq(a: map_mod.MapObject, b: map_mod.MapObject) f32 {
     const dx: f32 = @floatFromInt(a.x - b.x);
     const dy: f32 = @floatFromInt(a.y - b.y);
-    return @sqrt(dx * dx + dy * dy);
+    return dx * dx + dy * dy;
 }
 
 fn isMobileUnit(kind: map_mod.ObjectKind) bool {
