@@ -28,8 +28,11 @@ const TileW: f32 = 64;
 const TileH: f32 = 32;
 const MaxSprites = asset_loader.MaxAssets;
 const NoAsset: u16 = std.math.maxInt(u16);
-const MaxLaserBeams = 96;
-const MaxLaserParticles = 512;
+const MaxLaserBeams = 192;
+const MaxLaserParticles = 1024;
+const LaserBeamVertices = 12;
+const LaserParticleVertices = 12;
+const MaxLaserFxVertices = MaxLaserBeams * LaserBeamVertices + MaxLaserParticles * LaserParticleVertices;
 const LaserBeamLife: f32 = 0.13;
 
 const LoadingPhase = enum {
@@ -99,6 +102,11 @@ const LaserParticle = struct {
     color: [4]f32 = .{ 1, 1, 1, 1 },
 };
 
+const LaserFxVertex = extern struct {
+    position: [2]f32 = .{ 0, 0 },
+    color: [4]f32 = .{ 1, 1, 1, 1 },
+};
+
 pub const AppState = struct {
     allocator: std.mem.Allocator = undefined,
     game: runtime.RuntimeGame = undefined,
@@ -110,6 +118,9 @@ pub const AppState = struct {
     sampler: sg.Sampler = .{},
     alpha_pipeline: sgl.Pipeline = .{},
     pass_action: sg.PassAction = .{},
+    laser_fx_shader: sg.Shader = .{},
+    laser_fx_pipeline: sg.Pipeline = .{},
+    laser_fx_vertex_buffer: sg.Buffer = .{},
     initialized: bool = false,
     allow_editor: bool = true,
     loading: LoadingState = .{},
@@ -126,8 +137,10 @@ pub const AppState = struct {
     zoom: f32 = 1.0,
     laser_beams: [MaxLaserBeams]LaserBeam = [_]LaserBeam{.{}} ** MaxLaserBeams,
     laser_particles: [MaxLaserParticles]LaserParticle = [_]LaserParticle{.{}} ** MaxLaserParticles,
+    laser_fx_vertices: [MaxLaserFxVertices]LaserFxVertex = undefined,
     laser_beam_cursor: usize = 0,
     laser_particle_cursor: usize = 0,
+    laser_fx_vertex_count: usize = 0,
     laser_rng: u32 = 0x6d2b79f5,
 
     pub fn init(self: *AppState, allocator: std.mem.Allocator) void {
@@ -169,6 +182,7 @@ pub const AppState = struct {
             .wrap_u = .CLAMP_TO_EDGE,
             .wrap_v = .CLAMP_TO_EDGE,
         });
+        self.initLaserFxPipeline();
 
         self.initialized = true;
     }
@@ -176,6 +190,9 @@ pub const AppState = struct {
     pub fn cleanup(self: *AppState) void {
         if (!self.initialized) return;
         for (self.sprites[0..self.sprite_count]) |*sprite| destroySprite(sprite);
+        if (self.laser_fx_vertex_buffer.id != 0) sg.destroyBuffer(self.laser_fx_vertex_buffer);
+        if (self.laser_fx_pipeline.id != 0) sg.destroyPipeline(self.laser_fx_pipeline);
+        if (self.laser_fx_shader.id != 0) sg.destroyShader(self.laser_fx_shader);
         if (self.sampler.id != 0) sg.destroySampler(self.sampler);
         if (self.alpha_pipeline.id != 0) sgl.destroyPipeline(self.alpha_pipeline);
         self.object_sprites.deinit();
@@ -223,12 +240,7 @@ pub const AppState = struct {
             .swapchain = sglue.swapchain(),
         });
 
-        sgl.defaults();
-        sgl.matrixModeProjection();
-        sgl.loadIdentity();
-        sgl.ortho(0, sapp.widthf(), sapp.heightf(), 0, -1, 1);
-        sgl.matrixModeModelview();
-        sgl.loadIdentity();
+        self.prepareScreenSgl();
 
         if (is_ready) {
             self.drawWorld();
@@ -236,6 +248,7 @@ pub const AppState = struct {
             self.drawLoadingBackdrop();
         }
         sgl.draw();
+        if (is_ready) self.drawLaserFx();
         simgui.render();
         sg.endPass();
         sg.commit();
@@ -422,6 +435,46 @@ pub const AppState = struct {
 
     fn ready(self: *const AppState) bool {
         return self.loading.phase == .complete;
+    }
+
+    fn prepareScreenSgl(self: *AppState) void {
+        _ = self;
+        sgl.defaults();
+        sgl.matrixModeProjection();
+        sgl.loadIdentity();
+        sgl.ortho(0, sapp.widthf(), sapp.heightf(), 0, -1, 1);
+        sgl.matrixModeModelview();
+        sgl.loadIdentity();
+    }
+
+    fn initLaserFxPipeline(self: *AppState) void {
+        self.laser_fx_shader = sg.makeShader(laserFxShaderDesc());
+
+        var pipeline_desc: sg.PipelineDesc = .{};
+        pipeline_desc.shader = self.laser_fx_shader;
+        pipeline_desc.layout.buffers[0].stride = @sizeOf(LaserFxVertex);
+        pipeline_desc.layout.attrs[0].format = .FLOAT2;
+        pipeline_desc.layout.attrs[0].offset = @offsetOf(LaserFxVertex, "position");
+        pipeline_desc.layout.attrs[1].format = .FLOAT4;
+        pipeline_desc.layout.attrs[1].offset = @offsetOf(LaserFxVertex, "color");
+        pipeline_desc.color_count = 1;
+        pipeline_desc.colors[0].blend.enabled = true;
+        pipeline_desc.colors[0].blend.src_factor_rgb = .SRC_ALPHA;
+        pipeline_desc.colors[0].blend.dst_factor_rgb = .ONE_MINUS_SRC_ALPHA;
+        pipeline_desc.colors[0].blend.src_factor_alpha = .ONE;
+        pipeline_desc.colors[0].blend.dst_factor_alpha = .ONE_MINUS_SRC_ALPHA;
+        pipeline_desc.primitive_type = .TRIANGLES;
+        pipeline_desc.label = "laser-fx-pipeline";
+        self.laser_fx_pipeline = sg.makePipeline(pipeline_desc);
+
+        self.laser_fx_vertex_buffer = sg.makeBuffer(.{
+            .usage = .{
+                .vertex_buffer = true,
+                .stream_update = true,
+            },
+            .size = @sizeOf(LaserFxVertex) * MaxLaserFxVertices,
+            .label = "laser-fx-vertices",
+        });
     }
 
     fn configureStartupMode(self: *AppState) void {
@@ -811,7 +864,6 @@ pub const AppState = struct {
         if (self.editor.show_portals) self.drawPortalOverlay();
         if (self.editor.show_grid) self.drawGrid();
         if (self.editor.show_objects) self.drawObjects();
-        self.drawLaserFx();
         self.drawEditorPreviewOverlay();
     }
 
@@ -878,14 +930,14 @@ pub const AppState = struct {
         const ny = dy / len;
         const px = -ny;
         const py = nx;
-        const particle_count: usize = if (event.damage >= 8) 4 else 2;
+        const particle_count: usize = if (event.damage >= 8) 6 else 4;
         var i: usize = 0;
         while (i < particle_count) : (i += 1) {
+            const p = self.nextLaserParticleSlot();
             const t = self.nextLaserRandom();
             const scatter = (self.nextLaserRandom() - 0.5) * 10;
             const speed = 46 + self.nextLaserRandom() * 96;
             const drift = (self.nextLaserRandom() - 0.5) * 170;
-            const p = self.nextLaserParticleSlot();
             const life = 0.22 + self.nextLaserRandom() * 0.34;
             p.* = .{
                 .active = true,
@@ -909,10 +961,10 @@ pub const AppState = struct {
         }
 
         var impact: usize = 0;
-        while (impact < 1) : (impact += 1) {
+        while (impact < 2) : (impact += 1) {
+            const p = self.nextLaserParticleSlot();
             const angle = self.nextLaserRandom() * std.math.tau;
             const speed = 70 + self.nextLaserRandom() * 130;
-            const p = self.nextLaserParticleSlot();
             const life = 0.16 + self.nextLaserRandom() * 0.22;
             p.* = .{
                 .active = true,
@@ -957,19 +1009,29 @@ pub const AppState = struct {
     }
 
     fn drawLaserFx(self: *AppState) void {
+        if (self.laser_fx_pipeline.id == 0 or self.laser_fx_vertex_buffer.id == 0) return;
+        self.laser_fx_vertex_count = 0;
         for (self.laser_beams) |beam| {
             if (!beam.active) continue;
             const fade = std.math.clamp(beam.life / @max(0.001, beam.max_life), 0, 1);
-            drawLaserLine(beam.start, beam.end, beam.color, fade);
+            self.appendBeamFx(beam.start, beam.end, beam.color, fade);
         }
         for (self.laser_particles) |particle| {
             if (!particle.active) continue;
             const fade = std.math.clamp(particle.life / @max(0.001, particle.max_life), 0, 1);
             var color = particle.color;
-            color[3] *= fade * fade;
-            const size = particle.radius * (0.8 + fade * 0.8);
-            drawDiamond(particle.pos, size * 2.0, size * 1.18, color);
+            color[3] *= fade;
+            const size = particle.radius * (1.6 + fade * 1.2);
+            self.appendParticleFx(particle.pos, size, color);
         }
+        if (self.laser_fx_vertex_count == 0) return;
+
+        sg.updateBuffer(self.laser_fx_vertex_buffer, sg.asRange(self.laser_fx_vertices[0..self.laser_fx_vertex_count]));
+        var bindings: sg.Bindings = .{};
+        bindings.vertex_buffers[0] = self.laser_fx_vertex_buffer;
+        sg.applyPipeline(self.laser_fx_pipeline);
+        sg.applyBindings(bindings);
+        sg.draw(0, @intCast(self.laser_fx_vertex_count), 1);
     }
 
     fn clearLaserFx(self: *AppState) void {
@@ -977,31 +1039,16 @@ pub const AppState = struct {
         for (&self.laser_particles) |*particle| particle.active = false;
         self.laser_beam_cursor = 0;
         self.laser_particle_cursor = 0;
+        self.laser_fx_vertex_count = 0;
     }
 
     fn nextLaserBeamSlot(self: *AppState) *LaserBeam {
-        var offset: usize = 0;
-        while (offset < self.laser_beams.len) : (offset += 1) {
-            const idx = (self.laser_beam_cursor + offset) % self.laser_beams.len;
-            if (!self.laser_beams[idx].active) {
-                self.laser_beam_cursor = (idx + 1) % self.laser_beams.len;
-                return &self.laser_beams[idx];
-            }
-        }
         const idx = self.laser_beam_cursor;
         self.laser_beam_cursor = (idx + 1) % self.laser_beams.len;
         return &self.laser_beams[idx];
     }
 
     fn nextLaserParticleSlot(self: *AppState) *LaserParticle {
-        var offset: usize = 0;
-        while (offset < self.laser_particles.len) : (offset += 1) {
-            const idx = (self.laser_particle_cursor + offset) % self.laser_particles.len;
-            if (!self.laser_particles[idx].active) {
-                self.laser_particle_cursor = (idx + 1) % self.laser_particles.len;
-                return &self.laser_particles[idx];
-            }
-        }
         const idx = self.laser_particle_cursor;
         self.laser_particle_cursor = (idx + 1) % self.laser_particles.len;
         return &self.laser_particles[idx];
@@ -1011,6 +1058,84 @@ pub const AppState = struct {
         self.laser_rng = self.laser_rng *% 1664525 +% 1013904223;
         const bits = (self.laser_rng >> 8) & 0xffff;
         return @as(f32, @floatFromInt(bits)) / 65535.0;
+    }
+
+    fn appendBeamFx(self: *AppState, start: Vec2, end: Vec2, base_color: [4]f32, fade: f32) void {
+        const dx = end.x - start.x;
+        const dy = end.y - start.y;
+        const len = @max(1, @sqrt(dx * dx + dy * dy));
+        const px = -dy / len;
+        const py = dx / len;
+        var glow = base_color;
+        glow[3] *= fade * 0.22;
+        self.appendBeamQuad(start, end, px, py, 7.5 + fade * 2.5, glow);
+
+        var core = base_color;
+        core[0] = @min(1.0, core[0] + 0.22);
+        core[1] = @min(1.0, core[1] + 0.22);
+        core[2] = @min(1.0, core[2] + 0.22);
+        core[3] *= fade * 0.92;
+        self.appendBeamQuad(start, end, px, py, 2.0 + fade * 1.0, core);
+    }
+
+    fn appendBeamQuad(self: *AppState, start: Vec2, end: Vec2, px: f32, py: f32, half_w: f32, color: [4]f32) void {
+        self.appendFxQuad(
+            .{ .x = start.x + px * half_w, .y = start.y + py * half_w },
+            .{ .x = end.x + px * half_w, .y = end.y + py * half_w },
+            .{ .x = end.x - px * half_w, .y = end.y - py * half_w },
+            .{ .x = start.x - px * half_w, .y = start.y - py * half_w },
+            color,
+        );
+    }
+
+    fn appendParticleFx(self: *AppState, center: Vec2, size: f32, color: [4]f32) void {
+        var edge = color;
+        edge[3] = 0;
+        const top = Vec2{ .x = center.x, .y = center.y - size };
+        const right = Vec2{ .x = center.x + size, .y = center.y };
+        const bottom = Vec2{ .x = center.x, .y = center.y + size };
+        const left = Vec2{ .x = center.x - size, .y = center.y };
+        self.appendFxTriangle(center, top, right, color, edge, edge);
+        self.appendFxTriangle(center, right, bottom, color, edge, edge);
+        self.appendFxTriangle(center, bottom, left, color, edge, edge);
+        self.appendFxTriangle(center, left, top, color, edge, edge);
+    }
+
+    fn appendFxQuad(
+        self: *AppState,
+        a: Vec2,
+        b: Vec2,
+        c0: Vec2,
+        d: Vec2,
+        color: [4]f32,
+    ) void {
+        self.appendFxTriangle(a, b, c0, color, color, color);
+        self.appendFxTriangle(a, c0, d, color, color, color);
+    }
+
+    fn appendFxTriangle(self: *AppState, a: Vec2, b: Vec2, c0: Vec2, ca: [4]f32, cb: [4]f32, cc: [4]f32) void {
+        self.appendFxVertex(a, ca);
+        self.appendFxVertex(b, cb);
+        self.appendFxVertex(c0, cc);
+    }
+
+    fn appendFxVertex(self: *AppState, screen: Vec2, color: [4]f32) void {
+        if (self.laser_fx_vertex_count >= self.laser_fx_vertices.len) return;
+        self.laser_fx_vertices[self.laser_fx_vertex_count] = .{
+            .position = self.screenToClip(screen),
+            .color = color,
+        };
+        self.laser_fx_vertex_count += 1;
+    }
+
+    fn screenToClip(self: *const AppState, screen: Vec2) [2]f32 {
+        _ = self;
+        const w = @max(1, sapp.widthf());
+        const h = @max(1, sapp.heightf());
+        return .{
+            screen.x / w * 2.0 - 1.0,
+            1.0 - screen.y / h * 2.0,
+        };
     }
 
     fn shotLift(self: *const AppState, kind: map_mod.ObjectKind) f32 {
@@ -1570,8 +1695,127 @@ fn destroySprite(sprite: *Sprite) void {
     sprite.* = .{};
 }
 
+fn laserFxShaderDesc() sg.ShaderDesc {
+    var desc: sg.ShaderDesc = .{};
+    desc.vertex_func.source = laserFxVertexShaderSource();
+    desc.fragment_func.source = laserFxFragmentShaderSource();
+    if (usesMetalBackend()) {
+        desc.vertex_func.entry = "vs_main";
+        desc.fragment_func.entry = "fs_main";
+    }
+    desc.attrs[0] = .{ .base_type = .FLOAT, .glsl_name = "position", .hlsl_sem_name = "POSITION" };
+    desc.attrs[1] = .{ .base_type = .FLOAT, .glsl_name = "color0", .hlsl_sem_name = "COLOR" };
+    desc.label = "laser-fx-shader";
+    return desc;
+}
+
+fn laserFxVertexShaderSource() [*c]const u8 {
+    return if (usesMetalBackend())
+        MetalLaserFxVs.ptr
+    else if (builtin.target.os.tag == .emscripten)
+        GlesLaserFxVs.ptr
+    else
+        GlCoreLaserFxVs.ptr;
+}
+
+fn laserFxFragmentShaderSource() [*c]const u8 {
+    return if (usesMetalBackend())
+        MetalLaserFxFs.ptr
+    else if (builtin.target.os.tag == .emscripten)
+        GlesLaserFxFs.ptr
+    else
+        GlCoreLaserFxFs.ptr;
+}
+
+fn usesMetalBackend() bool {
+    return builtin.target.os.tag.isDarwin();
+}
+
+const MetalLaserFxVs =
+    \\#include <metal_stdlib>
+    \\using namespace metal;
+    \\
+    \\struct VsIn {
+    \\    float2 position [[attribute(0)]];
+    \\    float4 color0 [[attribute(1)]];
+    \\};
+    \\
+    \\struct VsOut {
+    \\    float4 position [[position]];
+    \\    float4 color0;
+    \\};
+    \\
+    \\vertex VsOut vs_main(VsIn in [[stage_in]]) {
+    \\    VsOut out;
+    \\    out.position = float4(in.position, 0.0, 1.0);
+    \\    out.color0 = in.color0;
+    \\    return out;
+    \\}
+;
+
+const MetalLaserFxFs =
+    \\#include <metal_stdlib>
+    \\using namespace metal;
+    \\
+    \\struct FsIn {
+    \\    float4 position [[position]];
+    \\    float4 color0;
+    \\};
+    \\
+    \\fragment float4 fs_main(FsIn in [[stage_in]]) {
+    \\    return in.color0;
+    \\}
+;
+
+const GlesLaserFxVs =
+    \\#version 300 es
+    \\precision mediump float;
+    \\layout(location=0) in vec2 position;
+    \\layout(location=1) in vec4 color0;
+    \\out vec4 v_color0;
+    \\void main() {
+    \\    gl_Position = vec4(position, 0.0, 1.0);
+    \\    v_color0 = color0;
+    \\}
+;
+
+const GlesLaserFxFs =
+    \\#version 300 es
+    \\precision mediump float;
+    \\in vec4 v_color0;
+    \\out vec4 frag_color;
+    \\void main() {
+    \\    frag_color = v_color0;
+    \\}
+;
+
+const GlCoreLaserFxVs =
+    \\#version 330
+    \\layout(location=0) in vec2 position;
+    \\layout(location=1) in vec4 color0;
+    \\out vec4 v_color0;
+    \\void main() {
+    \\    gl_Position = vec4(position, 0.0, 1.0);
+    \\    v_color0 = color0;
+    \\}
+;
+
+const GlCoreLaserFxFs =
+    \\#version 330
+    \\in vec4 v_color0;
+    \\out vec4 frag_color;
+    \\void main() {
+    \\    frag_color = v_color0;
+    \\}
+;
+
 fn drawDiamond(center: Vec2, w: f32, h: f32, color: [4]f32) void {
     sgl.beginTriangles();
+    emitDiamondFill(center, w, h, color);
+    sgl.end();
+}
+
+fn emitDiamondFill(center: Vec2, w: f32, h: f32, color: [4]f32) void {
     sgl.c4f(color[0], color[1], color[2], color[3]);
     sgl.v2f(center.x, center.y - h * 0.5);
     sgl.v2f(center.x + w * 0.5, center.y);
@@ -1579,7 +1823,6 @@ fn drawDiamond(center: Vec2, w: f32, h: f32, color: [4]f32) void {
     sgl.v2f(center.x, center.y - h * 0.5);
     sgl.v2f(center.x, center.y + h * 0.5);
     sgl.v2f(center.x - w * 0.5, center.y);
-    sgl.end();
 }
 
 fn emitDiamondLine(center: Vec2, w: f32, h: f32) void {
@@ -1716,31 +1959,6 @@ fn laserColorForTeam(team: u8) [4]f32 {
         .{ 0.38, 0.86, 1.0, 0.96 }
     else
         .{ 1.0, 0.34, 0.22, 0.96 };
-}
-
-fn drawLaserLine(a: Vec2, b: Vec2, color: [4]f32, fade: f32) void {
-    const dx = b.x - a.x;
-    const dy = b.y - a.y;
-    const len = @max(1, @sqrt(dx * dx + dy * dy));
-    const px = -dy / len;
-    const py = dx / len;
-
-    sgl.beginLines();
-    emitLaserLine(a, b, px, py, -3.0, color, fade * 0.12);
-    emitLaserLine(a, b, px, py, 3.0, color, fade * 0.12);
-    emitLaserLine(a, b, px, py, -1.5, color, fade * 0.30);
-    emitLaserLine(a, b, px, py, 1.5, color, fade * 0.30);
-    emitLaserLine(a, b, px, py, 0, color, fade * 0.86);
-    sgl.c4f(1.0, 0.96, 0.72, fade * 0.78);
-    sgl.v2f(a.x, a.y);
-    sgl.v2f(b.x, b.y);
-    sgl.end();
-}
-
-fn emitLaserLine(a: Vec2, b: Vec2, px: f32, py: f32, offset: f32, color: [4]f32, alpha: f32) void {
-    sgl.c4f(color[0], color[1], color[2], color[3] * alpha);
-    sgl.v2f(a.x + px * offset, a.y + py * offset);
-    sgl.v2f(b.x + px * offset, b.y + py * offset);
 }
 
 fn line(a: Vec2, b: Vec2) void {
