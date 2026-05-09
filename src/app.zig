@@ -93,6 +93,7 @@ pub const AppState = struct {
     last_mouse: Vec2 = .{ .x = 0, .y = 0 },
     panning: bool = false,
     painting: bool = false,
+    pathing_dirty: bool = false,
     generated_asset_counter: u32 = 0,
     right_pan_start: Vec2 = .{ .x = 0, .y = 0 },
     right_pan_moved: bool = false,
@@ -168,6 +169,7 @@ pub const AppState = struct {
         const is_ready = self.ready();
         if (is_ready) {
             self.syncEditorPlayerWithSetup();
+            if (!self.painting) self.flushPathingRebuild();
             self.handleKeyboardCamera(dt);
             self.game.update(dt);
         }
@@ -248,6 +250,7 @@ pub const AppState = struct {
                     if (was_pick) self.pickEditorAt(self.mouse);
                 } else if (ev.mouse_button == .LEFT) {
                     self.painting = false;
+                    self.flushPathingRebuild();
                 }
             },
             .MOUSE_SCROLL => {
@@ -341,6 +344,7 @@ pub const AppState = struct {
         self.game.map = loaded;
         self.assignObjectAssets(true);
         self.game.rebuildPathing() catch {};
+        self.pathing_dirty = false;
         self.editor.setStatus("Loaded {s}", .{schema.DefaultMapPath});
     }
 
@@ -350,6 +354,7 @@ pub const AppState = struct {
         self.syncEditorPlayerWithSetup();
         self.assignStarterAssets();
         self.game.rebuildPathing() catch {};
+        self.pathing_dirty = false;
         self.editor.setStatus("Reset to starter battlefield.", .{});
     }
 
@@ -411,6 +416,16 @@ pub const AppState = struct {
         }
     }
 
+    fn markPathingDirty(self: *AppState) void {
+        self.pathing_dirty = true;
+    }
+
+    fn flushPathingRebuild(self: *AppState) void {
+        if (!self.pathing_dirty) return;
+        self.game.rebuildPathing() catch {};
+        self.pathing_dirty = false;
+    }
+
     fn advanceLoading(self: *AppState) void {
         switch (self.loading.phase) {
             .intro => {
@@ -428,6 +443,7 @@ pub const AppState = struct {
                 self.loading.progress = 0.94;
                 self.assignStarterAssets();
                 self.game.rebuildPathing() catch {};
+                self.pathing_dirty = false;
                 self.loading.progress = 1.0;
                 self.loading.phase = .complete;
                 self.editor.setStatus("Ready. Loaded {d} assets.", .{self.loading.loaded_assets});
@@ -1084,18 +1100,17 @@ pub const AppState = struct {
                         const tx = x + ox;
                         const ty = y + oy;
                         if (!self.game.map.inBounds(tx, ty)) continue;
-                        self.game.map.paintTerrain(
+                        changed = self.game.map.paintTerrain(
                             tx,
                             ty,
                             self.editor.brush_terrain_id,
                             self.editor.brush_asset_id,
                             self.editor.terrain_walkable,
                             @intCast(@max(1, self.editor.terrain_cost)),
-                        );
-                        changed = true;
+                        ) or changed;
                     }
                 }
-                if (changed) self.game.rebuildPathing() catch {};
+                if (changed) self.markPathingDirty();
             },
             .object => {
                 const asset = self.assetForObjectKind(self.editor.object_kind);
@@ -1104,15 +1119,16 @@ pub const AppState = struct {
                     self.editor.setStatus("Setup placement limit reached for Player {d}.", .{player + 1});
                     return;
                 }
-                _ = self.game.map.addObject(
+                if (self.game.map.addObject(
                     self.editor.object_kind,
                     x,
                     y,
                     player,
                     player,
                     asset,
-                );
-                self.game.rebuildPathing() catch {};
+                ) != null) {
+                    self.markPathingDirty();
+                }
             },
             .erase => {
                 var changed = false;
@@ -1125,12 +1141,13 @@ pub const AppState = struct {
                         const ty = y + oy;
                         if (!self.game.map.inBounds(tx, ty)) continue;
                         if (!self.game.map.removeObjectAt(tx, ty)) {
-                            self.game.map.paintTerrain(tx, ty, 0, self.editor.brush_asset_id, true, 1);
+                            changed = self.game.map.paintTerrain(tx, ty, 0, self.editor.brush_asset_id, true, 1) or changed;
+                        } else {
+                            changed = true;
                         }
-                        changed = true;
                     }
                 }
-                if (changed) self.game.rebuildPathing() catch {};
+                if (changed) self.markPathingDirty();
             },
             .select => {},
         }

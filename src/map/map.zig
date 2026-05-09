@@ -90,16 +90,27 @@ pub const GameMap = struct {
         return x >= 0 and y >= 0 and @as(usize, @intCast(x)) < self.width and @as(usize, @intCast(y)) < self.height;
     }
 
-    pub fn paintTerrain(self: *GameMap, x: i32, y: i32, terrain_id: u8, asset_id: u16, walkable: bool, movement_cost: u16) void {
-        if (!self.inBounds(x, y)) return;
+    pub fn paintTerrain(self: *GameMap, x: i32, y: i32, terrain_id: u8, asset_id: u16, walkable: bool, movement_cost: u16) bool {
+        if (!self.inBounds(x, y)) return false;
         const ux: usize = @intCast(x);
         const uy: usize = @intCast(y);
+        const next_cost = @max(1, movement_cost);
+        const current = self.terrain[uy][ux];
+        if (current.terrain_id == terrain_id and
+            current.asset_id == asset_id and
+            current.walkable == walkable and
+            current.buildable == walkable and
+            current.movement_cost == next_cost)
+        {
+            return false;
+        }
         self.terrain[uy][ux].terrain_id = terrain_id;
         self.terrain[uy][ux].asset_id = asset_id;
         self.terrain[uy][ux].walkable = walkable;
         self.terrain[uy][ux].buildable = walkable;
-        self.terrain[uy][ux].movement_cost = @max(1, movement_cost);
+        self.terrain[uy][ux].movement_cost = next_cost;
         self.version += 1;
+        return true;
     }
 
     pub fn addObject(self: *GameMap, kind: ObjectKind, x: i32, y: i32, owner: u8, team: u8, asset_id: u16) ?u32 {
@@ -197,4 +208,19 @@ pub fn defaultStats(kind: ObjectKind) ObjectStats {
         .outpost => .{ .hp = 360, .range = 3.2, .damage_per_second = 20, .move_seconds = 999 },
         .defense_grid => .{ .hp = 280, .range = 3.8, .damage_per_second = 22, .move_seconds = 999 },
     };
+}
+
+test "painting identical terrain is a no-op" {
+    var game_map = GameMap.initDefault();
+    const before = game_map.version;
+    const changed = game_map.paintTerrain(
+        0,
+        0,
+        game_map.terrain[0][0].terrain_id,
+        game_map.terrain[0][0].asset_id,
+        game_map.terrain[0][0].walkable,
+        game_map.terrain[0][0].movement_cost,
+    );
+    try std.testing.expect(!changed);
+    try std.testing.expectEqual(before, game_map.version);
 }
