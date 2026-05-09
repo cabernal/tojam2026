@@ -2,6 +2,8 @@ const std = @import("std");
 const builtin = @import("builtin");
 
 pub const MaxAssets = 160;
+const RuntimeAssetPrefix = "runtime/";
+const BackgroundSheetPrefix = "tilesets/arid_badlands/backgrounds/";
 
 pub const AssetKind = enum {
     terrain,
@@ -63,6 +65,7 @@ pub const AssetCatalog = struct {
         while (try walker.next()) |entry| {
             if (self.assets.items.len >= MaxAssets) break;
             if (entry.kind != .file or !endsWithIgnoreCase(entry.basename, ".png")) continue;
+            if (isRuntimeAsset(entry.path)) continue;
             try self.appendAsset(root_path, entry.path);
         }
         sortByPath(self.assets.items);
@@ -80,6 +83,7 @@ pub const AssetCatalog = struct {
             if (self.assets.items.len >= MaxAssets) break;
             const rel_path = std.mem.trim(u8, raw_line, " \t\r");
             if (rel_path.len == 0 or !endsWithIgnoreCase(rel_path, ".png")) continue;
+            if (isRuntimeAsset(rel_path)) continue;
             try self.appendAsset(root_path, rel_path);
         }
         sortByPath(self.assets.items);
@@ -87,7 +91,9 @@ pub const AssetCatalog = struct {
     }
 
     fn appendAsset(self: *AssetCatalog, root_path: []const u8, rel_path: []const u8) !void {
-        const full = try std.fs.path.join(self.allocator, &.{ root_path, rel_path });
+        var load_path_buf: [1024]u8 = undefined;
+        const load_path = runtimeLoadPath(root_path, rel_path, &load_path_buf) orelse rel_path;
+        const full = try std.fs.path.join(self.allocator, &.{ root_path, load_path });
         errdefer self.allocator.free(full);
         const base = std.fs.path.basename(rel_path);
         const name = try self.allocator.dupe(u8, base);
@@ -167,6 +173,29 @@ fn kindRank(kind: AssetKind) u8 {
         .unit => 4,
         .unknown => 5,
     };
+}
+
+fn isRuntimeAsset(rel_path: []const u8) bool {
+    return std.mem.startsWith(u8, rel_path, RuntimeAssetPrefix);
+}
+
+fn runtimeLoadPath(root_path: []const u8, rel_path: []const u8, buffer: []u8) ?[]const u8 {
+    if (!std.mem.startsWith(u8, rel_path, BackgroundSheetPrefix)) return null;
+
+    const candidate_rel = std.fmt.bufPrint(buffer, "{s}{s}", .{ RuntimeAssetPrefix, rel_path }) catch return null;
+
+    var full_buf: [std.fs.max_path_bytes]u8 = undefined;
+    const full_path = std.fmt.bufPrint(&full_buf, "{s}/{s}", .{ root_path, candidate_rel }) catch return null;
+    accessPath(full_path) catch return null;
+    return candidate_rel;
+}
+
+fn accessPath(path: []const u8) !void {
+    if (std.fs.path.isAbsolute(path)) {
+        try std.fs.accessAbsolute(path, .{});
+    } else {
+        try std.fs.cwd().access(path, .{});
+    }
 }
 
 fn classifyPath(path: []const u8) AssetKind {

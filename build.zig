@@ -113,14 +113,14 @@ pub fn build(b: *std.Build) void {
             .name = "tojam2026_web",
             .root_module = web_module,
         });
-        const manifest_dir = makeWebAssetManifest(b);
+        const web_assets_dir = makeWebAssetBundle(b);
 
         const web_install = makeWebLinkStep(b, .{
             .name = APP_NAME,
             .optimize = optimize,
             .lib_main = web_lib,
             .emsdk_root = emsdk_root,
-            .asset_manifest_dir = manifest_dir,
+            .asset_dir = web_assets_dir,
         });
         web_step.dependOn(&web_install.step);
     } else {
@@ -308,7 +308,7 @@ const WebLinkOptions = struct {
     optimize: std.builtin.OptimizeMode,
     lib_main: *std.Build.Step.Compile,
     emsdk_root: []const u8,
-    asset_manifest_dir: std.Build.LazyPath,
+    asset_dir: std.Build.LazyPath,
 };
 
 fn makeWebLinkStep(b: *std.Build, options: WebLinkOptions) *std.Build.Step.InstallDir {
@@ -331,9 +331,7 @@ fn makeWebLinkStep(b: *std.Build, options: WebLinkOptions) *std.Build.Step.Insta
         "-sSTACK_SIZE=1MB",
     });
     emcc.addArg("--preload-file");
-    emcc.addDecoratedDirectoryArg("", b.path("assets"), "@/assets");
-    emcc.addArg("--preload-file");
-    emcc.addDecoratedDirectoryArg("", options.asset_manifest_dir, "@/assets");
+    emcc.addDecoratedDirectoryArg("", options.asset_dir, "@/assets");
     emcc.addArg("--shell-file");
     emcc.addFileArg(b.path("web/shell.html"));
 
@@ -356,16 +354,23 @@ fn makeWebLinkStep(b: *std.Build, options: WebLinkOptions) *std.Build.Step.Insta
     return install;
 }
 
-fn makeWebAssetManifest(b: *std.Build) std.Build.LazyPath {
+fn makeWebAssetBundle(b: *std.Build) std.Build.LazyPath {
     var paths: std.ArrayList([]const u8) = .empty;
+    const write_files = b.addWriteFiles();
     var dir = std.fs.cwd().openDir("assets", .{ .iterate = true }) catch @panic("failed to open assets directory");
     defer dir.close();
     var walker = dir.walk(b.allocator) catch @panic("failed to scan assets directory");
     defer walker.deinit();
 
     while (walker.next() catch @panic("failed to walk assets directory")) |entry| {
-        if (entry.kind != .file or !endsWithIgnoreCase(entry.basename, ".png")) continue;
-        paths.append(b.allocator, b.dupe(entry.path)) catch @panic("OOM");
+        if (entry.kind != .file) continue;
+        const is_png = endsWithIgnoreCase(entry.basename, ".png");
+        if (is_png and !isRuntimeAssetPath(entry.path)) {
+            paths.append(b.allocator, b.dupe(entry.path)) catch @panic("OOM");
+        }
+        if (isRawBackgroundSheetPath(entry.path)) continue;
+        const source = b.path(b.pathJoin(&.{ "assets", entry.path }));
+        _ = write_files.addCopyFile(source, entry.path);
     }
     std.mem.sort([]const u8, paths.items, {}, struct {
         fn lessThan(_: void, a: []const u8, z: []const u8) bool {
@@ -379,7 +384,6 @@ fn makeWebAssetManifest(b: *std.Build) std.Build.LazyPath {
         text.append(b.allocator, '\n') catch @panic("OOM");
     }
 
-    const write_files = b.addWriteFiles();
     _ = write_files.add("asset_manifest.txt", text.toOwnedSlice(b.allocator) catch @panic("OOM"));
     return write_files.getDirectory();
 }
@@ -412,4 +416,12 @@ fn endsWithIgnoreCase(haystack: []const u8, suffix: []const u8) bool {
         if (std.ascii.toLower(a) != std.ascii.toLower(b)) return false;
     }
     return true;
+}
+
+fn isRuntimeAssetPath(path: []const u8) bool {
+    return std.mem.startsWith(u8, path, "runtime/");
+}
+
+fn isRawBackgroundSheetPath(path: []const u8) bool {
+    return std.mem.startsWith(u8, path, "tilesets/arid_badlands/backgrounds/") and endsWithIgnoreCase(path, ".png");
 }
