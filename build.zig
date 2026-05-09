@@ -113,12 +113,14 @@ pub fn build(b: *std.Build) void {
             .name = "tojam2026_web",
             .root_module = web_module,
         });
+        const manifest_dir = makeWebAssetManifest(b);
 
         const web_install = makeWebLinkStep(b, .{
             .name = APP_NAME,
             .optimize = optimize,
             .lib_main = web_lib,
             .emsdk_root = emsdk_root,
+            .asset_manifest_dir = manifest_dir,
         });
         web_step.dependOn(&web_install.step);
     } else {
@@ -306,6 +308,7 @@ const WebLinkOptions = struct {
     optimize: std.builtin.OptimizeMode,
     lib_main: *std.Build.Step.Compile,
     emsdk_root: []const u8,
+    asset_manifest_dir: std.Build.LazyPath,
 };
 
 fn makeWebLinkStep(b: *std.Build, options: WebLinkOptions) *std.Build.Step.InstallDir {
@@ -326,9 +329,11 @@ fn makeWebLinkStep(b: *std.Build, options: WebLinkOptions) *std.Build.Step.Insta
         "-sUSE_WEBGL2=1",
         "-sALLOW_MEMORY_GROWTH=1",
         "-sSTACK_SIZE=1MB",
-        "--preload-file",
-        "assets@/assets",
     });
+    emcc.addArg("--preload-file");
+    emcc.addDecoratedDirectoryArg("", b.path("assets"), "@/assets");
+    emcc.addArg("--preload-file");
+    emcc.addDecoratedDirectoryArg("", options.asset_manifest_dir, "@/assets");
     emcc.addArg("--shell-file");
     emcc.addFileArg(b.path("web/shell.html"));
 
@@ -351,6 +356,34 @@ fn makeWebLinkStep(b: *std.Build, options: WebLinkOptions) *std.Build.Step.Insta
     return install;
 }
 
+fn makeWebAssetManifest(b: *std.Build) std.Build.LazyPath {
+    var paths: std.ArrayList([]const u8) = .empty;
+    var dir = std.fs.cwd().openDir("assets", .{ .iterate = true }) catch @panic("failed to open assets directory");
+    defer dir.close();
+    var walker = dir.walk(b.allocator) catch @panic("failed to scan assets directory");
+    defer walker.deinit();
+
+    while (walker.next() catch @panic("failed to walk assets directory")) |entry| {
+        if (entry.kind != .file or !endsWithIgnoreCase(entry.basename, ".png")) continue;
+        paths.append(b.allocator, b.dupe(entry.path)) catch @panic("OOM");
+    }
+    std.mem.sort([]const u8, paths.items, {}, struct {
+        fn lessThan(_: void, a: []const u8, z: []const u8) bool {
+            return std.mem.lessThan(u8, a, z);
+        }
+    }.lessThan);
+
+    var text: std.ArrayList(u8) = .empty;
+    for (paths.items) |path| {
+        text.appendSlice(b.allocator, path) catch @panic("OOM");
+        text.append(b.allocator, '\n') catch @panic("OOM");
+    }
+
+    const write_files = b.addWriteFiles();
+    _ = write_files.add("asset_manifest.txt", text.toOwnedSlice(b.allocator) catch @panic("OOM"));
+    return write_files.getDirectory();
+}
+
 fn findEmsdkPython(b: *std.Build, emsdk_root: []const u8) []const u8 {
     const python_root = b.pathJoin(&.{ emsdk_root, "python" });
     var dir = std.fs.cwd().openDir(python_root, .{ .iterate = true }) catch {
@@ -370,4 +403,13 @@ fn findEmsdkPython(b: *std.Build, emsdk_root: []const u8) []const u8 {
         }
     }
     return b.pathJoin(&.{ emsdk_root, "python", "3.13.3_64bit", "bin", "python3" });
+}
+
+fn endsWithIgnoreCase(haystack: []const u8, suffix: []const u8) bool {
+    if (suffix.len > haystack.len) return false;
+    const tail = haystack[haystack.len - suffix.len ..];
+    for (tail, suffix) |a, b| {
+        if (std.ascii.toLower(a) != std.ascii.toLower(b)) return false;
+    }
+    return true;
 }

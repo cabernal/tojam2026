@@ -30,19 +30,32 @@ pub const AssetCatalog = struct {
     }
 
     pub fn deinit(self: *AssetCatalog) void {
-        for (self.assets.items) |asset| {
-            self.allocator.free(asset.path);
-            self.allocator.free(asset.name);
-        }
+        self.clear();
         self.assets.deinit(self.allocator);
         self.* = undefined;
     }
 
-    pub fn scan(self: *AssetCatalog, root_path: []const u8) !void {
-        if (builtin.target.os.tag == .emscripten) {
-            return self.scanStaticWeb(root_path);
+    pub fn clear(self: *AssetCatalog) void {
+        for (self.assets.items) |asset| {
+            self.allocator.free(asset.path);
+            self.allocator.free(asset.name);
         }
-        var dir = try std.fs.cwd().openDir(root_path, .{ .iterate = true });
+        self.assets.clearRetainingCapacity();
+    }
+
+    pub fn scan(self: *AssetCatalog, root_path: []const u8) !void {
+        self.clear();
+        if (comptime builtin.target.os.tag == .emscripten) {
+            return self.scanManifest(root_path);
+        }
+        return self.scanDirectory(root_path);
+    }
+
+    fn scanDirectory(self: *AssetCatalog, root_path: []const u8) !void {
+        var dir = if (std.fs.path.isAbsolute(root_path))
+            try std.fs.openDirAbsolute(root_path, .{ .iterate = true })
+        else
+            try std.fs.cwd().openDir(root_path, .{ .iterate = true });
         defer dir.close();
         var walker = try dir.walk(self.allocator);
         defer walker.deinit();
@@ -50,38 +63,41 @@ pub const AssetCatalog = struct {
         while (try walker.next()) |entry| {
             if (self.assets.items.len >= MaxAssets) break;
             if (entry.kind != .file or !endsWithIgnoreCase(entry.basename, ".png")) continue;
-            const rel = try std.fs.path.join(self.allocator, &.{ root_path, entry.path });
-            errdefer self.allocator.free(rel);
-            const name = try self.allocator.dupe(u8, entry.basename);
-            errdefer self.allocator.free(name);
-            try self.assets.append(self.allocator, .{
-                .id = @intCast(self.assets.items.len),
-                .kind = classifyPath(entry.path),
-                .path = rel,
-                .name = name,
-            });
+            try self.appendAsset(root_path, entry.path);
         }
         sortByPath(self.assets.items);
         for (self.assets.items, 0..) |*asset, i| asset.id = @intCast(i);
     }
 
-    fn scanStaticWeb(self: *AssetCatalog, root_path: []const u8) !void {
-        for (WebAssetPaths) |rel_path| {
+    fn scanManifest(self: *AssetCatalog, root_path: []const u8) !void {
+        var manifest_path_buf: [1024]u8 = undefined;
+        const manifest_path = try std.fmt.bufPrint(&manifest_path_buf, "{s}/asset_manifest.txt", .{root_path});
+        const bytes = try std.fs.cwd().readFileAlloc(self.allocator, manifest_path, 256 * 1024);
+        defer self.allocator.free(bytes);
+
+        var lines = std.mem.splitScalar(u8, bytes, '\n');
+        while (lines.next()) |raw_line| {
             if (self.assets.items.len >= MaxAssets) break;
-            const full = try std.fs.path.join(self.allocator, &.{ root_path, rel_path });
-            errdefer self.allocator.free(full);
-            const base = std.fs.path.basename(rel_path);
-            const name = try self.allocator.dupe(u8, base);
-            errdefer self.allocator.free(name);
-            try self.assets.append(self.allocator, .{
-                .id = @intCast(self.assets.items.len),
-                .kind = classifyPath(rel_path),
-                .path = full,
-                .name = name,
-            });
+            const rel_path = std.mem.trim(u8, raw_line, " \t\r");
+            if (rel_path.len == 0 or !endsWithIgnoreCase(rel_path, ".png")) continue;
+            try self.appendAsset(root_path, rel_path);
         }
         sortByPath(self.assets.items);
         for (self.assets.items, 0..) |*asset, i| asset.id = @intCast(i);
+    }
+
+    fn appendAsset(self: *AssetCatalog, root_path: []const u8, rel_path: []const u8) !void {
+        const full = try std.fs.path.join(self.allocator, &.{ root_path, rel_path });
+        errdefer self.allocator.free(full);
+        const base = std.fs.path.basename(rel_path);
+        const name = try self.allocator.dupe(u8, base);
+        errdefer self.allocator.free(name);
+        try self.assets.append(self.allocator, .{
+            .id = @intCast(self.assets.items.len),
+            .kind = classifyPath(rel_path),
+            .path = full,
+            .name = name,
+        });
     }
 
     pub fn firstOfKind(self: *const AssetCatalog, kind: AssetKind) ?u16 {
@@ -113,34 +129,6 @@ pub const AssetCatalog = struct {
         }
         return null;
     }
-};
-
-const WebAssetPaths = [_][]const u8{
-    "tilesets/arid_badlands/backgrounds/Desert_BG_2 - dark.png",
-    "tilesets/arid_badlands/backgrounds/Desert_BG_2 - light.png",
-    "tilesets/arid_badlands/backgrounds/Desert_BG_2 - medium.png",
-    "tilesets/arid_badlands/backgrounds/Desert_BG_2 - pale.png",
-    "doodads/arid_badlands/flora/Acacia Style Trees Patch 2z2 B-green.png",
-    "doodads/arid_badlands/flora/Giant Cactus Patch 2x2 A-green.png",
-    "doodads/arid_badlands/odds/Rail Segment 2.2.png",
-    "doodads/arid_badlands/rocks/Dersert Rocks - Size 1A - light.png",
-    "doodads/arid_badlands/rocks/Dersert Rocks - Size 1B - medium.png",
-    "doodads/arid_badlands/rocks/Dersert Rocks - Size 2A - dark.png",
-    "doodads/arid_badlands/rocks/Desert Small Rockpile- Dif terrain C - light.png",
-    "doodads/arid_badlands/waterways/Sandy Waterway 1 - Open Water.png",
-    "doodads/arid_badlands/waterways/Sandy Waterway 1 - corner north.png",
-    "doodads/arid_badlands/waterways/Sandy Waterway 1 - long straight1.png",
-    "buildings/arid_badlands/Building A1.1 sz2 shadow.png",
-    "buildings/arid_badlands/Building B sz2 noshadow.png",
-    "buildings/arid_badlands/Building C sz1 noshadow.png",
-    "buildings/arid_badlands/Building H1.2 sz1 shadow.png",
-    "sprites/starter/artillery.png",
-    "sprites/starter/captain.png",
-    "sprites/starter/citadel.png",
-    "sprites/starter/healing_pod.png",
-    "sprites/starter/imperator.png",
-    "sprites/starter/infantry.png",
-    "sprites/starter/portal.png",
 };
 
 fn sortByPath(items: []SpriteAsset) void {

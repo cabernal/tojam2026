@@ -6,7 +6,7 @@ Completed items are crossed out in the commit that addresses them.
 ## Open Gaps
 
 - [x] ~~Separate editor/game run modes are only partial. The current app is one executable with editor toggles, not explicit editor-only and game-only run targets.~~ Addressed with compile-time app modes plus `run-integrated`, `run-editor`, and `run-game` native steps.
-- [ ] Web and native asset discovery are not equivalent. Native scans `assets/` recursively, while web uses a hardcoded manifest.
+- [x] ~~Web and native asset discovery are not equivalent. Native scans `assets/` recursively, while web uses a hardcoded manifest.~~ Addressed by replacing the hardcoded web list with a build-generated manifest from the same `assets/` tree.
 - [ ] The level editor cannot create new sprite assets, only terrain variants and object placements.
 - [ ] The setup phase is incomplete. It lacks a real player-one/player-two handoff, setup visibility, placement limits, and a structured transition into gameplay.
 - [ ] Gameplay movement toward blocked citadels is fragile because citadels block their own target tile.
