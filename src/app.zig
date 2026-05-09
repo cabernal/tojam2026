@@ -1390,7 +1390,7 @@ pub fn appDesc() sapp.Desc {
         .high_dpi = !is_web,
         .html5 = .{
             .canvas_selector = "#canvas",
-            .canvas_resize = true,
+            .canvas_resize = false,
             .preserve_drawing_buffer = false,
             .premultiplied_alpha = true,
             .ask_leave_site = false,
