@@ -13,7 +13,7 @@ Completed items are crossed out in the commit that addresses them.
 - [x] ~~Flow fields are implemented and tested but not used by the runtime unit movement loop.~~ Addressed by moving units through cached flow fields with an A* fallback.
 - [x] ~~Portal objects do not teleport or link units.~~ Addressed with linked portal exits for mobile units.
 - [x] ~~Healing pods have negative damage stats, but the combat system skips non-damaging objects instead of healing allies.~~ Addressed with allied healing pulses around healing pods.
-- [ ] The editor layer panel is currently a set of toggles rather than a fuller layer control surface.
+- [x] ~~The editor layer panel is currently a set of toggles rather than a fuller layer control surface.~~ Addressed with explicit terrain, object, health, preview, and debug layer controls.
 - [ ] Web map persistence is disabled while native save/load works.
 
 ## Already Verified

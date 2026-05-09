@@ -93,7 +93,13 @@ fn drawInspector(app: anytype) void {
     }
 
     c.igSeparator();
+    uiText("Layers", .{});
+    _ = c.igCheckbox("Terrain Layer", &app.editor.show_terrain);
+    _ = c.igCheckbox("Object Layer", &app.editor.show_objects);
+    _ = c.igCheckbox("Health Bars", &app.editor.show_health);
     _ = c.igCheckbox("Preview", &app.editor.show_preview);
+    c.igSeparator();
+    uiText("Debug", .{});
     _ = c.igCheckbox("Grid", &app.editor.show_grid);
     _ = c.igCheckbox("Pathing", &app.editor.show_pathing);
     _ = c.igCheckbox("Sectors", &app.editor.show_sectors);

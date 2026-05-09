@@ -729,12 +729,12 @@ pub const AppState = struct {
     }
 
     fn drawWorld(self: *AppState) void {
-        self.drawTerrain();
+        if (self.editor.show_terrain) self.drawTerrain();
         if (self.editor.show_pathing) self.drawPathingOverlay();
         if (self.editor.show_sectors) self.drawSectorOverlay();
         if (self.editor.show_portals) self.drawPortalOverlay();
         if (self.editor.show_grid) self.drawGrid();
-        self.drawObjects();
+        if (self.editor.show_objects) self.drawObjects();
         self.drawEditorPreviewOverlay();
     }
 
@@ -766,7 +766,7 @@ pub const AppState = struct {
             if (!self.tryDrawObjectSprite(object, center)) {
                 self.drawObjectMarker(object, center);
             }
-            self.drawHealthBar(object, center);
+            if (self.editor.show_health) self.drawHealthBar(object, center);
         }
     }
 
