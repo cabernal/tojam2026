@@ -1,7 +1,7 @@
 const std = @import("std");
 const builtin = @import("builtin");
 
-pub const MaxAssets = 96;
+pub const MaxAssets = 160;
 
 pub const AssetKind = enum {
     terrain,
@@ -105,6 +105,14 @@ pub const AssetCatalog = struct {
         if (id >= self.assets.items.len) return null;
         return &self.assets.items[id];
     }
+
+    pub fn findByPathSuffix(self: *const AssetCatalog, suffix: []const u8) ?u16 {
+        const normalized = trimLeadingSeparators(suffix);
+        for (self.assets.items) |asset| {
+            if (endsWithIgnoreCase(asset.path, normalized)) return asset.id;
+        }
+        return null;
+    }
 };
 
 const WebAssetPaths = [_][]const u8{
@@ -126,6 +134,13 @@ const WebAssetPaths = [_][]const u8{
     "buildings/arid_badlands/Building B sz2 noshadow.png",
     "buildings/arid_badlands/Building C sz1 noshadow.png",
     "buildings/arid_badlands/Building H1.2 sz1 shadow.png",
+    "sprites/starter/artillery.png",
+    "sprites/starter/captain.png",
+    "sprites/starter/citadel.png",
+    "sprites/starter/healing_pod.png",
+    "sprites/starter/imperator.png",
+    "sprites/starter/infantry.png",
+    "sprites/starter/portal.png",
 };
 
 fn sortByPath(items: []SpriteAsset) void {
@@ -151,6 +166,13 @@ fn kindRank(kind: AssetKind) u8 {
 }
 
 fn classifyPath(path: []const u8) AssetKind {
+    if (containsIgnoreCase(path, "citadel")) return .building;
+    if (containsIgnoreCase(path, "imperator")) return .unit;
+    if (containsIgnoreCase(path, "infantry")) return .unit;
+    if (containsIgnoreCase(path, "captain")) return .unit;
+    if (containsIgnoreCase(path, "artillery")) return .unit;
+    if (containsIgnoreCase(path, "portal")) return .doodad;
+    if (containsIgnoreCase(path, "healing")) return .doodad;
     if (containsIgnoreCase(path, "background")) return .terrain;
     if (containsIgnoreCase(path, "tileset")) return .terrain;
     if (containsIgnoreCase(path, "building")) return .building;
@@ -182,4 +204,10 @@ fn containsIgnoreCase(haystack: []const u8, needle: []const u8) bool {
 fn endsWithIgnoreCase(haystack: []const u8, suffix: []const u8) bool {
     if (suffix.len > haystack.len) return false;
     return containsIgnoreCase(haystack[haystack.len - suffix.len ..], suffix);
+}
+
+fn trimLeadingSeparators(path: []const u8) []const u8 {
+    var start: usize = 0;
+    while (start < path.len and (path[start] == '/' or path[start] == '\\')) : (start += 1) {}
+    return path[start..];
 }

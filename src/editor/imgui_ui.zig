@@ -115,7 +115,7 @@ fn drawAssetBrowser(app: anytype) void {
         if (shown >= 18) break;
         const useful = switch (app.editor.tool) {
             .terrain => asset.kind == .terrain or asset.kind == .water,
-            .object => asset.kind == .building or asset.kind == .doodad or asset.kind == .water,
+            .object => asset.kind == .building or asset.kind == .doodad or asset.kind == .unit or asset.kind == .water,
             else => true,
         };
         if (!useful) continue;

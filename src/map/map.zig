@@ -51,6 +51,16 @@ pub const GameMap = struct {
         _ = map.addObject(.portal, 20, 21, 1, 1, 3);
         _ = map.addObject(.healing_pod, 8, 24, 0, 0, 2);
         _ = map.addObject(.healing_pod, 23, 7, 1, 1, 2);
+        _ = map.addObject(.outpost, 4, 12, 0, 0, 0);
+        _ = map.addObject(.defense_grid, 4, 18, 0, 0, 0);
+        _ = map.addObject(.outpost, 27, 18, 1, 1, 0);
+        _ = map.addObject(.defense_grid, 27, 12, 1, 1, 0);
+        _ = map.addObject(.obstacle, 2, 8, 0, 0, 0);
+        _ = map.addObject(.obstacle, 7, 6, 0, 0, 0);
+        _ = map.addObject(.obstacle, 11, 25, 0, 0, 0);
+        _ = map.addObject(.obstacle, 20, 6, 1, 1, 0);
+        _ = map.addObject(.obstacle, 24, 25, 1, 1, 0);
+        _ = map.addObject(.obstacle, 30, 21, 1, 1, 0);
         for (0..9) |i| {
             _ = map.addObject(.infantry, 6, 10 + @as(i32, @intCast(i)), 0, 0, 0);
             _ = map.addObject(.infantry, 25, 10 + @as(i32, @intCast(i)), 1, 1, 1);
@@ -188,4 +198,3 @@ pub fn defaultStats(kind: ObjectKind) ObjectStats {
         .defense_grid => .{ .hp = 280, .range = 3.8, .damage_per_second = 22, .move_seconds = 999 },
     };
 }
-

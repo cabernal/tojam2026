@@ -14,6 +14,7 @@ const map_mod = @import("map/map.zig");
 const map_io = @import("map/map_io.zig");
 const schema = @import("map/schema.zig");
 const asset_loader = @import("assets/asset_loader.zig");
+const sprite_defs = @import("assets/sprite_defs.zig");
 const png_loader = @import("assets/png_loader.zig");
 const editor_mod = @import("editor/editor.zig");
 const tools = @import("editor/tools.zig");
@@ -45,6 +46,7 @@ pub const AppState = struct {
     allocator: std.mem.Allocator = undefined,
     game: runtime.RuntimeGame = undefined,
     catalog: asset_loader.AssetCatalog = undefined,
+    object_sprites: sprite_defs.SpriteDefinitions = undefined,
     editor: editor_mod.EditorState = .{},
     sprites: [MaxSprites]Sprite = [_]Sprite{.{}} ** MaxSprites,
     sprite_count: usize = 0,
@@ -62,6 +64,7 @@ pub const AppState = struct {
     pub fn init(self: *AppState, allocator: std.mem.Allocator) void {
         self.allocator = allocator;
         self.catalog = asset_loader.AssetCatalog.init(allocator);
+        self.object_sprites = sprite_defs.SpriteDefinitions.init(allocator);
         self.game = runtime.RuntimeGame.init(allocator) catch |err| {
             std.log.err("runtime init failed: {s}", .{@errorName(err)});
             return;
@@ -98,6 +101,7 @@ pub const AppState = struct {
         });
 
         self.loadAssets();
+        self.loadObjectSpriteDefinitions();
         self.assignStarterAssets();
         self.initialized = true;
     }
@@ -107,6 +111,7 @@ pub const AppState = struct {
         for (self.sprites[0..self.sprite_count]) |*sprite| destroySprite(sprite);
         if (self.sampler.id != 0) sg.destroySampler(self.sampler);
         if (self.alpha_pipeline.id != 0) sgl.destroyPipeline(self.alpha_pipeline);
+        self.object_sprites.deinit();
         self.catalog.deinit();
         self.game.deinit();
         simgui.shutdown();
@@ -218,6 +223,7 @@ pub const AppState = struct {
             return;
         };
         self.game.map = loaded;
+        self.assignObjectAssets(true);
         self.game.rebuildPathing() catch {};
         self.editor.setStatus("Loaded {s}", .{schema.DefaultMapPath});
     }
@@ -258,10 +264,28 @@ pub const AppState = struct {
         self.editor.setStatus("Loaded {d} assets from {s}", .{ self.sprite_count, platform.assetRoot() });
     }
 
+    fn loadObjectSpriteDefinitions(self: *AppState) void {
+        var path_buf: [1024]u8 = undefined;
+        const path = std.fmt.bufPrint(&path_buf, "{s}/sprites/object_sprites.json", .{platform.assetRoot()}) catch {
+            self.editor.setStatus("Object sprite definition path is too long.", .{});
+            return;
+        };
+        self.object_sprites.loadFromFile(path, &self.catalog) catch |err| {
+            self.editor.setStatus("Object sprite definitions skipped: {s}", .{@errorName(err)});
+            return;
+        };
+
+        var linked: usize = 0;
+        for (self.object_sprites.objects.items) |def| {
+            if (def.asset_id != null) linked += 1;
+        }
+        self.editor.setStatus("Loaded {d} object sprite definitions ({d} linked).", .{ self.object_sprites.objects.items.len, linked });
+    }
+
     fn assignStarterAssets(self: *AppState) void {
         const terrain_count = self.countAssets(.terrain);
         const water_id = self.catalog.firstOfKind(.water) orelse self.catalog.firstOfKind(.terrain) orelse NoAsset;
-        const rock_id = self.catalog.nthOfKind(.doodad, 2) orelse self.catalog.firstOfKind(.doodad) orelse NoAsset;
+        const rock_id = self.defaultRockAsset();
         for (0..self.game.map.height) |y| {
             for (0..self.game.map.width) |x| {
                 var cell = &self.game.map.terrain[y][x];
@@ -277,15 +301,67 @@ pub const AppState = struct {
             }
         }
 
-        for (self.game.map.objects[0..self.game.map.object_count]) |*object| {
-            object.asset_id = switch (object.kind) {
-                .citadel => NoAsset,
-                .outpost, .defense_grid => self.catalog.nthOfKind(.building, 2) orelse self.catalog.firstOfKind(.building) orelse NoAsset,
-                .obstacle => rock_id,
-                else => NoAsset,
-            };
-        }
+        self.assignObjectAssets(false);
         self.editor.brush_asset_id = self.catalog.firstOfKind(.terrain) orelse 0;
+    }
+
+    fn assignObjectAssets(self: *AppState, preserve_valid: bool) void {
+        const rock_id = self.defaultRockAsset();
+        for (self.game.map.objects[0..self.game.map.object_count]) |*object| {
+            if (preserve_valid and self.assetFitsObjectKind(object.kind, object.asset_id)) continue;
+            object.asset_id = self.defaultAssetForObject(object.*, rock_id);
+        }
+    }
+
+    fn defaultAssetForObject(self: *const AppState, object: map_mod.MapObject, rock_id: u16) u16 {
+        if (self.originalShowcaseAsset(object)) |asset_id| return asset_id;
+        return self.defaultAssetForObjectKind(object.kind, rock_id);
+    }
+
+    fn defaultAssetForObjectKind(self: *const AppState, kind: map_mod.ObjectKind, rock_id: u16) u16 {
+        if (self.object_sprites.assetForKind(kind)) |asset_id| return asset_id;
+        return switch (kind) {
+            .outpost, .defense_grid => self.catalog.nthOfKind(.building, 2) orelse self.catalog.firstOfKind(.building) orelse NoAsset,
+            .obstacle => rock_id,
+            else => NoAsset,
+        };
+    }
+
+    fn defaultRockAsset(self: *const AppState) u16 {
+        return self.catalog.nthOfKind(.doodad, 2) orelse self.catalog.firstOfKind(.doodad) orelse NoAsset;
+    }
+
+    fn originalShowcaseAsset(self: *const AppState, object: map_mod.MapObject) ?u16 {
+        return switch (object.kind) {
+            .outpost => self.originalBuilding(if (object.team == 0) 0 else 3),
+            .defense_grid => self.originalBuilding(if (object.team == 0) 1 else 2),
+            .obstacle => self.originalDoodad(object.id),
+            else => null,
+        };
+    }
+
+    fn originalBuilding(self: *const AppState, index: usize) ?u16 {
+        const suffixes = [_][]const u8{
+            "buildings/arid_badlands/Building A1.1 sz2 shadow.png",
+            "buildings/arid_badlands/Building B sz2 noshadow.png",
+            "buildings/arid_badlands/Building C sz1 noshadow.png",
+            "buildings/arid_badlands/Building H1.2 sz1 shadow.png",
+        };
+        return self.catalog.findByPathSuffix(suffixes[index % suffixes.len]);
+    }
+
+    fn originalDoodad(self: *const AppState, object_id: u32) ?u16 {
+        const suffixes = [_][]const u8{
+            "doodads/arid_badlands/flora/Acacia Style Trees Patch 2z2 B-green.png",
+            "doodads/arid_badlands/flora/Giant Cactus Patch 2x2 A-green.png",
+            "doodads/arid_badlands/odds/Rail Segment 2.2.png",
+            "doodads/arid_badlands/rocks/Dersert Rocks - Size 1A - light.png",
+            "doodads/arid_badlands/rocks/Dersert Rocks - Size 1B - medium.png",
+            "doodads/arid_badlands/rocks/Dersert Rocks - Size 2A - dark.png",
+            "doodads/arid_badlands/rocks/Desert Small Rockpile- Dif terrain C - light.png",
+        };
+        const index: usize = @intCast(object_id % suffixes.len);
+        return self.catalog.findByPathSuffix(suffixes[index]);
     }
 
     fn terrainAsset(self: *const AppState, terrain_id: u8) u16 {
@@ -304,11 +380,11 @@ pub const AppState = struct {
 
     fn drawWorld(self: *AppState) void {
         self.drawTerrain();
-        self.drawObjects();
-        if (self.editor.show_grid) self.drawGrid();
         if (self.editor.show_pathing) self.drawPathingOverlay();
         if (self.editor.show_sectors) self.drawSectorOverlay();
         if (self.editor.show_portals) self.drawPortalOverlay();
+        if (self.editor.show_grid) self.drawGrid();
+        self.drawObjects();
     }
 
     fn drawTerrain(self: *AppState) void {
@@ -335,22 +411,53 @@ pub const AppState = struct {
                 .x = @as(f32, @floatFromInt(object.x)) + 0.5,
                 .y = @as(f32, @floatFromInt(object.y)) + 0.5,
             });
-            if (self.objectUsesSprite(object.kind) and self.spriteForAsset(object.asset_id) != null) {
-                const sprite = self.spriteForAsset(object.asset_id).?;
-                const scale: f32 = switch (object.kind) {
-                    .citadel => 1.65,
-                    .imperator => 0.95,
-                    .portal, .healing_pod, .outpost, .defense_grid => 1.15,
-                    else => 0.82,
-                };
-                const w = @min(112, sprite.width * scale) * self.zoom;
-                const h = @min(128, sprite.height * scale) * self.zoom;
-                drawSpriteBottom(sprite, self.sampler, self.alpha_pipeline, center, w, h, 1.0);
-            } else {
+            if (!self.tryDrawObjectSprite(object, center)) {
                 self.drawObjectMarker(object, center);
             }
             self.drawHealthBar(object, center);
         }
+    }
+
+    fn tryDrawObjectSprite(self: *AppState, object: map_mod.MapObject, center: Vec2) bool {
+        const def = self.object_sprites.get(object.kind);
+        const asset_id = if (self.assetFitsObjectKind(object.kind, object.asset_id))
+            object.asset_id
+        else if (def) |object_def|
+            object_def.asset_id orelse object.asset_id
+        else
+            object.asset_id;
+
+        const sprite = self.spriteForAsset(asset_id) orelse return false;
+        if (def) |object_def| {
+            if (object_def.team_badge) self.drawTeamBadge(object, center, object_def);
+            drawSpriteAnchored(sprite, self.sampler, self.alpha_pipeline, center, object_def, self.zoom, 1.0);
+            return true;
+        }
+
+        if (!self.assetFitsObjectKind(object.kind, asset_id)) return false;
+        const scale: f32 = switch (object.kind) {
+            .outpost, .defense_grid => 1.15,
+            .obstacle => 0.82,
+            else => 0.9,
+        };
+        const w = @min(112, sprite.width * scale) * self.zoom;
+        const h = @min(128, sprite.height * scale) * self.zoom;
+        drawSpriteBottom(sprite, self.sampler, self.alpha_pipeline, center, w, h, 1.0);
+        return true;
+    }
+
+    fn drawTeamBadge(self: *AppState, object: map_mod.MapObject, center: Vec2, def: *const sprite_defs.ObjectSpriteDef) void {
+        const team_color: [4]f32 = if (object.team == 0)
+            .{ 0.20, 0.62, 0.82, 0.42 }
+        else
+            .{ 0.86, 0.26, 0.20, 0.42 };
+        const badge_center = Vec2{
+            .x = center.x + def.offset_x * self.zoom,
+            .y = center.y + (def.offset_y + 4) * self.zoom,
+        };
+        const w = TileW * self.zoom * (0.42 + 0.18 * @as(f32, @floatFromInt(def.footprint_w - 1)));
+        const h = TileH * self.zoom * (0.58 + 0.16 * @as(f32, @floatFromInt(def.footprint_h - 1)));
+        drawDiamond(badge_center, w, h, team_color);
     }
 
     fn drawObjectMarker(self: *AppState, object: map_mod.MapObject, center: Vec2) void {
@@ -396,13 +503,16 @@ pub const AppState = struct {
     }
 
     fn drawHealthBar(self: *AppState, object: map_mod.MapObject, center: Vec2) void {
-        _ = self;
         if (object.max_hp <= 0 or object.hp >= object.max_hp) return;
         const w: f32 = 34;
         const h: f32 = 4;
         const pct = std.math.clamp(object.hp / object.max_hp, 0, 1);
-        drawRect(.{ .x = center.x - w * 0.5, .y = center.y - 34 }, w, h, .{ 0.15, 0.12, 0.10, 0.9 });
-        drawRect(.{ .x = center.x - w * 0.5, .y = center.y - 34 }, w * pct, h, .{ 0.2, 0.9, 0.38, 0.95 });
+        const y = if (self.object_sprites.get(object.kind)) |def|
+            center.y + def.offset_y * self.zoom - def.draw_height * def.anchor_y * self.zoom - 7
+        else
+            center.y - 34;
+        drawRect(.{ .x = center.x - w * 0.5, .y = y }, w, h, .{ 0.15, 0.12, 0.10, 0.9 });
+        drawRect(.{ .x = center.x - w * 0.5, .y = y }, w * pct, h, .{ 0.2, 0.9, 0.38, 0.95 });
     }
 
     fn drawGrid(self: *AppState) void {
@@ -528,33 +638,23 @@ pub const AppState = struct {
     }
 
     fn assetForObjectKind(self: *const AppState, kind: map_mod.ObjectKind) u16 {
-        if (self.objectUsesSprite(kind) and self.selectedAssetFitsObject(kind)) {
+        if (self.selectedAssetFitsObject(kind)) {
             return self.editor.brush_asset_id;
         }
-        return switch (kind) {
-            .citadel => NoAsset,
-            .outpost, .defense_grid => self.catalog.firstOfKind(.building) orelse NoAsset,
-            .obstacle => self.catalog.firstOfKind(.doodad) orelse NoAsset,
-            else => NoAsset,
-        };
+        return self.defaultAssetForObjectKind(kind, self.defaultRockAsset());
     }
 
     fn selectedAssetFitsObject(self: *const AppState, kind: map_mod.ObjectKind) bool {
-        const asset = self.catalog.get(self.editor.brush_asset_id) orelse return false;
-        return switch (kind) {
-            .citadel => false,
-            .outpost, .defense_grid => asset.kind == .building,
-            .obstacle => asset.kind == .doodad or asset.kind == .water,
-            else => false,
-        };
+        return self.assetFitsObjectKind(kind, self.editor.brush_asset_id);
     }
 
-    fn objectUsesSprite(self: *const AppState, kind: map_mod.ObjectKind) bool {
-        _ = self;
+    fn assetFitsObjectKind(self: *const AppState, kind: map_mod.ObjectKind, asset_id: u16) bool {
+        const asset = self.catalog.get(asset_id) orelse return false;
         return switch (kind) {
-            .outpost, .defense_grid, .obstacle => true,
-            .citadel => false,
-            else => false,
+            .citadel, .outpost, .defense_grid => asset.kind == .building,
+            .imperator, .infantry, .captain, .artillery => asset.kind == .unit,
+            .portal, .healing_pod => asset.kind == .doodad,
+            .obstacle => asset.kind == .doodad or asset.kind == .water,
         };
     }
 
@@ -652,10 +752,40 @@ fn drawSpriteBottom(sprite: Sprite, sampler: sg.Sampler, pipeline: sgl.Pipeline,
     sgl.c4f(1, 1, 1, alpha);
     const x0 = bottom.x - w * 0.5;
     const y0 = bottom.y - h;
-    sgl.v2fT2f(x0, y0, 0, 0);
-    sgl.v2fT2f(x0 + w, y0, 1, 0);
-    sgl.v2fT2f(x0 + w, bottom.y, 1, 1);
-    sgl.v2fT2f(x0, bottom.y, 0, 1);
+    sgl.v2fT2f(x0, y0, 0, 1);
+    sgl.v2fT2f(x0 + w, y0, 1, 1);
+    sgl.v2fT2f(x0 + w, bottom.y, 1, 0);
+    sgl.v2fT2f(x0, bottom.y, 0, 0);
+    sgl.end();
+    sgl.disableTexture();
+    sgl.loadDefaultPipeline();
+}
+
+fn drawSpriteAnchored(
+    sprite: Sprite,
+    sampler: sg.Sampler,
+    pipeline: sgl.Pipeline,
+    anchor: Vec2,
+    def: *const sprite_defs.ObjectSpriteDef,
+    zoom: f32,
+    alpha: f32,
+) void {
+    const w = def.draw_width * zoom;
+    const h = def.draw_height * zoom;
+    const anchor_x = anchor.x + def.offset_x * zoom;
+    const anchor_y = anchor.y + def.offset_y * zoom;
+    const x0 = anchor_x - w * def.anchor_x;
+    const y0 = anchor_y - h * def.anchor_y;
+
+    sgl.loadPipeline(pipeline);
+    sgl.enableTexture();
+    sgl.texture(sprite.view, sampler);
+    sgl.beginQuads();
+    sgl.c4f(1, 1, 1, alpha);
+    sgl.v2fT2f(x0, y0, 0, 1);
+    sgl.v2fT2f(x0 + w, y0, 1, 1);
+    sgl.v2fT2f(x0 + w, y0 + h, 1, 0);
+    sgl.v2fT2f(x0, y0 + h, 0, 0);
     sgl.end();
     sgl.disableTexture();
     sgl.loadDefaultPipeline();
