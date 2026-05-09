@@ -2,6 +2,8 @@ const std = @import("std");
 const map_mod = @import("../map/map.zig");
 const path = @import("../pathfinding/mod.zig");
 
+const EngagementRange: f32 = 1.5;
+
 pub const Phase = enum {
     setup_player_one,
     setup_player_two,
@@ -97,6 +99,7 @@ pub const Simulation = struct {
             const attacker = game_map.objects[i];
             const stats = map_mod.defaultStats(attacker.kind);
             if (stats.damage_per_second <= 0) continue;
+            const attack_range = effectiveAttackRange(attacker.kind, stats.range);
 
             var target_idx: ?usize = null;
             var best_dist: f32 = 9999;
@@ -105,7 +108,7 @@ pub const Simulation = struct {
                 const dx: f32 = @floatFromInt(attacker.x - target.x);
                 const dy: f32 = @floatFromInt(attacker.y - target.y);
                 const d = @sqrt(dx * dx + dy * dy);
-                if (d <= stats.range and d < best_dist) {
+                if (d <= attack_range and d < best_dist) {
                     target_idx = j;
                     best_dist = d;
                 }
@@ -135,12 +138,13 @@ pub const Simulation = struct {
             const target_team: u8 = if (object.team == 0) 1 else 0;
             const target = game_map.findObject(.citadel, target_team) orelse continue;
             const start = path.TileCoord{ .x = object.x, .y = object.y };
+            if (hasAdjacentEnemyContact(game_map, object.*)) continue;
             const goal = approachTile(grid_map, target.*, profile) orelse continue;
             const sector_id = path.sector.sectorIdForCoord(grid_map, pathfinder.sector_size, start) orelse continue;
             const field = pathfinder.getFlowField(grid_map, goal, sector_id, profile) catch {
                 var route = pathfinder.findPath(grid_map, start, goal, profile) catch continue;
                 defer route.deinit();
-                if (route.tiles.len >= 2 and canStepInto(game_map, route.tiles[1], object.id)) {
+                if (route.tiles.len >= 2 and canAdvanceInto(game_map, route.tiles[1], object.*)) {
                     object.x = route.tiles[1].x;
                     object.y = route.tiles[1].y;
                     game_map.version += 1;
@@ -150,7 +154,7 @@ pub const Simulation = struct {
             const direction = field.directionAt(grid_map, start);
             const delta = direction.delta();
             const next = path.TileCoord{ .x = object.x + delta.x, .y = object.y + delta.y };
-            if (direction != .none and grid_map.isWalkableFor(next.x, next.y, profile) and canStepInto(game_map, next, object.id)) {
+            if (direction != .none and grid_map.isWalkableFor(next.x, next.y, profile) and canAdvanceInto(game_map, next, object.*)) {
                 object.x = next.x;
                 object.y = next.y;
                 game_map.version += 1;
@@ -235,6 +239,32 @@ fn canStepInto(game_map: *map_mod.GameMap, coord: path.TileCoord, moving_id: u32
     return true;
 }
 
+fn canAdvanceInto(game_map: *map_mod.GameMap, coord: path.TileCoord, moving: map_mod.MapObject) bool {
+    if (game_map.objectAt(coord.x, coord.y)) |object| {
+        if (object.id == moving.id or object.kind == .portal or object.kind == .healing_pod) return true;
+        return false;
+    }
+    return true;
+}
+
+fn hasAdjacentEnemyContact(game_map: *map_mod.GameMap, object: map_mod.MapObject) bool {
+    for (game_map.objects[0..game_map.object_count]) |target| {
+        if (!target.active or target.team == object.team or !isMobileUnit(target.kind)) continue;
+        if (tileDistance(object, target) <= EngagementRange) return true;
+    }
+    return false;
+}
+
+fn effectiveAttackRange(kind: map_mod.ObjectKind, base_range: f32) f32 {
+    return if (isMobileUnit(kind)) @max(base_range, EngagementRange) else base_range;
+}
+
+fn tileDistance(a: map_mod.MapObject, b: map_mod.MapObject) f32 {
+    const dx: f32 = @floatFromInt(a.x - b.x);
+    const dy: f32 = @floatFromInt(a.y - b.y);
+    return @sqrt(dx * dx + dy * dy);
+}
+
 fn isMobileUnit(kind: map_mod.ObjectKind) bool {
     return switch (kind) {
         .infantry, .captain, .artillery, .imperator => true,
@@ -300,6 +330,57 @@ test "units move toward a walkable approach tile around blocked citadels" {
     try std.testing.expect(pathfinder.getDebugData().flow_cache_misses > 0);
 }
 
+test "adjacent enemies stop movement and trade damage" {
+    var grid = try path.GridMap.init(std.testing.allocator, map_mod.MapW, map_mod.MapH);
+    defer grid.deinit();
+    var game_map: map_mod.GameMap = .{};
+    _ = game_map.addObject(.citadel, 1, 5, 0, 0, 0);
+    _ = game_map.addObject(.imperator, 1, 7, 0, 0, 0);
+    _ = game_map.addObject(.citadel, 12, 5, 1, 1, 0);
+    _ = game_map.addObject(.imperator, 12, 7, 1, 1, 0);
+    const attacker_id = game_map.addObject(.infantry, 4, 5, 0, 0, 0).?;
+    const blocker_id = game_map.addObject(.infantry, 5, 5, 1, 1, 0).?;
+    game_map.rebuildGrid(&grid);
+    var pathfinder = path.HierarchicalPathfinder.init(std.testing.allocator, 8);
+    defer pathfinder.deinit();
+    try pathfinder.build(&grid, .{ .allow_diagonal_movement = true });
+
+    var sim: Simulation = .{};
+    sim.startPlaying();
+    const before = objectById(&game_map, blocker_id).?.hp;
+    sim.update(&game_map, &grid, &pathfinder, 0.25);
+    const attacker = objectById(&game_map, attacker_id).?;
+    const blocker = objectById(&game_map, blocker_id).?;
+    try std.testing.expectEqual(@as(i32, 4), attacker.x);
+    try std.testing.expectEqual(@as(i32, 5), attacker.y);
+    try std.testing.expect(blocker.hp < before);
+}
+
+test "units resume citadel movement after contact enemy is destroyed" {
+    var grid = try path.GridMap.init(std.testing.allocator, map_mod.MapW, map_mod.MapH);
+    defer grid.deinit();
+    var game_map: map_mod.GameMap = .{};
+    _ = game_map.addObject(.citadel, 1, 5, 0, 0, 0);
+    _ = game_map.addObject(.imperator, 1, 7, 0, 0, 0);
+    _ = game_map.addObject(.citadel, 12, 5, 1, 1, 0);
+    _ = game_map.addObject(.imperator, 12, 7, 1, 1, 0);
+    const attacker_id = game_map.addObject(.infantry, 4, 5, 0, 0, 0).?;
+    const blocker_id = game_map.addObject(.infantry, 5, 5, 1, 1, 0).?;
+    objectById(&game_map, blocker_id).?.hp = 1;
+    game_map.rebuildGrid(&grid);
+    var pathfinder = path.HierarchicalPathfinder.init(std.testing.allocator, 8);
+    defer pathfinder.deinit();
+    try pathfinder.build(&grid, .{ .allow_diagonal_movement = true });
+
+    var sim: Simulation = .{};
+    sim.startPlaying();
+    sim.update(&game_map, &grid, &pathfinder, 0.25);
+    const attacker = objectById(&game_map, attacker_id).?;
+    const blocker = objectById(&game_map, blocker_id).?;
+    try std.testing.expect(!blocker.active);
+    try std.testing.expect(attacker.x != 4 or attacker.y != 5);
+}
+
 test "healing pods restore nearby allied units" {
     var game_map = map_mod.GameMap.initDefault();
     var sim: Simulation = .{};
@@ -332,4 +413,11 @@ test "portals move units to linked portal exits" {
     try std.testing.expect(game_map.objects[18].x != before_x or game_map.objects[18].y != before_y);
     try std.testing.expect(@abs(game_map.objects[18].x - 20) <= 3);
     try std.testing.expect(@abs(game_map.objects[18].y - 21) <= 3);
+}
+
+fn objectById(game_map: *map_mod.GameMap, id: u32) ?*map_mod.MapObject {
+    for (game_map.objects[0..game_map.object_count]) |*object| {
+        if (object.id == id) return object;
+    }
+    return null;
 }
