@@ -38,6 +38,29 @@ zig build web -Demsdk=/path/to/emsdk
 
 The browser bundle is written to `zig-out/web`.
 
+## Deploy Web Build To GitHub Pages
+
+This repo includes `.github/workflows/deploy-pages.yml` to publish the web build on pushes to `main`.
+
+Expected custom domain:
+
+- `tojam2026.cbrnl.com`
+
+Setup once in GitHub:
+
+1. Open repo `Settings` -> `Pages`.
+2. Under `Build and deployment`, set `Source` to `GitHub Actions`.
+3. Ensure DNS has `CNAME` `tojam2026` -> `cabernal.github.io`.
+4. Push to `main`, or run the `Deploy Web to GitHub Pages` workflow manually.
+
+The workflow builds with Zig `0.15.2` and Emscripten `4.0.14`, runs:
+
+```sh
+zig build web -Demsdk=/tmp/emsdk -Doptimize=ReleaseFast
+```
+
+Then it copies `zig-out/web/tojam2026.html` to `zig-out/web/index.html`, writes `tojam2026.cbrnl.com` to `zig-out/web/CNAME`, and deploys the full `zig-out/web` directory.
+
 ## Assets
 
 Starter PNGs from `../notes/Arid Badlands` are copied under `assets/`. The loader recursively scans that folder at startup, so art can be swapped or extended by replacing or adding PNG files under the same structure.
