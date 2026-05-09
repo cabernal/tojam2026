@@ -80,10 +80,12 @@ pub const Simulation = struct {
         if (self.phase != .playing) return;
         self.step_timer += dt;
         self.resolveCombat(game_map, dt);
+        self.resolveHealing(game_map, dt);
         if (self.checkGameOver(game_map)) return;
         if (self.step_timer >= 0.24) {
             self.step_timer = 0;
             self.moveUnits(game_map, grid_map, pathfinder);
+            self.resolvePortals(game_map, grid_map);
         }
     }
 
@@ -156,6 +158,41 @@ pub const Simulation = struct {
         }
     }
 
+    fn resolveHealing(self: *Simulation, game_map: *map_mod.GameMap, dt: f32) void {
+        _ = self;
+        for (game_map.objects[0..game_map.object_count]) |pod| {
+            if (!pod.active or pod.kind != .healing_pod) continue;
+            const stats = map_mod.defaultStats(.healing_pod);
+            const heal_per_second = -stats.damage_per_second;
+            if (heal_per_second <= 0) continue;
+            for (game_map.objects[0..game_map.object_count]) |*target| {
+                if (!target.active or target.team != pod.team or target.id == pod.id) continue;
+                if (target.hp >= target.max_hp) continue;
+                const dx: f32 = @floatFromInt(pod.x - target.x);
+                const dy: f32 = @floatFromInt(pod.y - target.y);
+                const d = @sqrt(dx * dx + dy * dy);
+                if (d <= stats.range) {
+                    target.hp = @min(target.max_hp, target.hp + heal_per_second * dt);
+                    game_map.version += 1;
+                }
+            }
+        }
+    }
+
+    fn resolvePortals(self: *Simulation, game_map: *map_mod.GameMap, grid_map: *path.GridMap) void {
+        _ = self;
+        const profile = path.MovementProfile{ .allow_diagonal_movement = true };
+        for (game_map.objects[0..game_map.object_count]) |*unit| {
+            if (!unit.active or !isMobileUnit(unit.kind)) continue;
+            const source = portalAt(game_map, unit.x, unit.y) orelse continue;
+            const target = linkedPortal(game_map, source.*) orelse continue;
+            const exit = portalExitTile(game_map, grid_map, target.*, unit.id, profile) orelse continue;
+            unit.x = exit.x;
+            unit.y = exit.y;
+            game_map.version += 1;
+        }
+    }
+
     fn checkGameOver(self: *Simulation, game_map: *map_mod.GameMap) bool {
         const p0 = game_map.findObject(.imperator, 0);
         const p1 = game_map.findObject(.imperator, 1);
@@ -193,9 +230,56 @@ fn approachTile(grid_map: *const path.GridMap, target: map_mod.MapObject, profil
 
 fn canStepInto(game_map: *map_mod.GameMap, coord: path.TileCoord, moving_id: u32) bool {
     if (game_map.objectAt(coord.x, coord.y)) |object| {
-        return object.id == moving_id;
+        return object.id == moving_id or object.kind == .portal or object.kind == .healing_pod;
     }
     return true;
+}
+
+fn isMobileUnit(kind: map_mod.ObjectKind) bool {
+    return switch (kind) {
+        .infantry, .captain, .artillery, .imperator => true,
+        else => false,
+    };
+}
+
+fn portalAt(game_map: *map_mod.GameMap, x: i32, y: i32) ?*map_mod.MapObject {
+    for (game_map.objects[0..game_map.object_count]) |*object| {
+        if (object.active and object.kind == .portal and object.x == x and object.y == y) return object;
+    }
+    return null;
+}
+
+fn linkedPortal(game_map: *map_mod.GameMap, source: map_mod.MapObject) ?*map_mod.MapObject {
+    var fallback: ?*map_mod.MapObject = null;
+    for (game_map.objects[0..game_map.object_count]) |*object| {
+        if (!object.active or object.kind != .portal or object.id == source.id) continue;
+        if (object.team == source.team) return object;
+        if (fallback == null) fallback = object;
+    }
+    return fallback;
+}
+
+fn portalExitTile(
+    game_map: *map_mod.GameMap,
+    grid_map: *path.GridMap,
+    portal: map_mod.MapObject,
+    moving_id: u32,
+    profile: path.MovementProfile,
+) ?path.TileCoord {
+    var radius: i32 = 1;
+    while (radius <= 3) : (radius += 1) {
+        var y = portal.y - radius;
+        while (y <= portal.y + radius) : (y += 1) {
+            var x = portal.x - radius;
+            while (x <= portal.x + radius) : (x += 1) {
+                if (@max(@abs(x - portal.x), @abs(y - portal.y)) != radius) continue;
+                if (!grid_map.isWalkableFor(x, y, profile)) continue;
+                if (game_map.objectAt(x, y) != null and !canStepInto(game_map, .{ .x = x, .y = y }, moving_id)) continue;
+                return .{ .x = x, .y = y };
+            }
+        }
+    }
+    return null;
 }
 
 test "units move toward a walkable approach tile around blocked citadels" {
@@ -214,4 +298,38 @@ test "units move toward a walkable approach tile around blocked citadels" {
     const after = game_map.objects[18];
     try std.testing.expect(before.x != after.x or before.y != after.y);
     try std.testing.expect(pathfinder.getDebugData().flow_cache_misses > 0);
+}
+
+test "healing pods restore nearby allied units" {
+    var game_map = map_mod.GameMap.initDefault();
+    var sim: Simulation = .{};
+    var healed = false;
+    for (game_map.objects[0..game_map.object_count]) |*object| {
+        if (object.kind == .infantry and object.team == 0) {
+            object.x = 8;
+            object.y = 25;
+            object.hp = 20;
+            sim.resolveHealing(&game_map, 1.0);
+            try std.testing.expect(object.hp > 20);
+            healed = true;
+            break;
+        }
+    }
+    try std.testing.expect(healed);
+}
+
+test "portals move units to linked portal exits" {
+    var grid = try path.GridMap.init(std.testing.allocator, map_mod.MapW, map_mod.MapH);
+    defer grid.deinit();
+    var game_map = map_mod.GameMap.initDefault();
+    game_map.rebuildGrid(&grid);
+    var sim: Simulation = .{};
+    const before_x = game_map.objects[18].x;
+    const before_y = game_map.objects[18].y;
+    game_map.objects[18].x = 12;
+    game_map.objects[18].y = 10;
+    sim.resolvePortals(&game_map, &grid);
+    try std.testing.expect(game_map.objects[18].x != before_x or game_map.objects[18].y != before_y);
+    try std.testing.expect(@abs(game_map.objects[18].x - 20) <= 3);
+    try std.testing.expect(@abs(game_map.objects[18].y - 21) <= 3);
 }

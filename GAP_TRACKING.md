@@ -11,8 +11,8 @@ Completed items are crossed out in the commit that addresses them.
 - [x] ~~The setup phase is incomplete. It lacks a real player-one/player-two handoff, setup visibility, placement limits, and a structured transition into gameplay.~~ Addressed with P1/P2 setup progression, active-player placement, setup limits, and opponent hiding during setup.
 - [x] ~~Gameplay movement toward blocked citadels is fragile because citadels block their own target tile.~~ Addressed by routing units to walkable approach tiles around citadels.
 - [x] ~~Flow fields are implemented and tested but not used by the runtime unit movement loop.~~ Addressed by moving units through cached flow fields with an A* fallback.
-- [ ] Portal objects do not teleport or link units.
-- [ ] Healing pods have negative damage stats, but the combat system skips non-damaging objects instead of healing allies.
+- [x] ~~Portal objects do not teleport or link units.~~ Addressed with linked portal exits for mobile units.
+- [x] ~~Healing pods have negative damage stats, but the combat system skips non-damaging objects instead of healing allies.~~ Addressed with allied healing pulses around healing pods.
 - [ ] The editor layer panel is currently a set of toggles rather than a fuller layer control surface.
 - [ ] Web map persistence is disabled while native save/load works.
 
