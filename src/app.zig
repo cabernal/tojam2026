@@ -93,6 +93,7 @@ pub const AppState = struct {
     last_mouse: Vec2 = .{ .x = 0, .y = 0 },
     panning: bool = false,
     painting: bool = false,
+    generated_asset_counter: u32 = 0,
     right_pan_start: Vec2 = .{ .x = 0, .y = 0 },
     right_pan_moved: bool = false,
     keys: [512]bool = [_]bool{false} ** 512,
@@ -346,6 +347,20 @@ pub const AppState = struct {
         if (self.catalog.get(asset_id)) |asset| {
             self.editor.setStatus("Selected asset {d}: {s}", .{ asset.id, asset.name });
         }
+    }
+
+    pub fn createGeneratedTerrainAsset(self: *AppState) void {
+        self.createGeneratedSpriteAsset(.terrain, self.editor.brush_asset_id) catch |err| {
+            self.editor.setStatus("New terrain sprite failed: {s}", .{@errorName(err)});
+        };
+    }
+
+    pub fn createGeneratedObjectAsset(self: *AppState) void {
+        const source_id = self.assetForObjectKind(self.editor.object_kind);
+        const kind = assetKindForObjectKind(self.editor.object_kind);
+        self.createGeneratedSpriteAsset(kind, source_id) catch |err| {
+            self.editor.setStatus("New object sprite failed: {s}", .{@errorName(err)});
+        };
     }
 
     pub fn togglePlaytest(self: *AppState) void {
@@ -673,6 +688,34 @@ pub const AppState = struct {
             if (asset.kind == kind) count += 1;
         }
         return count;
+    }
+
+    fn createGeneratedSpriteAsset(self: *AppState, kind: asset_loader.AssetKind, source_id: u16) !void {
+        if (self.sprite_count >= self.sprites.len) return error.AssetCatalogFull;
+        const source = self.catalog.get(source_id) orelse return error.MissingSourceAsset;
+        self.generated_asset_counter +|= 1;
+
+        var path_buf: [1024]u8 = undefined;
+        const dest_path = try std.fmt.bufPrint(
+            &path_buf,
+            "{s}/generated/{s}_{d}.png",
+            .{ platform.assetRoot(), @tagName(kind), self.generated_asset_counter },
+        );
+        try makeParentPath(dest_path);
+
+        const bytes = try std.fs.cwd().readFileAlloc(self.allocator, source.path, 12 * 1024 * 1024);
+        defer self.allocator.free(bytes);
+        try writeWholeFile(dest_path, bytes);
+
+        const image = try png_loader.loadRgba(self.allocator, dest_path);
+        defer image.deinit();
+        const id = try self.catalog.addFileAsset(dest_path, kind);
+        self.sprites[id] = createSprite(image.width, image.height, image.pixels);
+        self.catalog.assets.items[id].width = @floatFromInt(image.width);
+        self.catalog.assets.items[id].height = @floatFromInt(image.height);
+        self.sprite_count = @max(self.sprite_count, @as(usize, id) + 1);
+        self.editor.brush_asset_id = id;
+        self.editor.setStatus("Created sprite {d}: {s}", .{ id, self.catalog.assets.items[id].name });
     }
 
     fn drawWorld(self: *AppState) void {
@@ -1415,6 +1458,35 @@ fn appMode() AppMode {
     if (std.mem.eql(u8, build_options.app_mode, "editor")) return .editor;
     if (std.mem.eql(u8, build_options.app_mode, "game")) return .game;
     return .integrated;
+}
+
+fn assetKindForObjectKind(kind: map_mod.ObjectKind) asset_loader.AssetKind {
+    return switch (kind) {
+        .citadel, .outpost, .defense_grid => .building,
+        .imperator, .infantry, .captain, .artillery => .unit,
+        .portal, .healing_pod, .obstacle => .doodad,
+    };
+}
+
+fn makeParentPath(path: []const u8) !void {
+    const parent = std.fs.path.dirname(path) orelse return;
+    if (std.fs.path.isAbsolute(parent)) {
+        std.fs.makeDirAbsolute(parent) catch |err| switch (err) {
+            error.PathAlreadyExists => {},
+            else => return err,
+        };
+    } else {
+        try std.fs.cwd().makePath(parent);
+    }
+}
+
+fn writeWholeFile(path: []const u8, bytes: []const u8) !void {
+    var file = if (std.fs.path.isAbsolute(path))
+        try std.fs.createFileAbsolute(path, .{ .truncate = true })
+    else
+        try std.fs.cwd().createFile(path, .{ .truncate = true });
+    defer file.close();
+    try file.writeAll(bytes);
 }
 
 pub fn appDesc() sapp.Desc {

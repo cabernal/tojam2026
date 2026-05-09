@@ -42,6 +42,8 @@ The browser bundle is written to `zig-out/web`.
 
 Starter PNGs from `../notes/Arid Badlands` are copied under `assets/`. The loader recursively scans that folder at startup, so art can be swapped or extended by replacing or adding PNG files under the same structure.
 
+The editor also has `New Sprite` controls for terrain and object tools. These clone the active PNG into a generated sprite slot so newly created art can be placed immediately. Native builds write generated clones under `assets/generated/`; web builds create the same paths inside the browser asset filesystem for the current session.
+
 ## Controls
 
 Full shortcut reference: [SHORTCUTS.md](SHORTCUTS.md).

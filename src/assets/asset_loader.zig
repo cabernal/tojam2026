@@ -122,6 +122,22 @@ pub const AssetCatalog = struct {
         return &self.assets.items[id];
     }
 
+    pub fn addFileAsset(self: *AssetCatalog, path: []const u8, kind: AssetKind) !u16 {
+        if (self.assets.items.len >= MaxAssets) return error.AssetCatalogFull;
+        const path_copy = try self.allocator.dupe(u8, path);
+        errdefer self.allocator.free(path_copy);
+        const name = try self.allocator.dupe(u8, std.fs.path.basename(path));
+        errdefer self.allocator.free(name);
+        const id: u16 = @intCast(self.assets.items.len);
+        try self.assets.append(self.allocator, .{
+            .id = id,
+            .kind = kind,
+            .path = path_copy,
+            .name = name,
+        });
+        return id;
+    }
+
     pub fn findByPathSuffix(self: *const AssetCatalog, suffix: []const u8) ?u16 {
         const normalized = trimLeadingSeparators(suffix);
         for (self.assets.items) |asset| {

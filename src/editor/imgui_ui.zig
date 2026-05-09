@@ -68,6 +68,9 @@ fn drawInspector(app: anytype) void {
             app.editor.brush_terrain_id +%= 1;
             app.editor.setStatus("Created terrain variant {d}", .{app.editor.brush_terrain_id});
         }
+        if (c.igButton("New Sprite", v2(136, 0))) {
+            app.createGeneratedTerrainAsset();
+        }
     } else if (app.editor.tool == .object) {
         uiText("Object Type", .{});
         for (tools.ObjectPalette) |kind| {
@@ -80,6 +83,9 @@ fn drawInspector(app: anytype) void {
                 c.igSameLine(0, 6);
                 uiText("*", .{});
             }
+        }
+        if (c.igButton("New Sprite", v2(136, 0))) {
+            app.createGeneratedObjectAsset();
         }
     } else if (app.editor.tool == .erase) {
         c.igSetNextItemWidth(160);
