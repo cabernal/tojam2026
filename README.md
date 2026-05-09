@@ -32,6 +32,8 @@ zig build test
 
 ## Web
 
+Play the latest deployed build at [tojam2026.cbrnl.com](https://tojam2026.cbrnl.com).
+
 ```sh
 zig build web -Demsdk=/path/to/emsdk
 ```
