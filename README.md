@@ -14,6 +14,16 @@ An early Zig/Sokol isometric RTS prototype with an integrated ImGui editor. The 
 zig build run
 ```
 
+The default run mode is the packaged integrated experience with the game and editor together. Explicit native modes are also available:
+
+```sh
+zig build run-integrated
+zig build run-editor
+zig build run-game
+```
+
+`run-editor` starts with the editor enabled. `run-game` starts directly in gameplay with editor controls disabled. The same startup mode can be selected for native or web builds with `-Dapp-mode=integrated`, `-Dapp-mode=editor`, or `-Dapp-mode=game`.
+
 ## Test
 
 ```sh

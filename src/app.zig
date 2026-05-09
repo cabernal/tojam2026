@@ -1,5 +1,6 @@
 const std = @import("std");
 const builtin = @import("builtin");
+const build_options = @import("build_options");
 const sokol = @import("sokol");
 const sapp = sokol.app;
 const sg = sokol.gfx;
@@ -35,6 +36,12 @@ const LoadingPhase = enum {
     assign_world,
     complete,
     failed,
+};
+
+const AppMode = enum {
+    integrated,
+    editor,
+    game,
 };
 
 const LoadingState = struct {
@@ -80,6 +87,7 @@ pub const AppState = struct {
     alpha_pipeline: sgl.Pipeline = .{},
     pass_action: sg.PassAction = .{},
     initialized: bool = false,
+    allow_editor: bool = true,
     loading: LoadingState = .{},
     mouse: Vec2 = .{ .x = 0, .y = 0 },
     last_mouse: Vec2 = .{ .x = 0, .y = 0 },
@@ -99,6 +107,7 @@ pub const AppState = struct {
             std.log.err("runtime init failed: {s}", .{@errorName(err)});
             return;
         };
+        self.configureStartupMode();
         self.camera = .{ .x = 0, .y = 420 };
         self.zoom = 1.0;
         self.editor.setStatus("Editor ready. Assets are loaded from {s}.", .{platform.assetRoot()});
@@ -249,7 +258,9 @@ pub const AppState = struct {
                 self.setKey(ev.key_code, true);
                 if (ev.key_repeat) return;
                 switch (ev.key_code) {
-                    .TAB => self.editor.enabled = !self.editor.enabled,
+                    .TAB => {
+                        if (self.allow_editor) self.editor.enabled = !self.editor.enabled;
+                    },
                     .SPACE => self.togglePlaytest(),
                     .S => if (hasCommandModifier(ev.modifiers)) self.saveMap(),
                     .L => if (hasCommandModifier(ev.modifiers)) self.loadMap(),
@@ -338,12 +349,33 @@ pub const AppState = struct {
     }
 
     pub fn togglePlaytest(self: *AppState) void {
+        if (!self.allow_editor) return;
         self.game.simulation.togglePlay();
         self.editor.setStatus("Phase: {s}", .{@tagName(self.game.simulation.phase)});
     }
 
     fn ready(self: *const AppState) bool {
         return self.loading.phase == .complete;
+    }
+
+    fn configureStartupMode(self: *AppState) void {
+        switch (appMode()) {
+            .integrated => {
+                self.allow_editor = true;
+                self.editor.enabled = true;
+                self.game.simulation.phase = .setup_player_one;
+            },
+            .editor => {
+                self.allow_editor = true;
+                self.editor.enabled = true;
+                self.game.simulation.phase = .setup_player_one;
+            },
+            .game => {
+                self.allow_editor = false;
+                self.editor.enabled = false;
+                self.game.simulation.startPlaying();
+            },
+        }
     }
 
     fn advanceLoading(self: *AppState) void {
@@ -1377,6 +1409,12 @@ fn hasCommandModifier(modifiers: u32) bool {
 
 fn hasShift(modifiers: u32) bool {
     return (modifiers & sapp.modifier_shift) != 0;
+}
+
+fn appMode() AppMode {
+    if (std.mem.eql(u8, build_options.app_mode, "editor")) return .editor;
+    if (std.mem.eql(u8, build_options.app_mode, "game")) return .game;
+    return .integrated;
 }
 
 pub fn appDesc() sapp.Desc {

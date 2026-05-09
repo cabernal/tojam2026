@@ -16,6 +16,8 @@
 | `Space` | Toggle playtest/pause |
 | `Tab` | Toggle the editor overlay |
 
+In `zig build run-game` or web builds made with `-Dapp-mode=game`, editor shortcuts are disabled and gameplay starts immediately.
+
 ## Editor Tools
 
 | Input | Action |

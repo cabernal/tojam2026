@@ -32,9 +32,20 @@ const Backend = enum {
     gles3,
 };
 
+const AppMode = enum {
+    integrated,
+    editor,
+    game,
+};
+
 pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
+    const app_mode = b.option(
+        AppMode,
+        "app-mode",
+        "Startup mode for native and web builds: integrated, editor, or game",
+    ) orelse .integrated;
     const emsdk_root_opt = b.option(
         []const u8,
         "emsdk",
@@ -47,7 +58,7 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
     const native_sokol_clib = buildLibSokol(b, "sokol_clib_native", target, optimize, null);
-    const native_module = createAppModule(b, target, optimize, native_sokol_mod, null);
+    const native_module = createAppModule(b, target, optimize, native_sokol_mod, null, app_mode);
     native_module.linkLibrary(native_sokol_clib);
 
     const exe = b.addExecutable(.{
@@ -62,6 +73,9 @@ pub fn build(b: *std.Build) void {
         run_cmd.addArgs(args);
     }
     b.step("run", "Run native build").dependOn(&run_cmd.step);
+    addNativeRunMode(b, target, optimize, native_sokol_mod, native_sokol_clib, .integrated);
+    addNativeRunMode(b, target, optimize, native_sokol_mod, native_sokol_clib, .editor);
+    addNativeRunMode(b, target, optimize, native_sokol_mod, native_sokol_clib, .game);
 
     const tests = b.addTest(.{
         .root_module = b.createModule(.{
@@ -92,7 +106,7 @@ pub fn build(b: *std.Build) void {
             optimize,
             emsdk_root,
         );
-        const web_module = createAppModule(b, web_target, optimize, web_sokol_mod, emsdk_root);
+        const web_module = createAppModule(b, web_target, optimize, web_sokol_mod, emsdk_root, app_mode);
         web_module.linkLibrary(web_sokol_clib);
 
         const web_lib = b.addLibrary(.{
@@ -112,12 +126,32 @@ pub fn build(b: *std.Build) void {
     }
 }
 
+fn addNativeRunMode(
+    b: *std.Build,
+    target: std.Build.ResolvedTarget,
+    optimize: std.builtin.OptimizeMode,
+    native_sokol_mod: *std.Build.Module,
+    native_sokol_clib: *std.Build.Step.Compile,
+    app_mode: AppMode,
+) void {
+    const module = createAppModule(b, target, optimize, native_sokol_mod, null, app_mode);
+    module.linkLibrary(native_sokol_clib);
+    const exe = b.addExecutable(.{
+        .name = b.fmt("{s}-{s}", .{ APP_NAME, @tagName(app_mode) }),
+        .root_module = module,
+    });
+    const run_cmd = b.addRunArtifact(exe);
+    run_cmd.setCwd(b.path("."));
+    b.step(b.fmt("run-{s}", .{@tagName(app_mode)}), b.fmt("Run native build in {s} mode", .{@tagName(app_mode)})).dependOn(&run_cmd.step);
+}
+
 fn createAppModule(
     b: *std.Build,
     target: std.Build.ResolvedTarget,
     optimize: std.builtin.OptimizeMode,
     mod_sokol: *std.Build.Module,
     emsdk_root: ?[]const u8,
+    app_mode: AppMode,
 ) *std.Build.Module {
     var cpp_flags_buf: [4][]const u8 = undefined;
     var cpp_flags = std.ArrayListUnmanaged([]const u8).initBuffer(&cpp_flags_buf);
@@ -129,6 +163,9 @@ fn createAppModule(
     else
         &.{};
 
+    const options = b.addOptions();
+    options.addOption([]const u8, "app_mode", @tagName(app_mode));
+
     const mod = b.createModule(.{
         .root_source_file = b.path("src/main.zig"),
         .target = target,
@@ -137,6 +174,7 @@ fn createAppModule(
         .link_libcpp = true,
         .imports = &.{
             .{ .name = "sokol", .module = mod_sokol },
+            .{ .name = "build_options", .module = options.createModule() },
         },
     });
 

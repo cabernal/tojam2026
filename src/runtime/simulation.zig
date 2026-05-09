@@ -13,8 +13,18 @@ pub const Simulation = struct {
     winner: ?u8 = null,
     step_timer: f32 = 0,
 
+    pub fn startPlaying(self: *Simulation) void {
+        self.phase = .playing;
+        self.winner = null;
+        self.step_timer = 0;
+    }
+
     pub fn togglePlay(self: *Simulation) void {
-        self.phase = if (self.phase == .playing) .setup_player_one else .playing;
+        if (self.phase == .playing) {
+            self.phase = .setup_player_one;
+            return;
+        }
+        self.startPlaying();
     }
 
     pub fn update(
@@ -107,4 +117,3 @@ pub const Simulation = struct {
         return false;
     }
 };
-
