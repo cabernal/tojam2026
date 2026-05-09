@@ -288,11 +288,11 @@ fn makeWebLinkStep(b: *std.Build, options: WebLinkOptions) *std.Build.Step.Insta
         "-sUSE_WEBGL2=1",
         "-sALLOW_MEMORY_GROWTH=1",
         "-sSTACK_SIZE=1MB",
-        "--shell-file",
-        "web/shell.html",
         "--preload-file",
         "assets@/assets",
     });
+    emcc.addArg("--shell-file");
+    emcc.addFileArg(b.path("web/shell.html"));
 
     emcc.addArtifactArg(options.lib_main);
     for (options.lib_main.getCompileDependencies(false)) |item| {

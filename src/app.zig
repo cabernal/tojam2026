@@ -7,6 +7,7 @@ const sgl = sokol.gl;
 const sglue = sokol.glue;
 const simgui = sokol.imgui;
 const slog = sokol.log;
+const c = @import("cimgui.zig").c;
 
 const runtime = @import("runtime/game.zig");
 const render = @import("runtime/render.zig");
@@ -25,6 +26,31 @@ const TileW: f32 = 64;
 const TileH: f32 = 32;
 const MaxSprites = asset_loader.MaxAssets;
 const NoAsset: u16 = std.math.maxInt(u16);
+
+const LoadingPhase = enum {
+    intro,
+    scan_assets,
+    load_assets,
+    sprite_defs,
+    assign_world,
+    complete,
+    failed,
+};
+
+const LoadingState = struct {
+    phase: LoadingPhase = .intro,
+    frames_seen: u32 = 0,
+    asset_index: usize = 0,
+    loaded_assets: usize = 0,
+    skipped_assets: usize = 0,
+    progress: f32 = 0.04,
+    error_name: [64]u8 = undefined,
+    error_len: usize = 0,
+
+    fn errorSlice(self: *const LoadingState) []const u8 {
+        return self.error_name[0..self.error_len];
+    }
+};
 
 const Vec2 = struct {
     x: f32,
@@ -54,6 +80,7 @@ pub const AppState = struct {
     alpha_pipeline: sgl.Pipeline = .{},
     pass_action: sg.PassAction = .{},
     initialized: bool = false,
+    loading: LoadingState = .{},
     mouse: Vec2 = .{ .x = 0, .y = 0 },
     last_mouse: Vec2 = .{ .x = 0, .y = 0 },
     panning: bool = false,
@@ -100,9 +127,6 @@ pub const AppState = struct {
             .wrap_v = .CLAMP_TO_EDGE,
         });
 
-        self.loadAssets();
-        self.loadObjectSpriteDefinitions();
-        self.assignStarterAssets();
         self.initialized = true;
     }
 
@@ -124,8 +148,15 @@ pub const AppState = struct {
         if (!self.initialized) return;
         var dt: f32 = @floatCast(sapp.frameDuration());
         if (!(dt > 0 and dt < 0.25)) dt = 1.0 / 60.0;
-        self.handleKeyboardCamera(dt);
-        self.game.update(dt);
+
+        if (!self.ready() and self.loading.frames_seen > 0 and self.loading.phase != .failed) {
+            self.advanceLoading();
+        }
+        const is_ready = self.ready();
+        if (is_ready) {
+            self.handleKeyboardCamera(dt);
+            self.game.update(dt);
+        }
 
         simgui.newFrame(.{
             .width = sapp.width(),
@@ -133,7 +164,11 @@ pub const AppState = struct {
             .delta_time = dt,
             .dpi_scale = sapp.dpiScale(),
         });
-        imgui_ui.draw(self);
+        if (is_ready) {
+            imgui_ui.draw(self);
+        } else {
+            self.drawLoadingUi();
+        }
 
         sg.beginPass(.{
             .action = self.pass_action,
@@ -147,15 +182,24 @@ pub const AppState = struct {
         sgl.matrixModeModelview();
         sgl.loadIdentity();
 
-        self.drawWorld();
+        if (is_ready) {
+            self.drawWorld();
+        } else {
+            self.drawLoadingBackdrop();
+        }
         sgl.draw();
         simgui.render();
         sg.endPass();
         sg.commit();
+
+        if (!is_ready and self.loading.phase != .complete) {
+            self.loading.frames_seen +|= 1;
+        }
     }
 
     pub fn handleEvent(self: *AppState, ev: sapp.Event) void {
-        const consumed = simgui.handleEvent(ev);
+        const consumed = if (self.ready()) simgui.handleEvent(ev) else false;
+        if (!self.ready()) return;
         switch (ev.type) {
             .MOUSE_MOVE => {
                 self.last_mouse = self.mouse;
@@ -245,6 +289,176 @@ pub const AppState = struct {
     pub fn togglePlaytest(self: *AppState) void {
         self.game.simulation.togglePlay();
         self.editor.setStatus("Phase: {s}", .{@tagName(self.game.simulation.phase)});
+    }
+
+    fn ready(self: *const AppState) bool {
+        return self.loading.phase == .complete;
+    }
+
+    fn advanceLoading(self: *AppState) void {
+        switch (self.loading.phase) {
+            .intro => {
+                self.loading.progress = 0.08;
+                self.loading.phase = .scan_assets;
+            },
+            .scan_assets => self.scanAssetsForLoading(),
+            .load_assets => self.loadAssetBatch(),
+            .sprite_defs => {
+                self.loading.progress = 0.88;
+                self.loadObjectSpriteDefinitions();
+                self.loading.phase = .assign_world;
+            },
+            .assign_world => {
+                self.loading.progress = 0.94;
+                self.assignStarterAssets();
+                self.game.rebuildPathing() catch {};
+                self.loading.progress = 1.0;
+                self.loading.phase = .complete;
+                self.editor.setStatus("Ready. Loaded {d} assets.", .{self.loading.loaded_assets});
+            },
+            .complete, .failed => {},
+        }
+    }
+
+    fn scanAssetsForLoading(self: *AppState) void {
+        self.editor.setStatus("Scanning assets under {s}", .{platform.assetRoot()});
+        self.catalog.scan(platform.assetRoot()) catch |err| {
+            self.failLoading(err);
+            return;
+        };
+        self.sprite_count = @min(self.catalog.assets.items.len, self.sprites.len);
+        self.loading.asset_index = 0;
+        self.loading.loaded_assets = 0;
+        self.loading.skipped_assets = 0;
+        self.loading.progress = 0.16;
+        self.loading.phase = if (self.sprite_count == 0) .sprite_defs else .load_assets;
+    }
+
+    fn loadAssetBatch(self: *AppState) void {
+        const batch_size: usize = 2;
+        var loaded_this_frame: usize = 0;
+        while (loaded_this_frame < batch_size and self.loading.asset_index < self.sprite_count) : (loaded_this_frame += 1) {
+            const i = self.loading.asset_index;
+            self.loading.asset_index += 1;
+            var asset = &self.catalog.assets.items[i];
+            const image = png_loader.loadRgba(self.allocator, asset.path) catch {
+                self.loading.skipped_assets += 1;
+                continue;
+            };
+            defer image.deinit();
+            self.sprites[i] = createSprite(image.width, image.height, image.pixels);
+            asset.width = @floatFromInt(image.width);
+            asset.height = @floatFromInt(image.height);
+            self.loading.loaded_assets += 1;
+        }
+
+        self.loading.progress = 0.18 + 0.62 * self.assetLoadFraction();
+        if (self.loading.asset_index >= self.sprite_count) {
+            if (self.catalog.firstOfKind(.terrain)) |id| self.editor.brush_asset_id = id;
+            self.editor.setStatus("Loaded {d} assets from {s}", .{ self.loading.loaded_assets, platform.assetRoot() });
+            self.loading.phase = .sprite_defs;
+        }
+    }
+
+    fn assetLoadFraction(self: *const AppState) f32 {
+        if (self.sprite_count == 0) return 1.0;
+        return @as(f32, @floatFromInt(self.loading.asset_index)) / @as(f32, @floatFromInt(self.sprite_count));
+    }
+
+    fn failLoading(self: *AppState, err: anyerror) void {
+        const name = @errorName(err);
+        const len = @min(name.len, self.loading.error_name.len);
+        @memcpy(self.loading.error_name[0..len], name[0..len]);
+        self.loading.error_len = len;
+        self.loading.phase = .failed;
+        self.editor.setStatus("Loading failed: {s}", .{self.loading.errorSlice()});
+    }
+
+    fn loadingStage(self: *const AppState) []const u8 {
+        return switch (self.loading.phase) {
+            .intro => "Starting renderer",
+            .scan_assets => "Scanning asset catalog",
+            .load_assets => "Loading sprites",
+            .sprite_defs => "Loading object sprite definitions",
+            .assign_world => "Building starter battlefield",
+            .complete => "Ready",
+            .failed => "Load failed",
+        };
+    }
+
+    fn loadingDetail(self: *const AppState, buffer: []u8) []const u8 {
+        return switch (self.loading.phase) {
+            .intro => std.fmt.bufPrint(buffer, "Preparing native and web render path", .{}) catch "Preparing render path",
+            .scan_assets => std.fmt.bufPrint(buffer, "Looking under {s}", .{platform.assetRoot()}) catch "Scanning assets",
+            .load_assets => blk: {
+                if (self.loading.asset_index < self.sprite_count) {
+                    const asset = self.catalog.assets.items[self.loading.asset_index];
+                    break :blk std.fmt.bufPrint(
+                        buffer,
+                        "{d}/{d}  {s}",
+                        .{ self.loading.asset_index + 1, self.sprite_count, asset.name },
+                    ) catch "Loading sprite";
+                }
+                break :blk std.fmt.bufPrint(buffer, "{d}/{d} sprites decoded", .{ self.loading.loaded_assets, self.sprite_count }) catch "Sprites decoded";
+            },
+            .sprite_defs => std.fmt.bufPrint(buffer, "Resolving object kinds to sprite assets", .{}) catch "Resolving object sprites",
+            .assign_world => std.fmt.bufPrint(buffer, "Assigning tiles, objects, and pathing", .{}) catch "Assigning starter battlefield",
+            .complete => std.fmt.bufPrint(buffer, "Entering battlefield", .{}) catch "Ready",
+            .failed => std.fmt.bufPrint(buffer, "{s}", .{self.loading.errorSlice()}) catch "Open logs for details",
+        };
+    }
+
+    fn drawLoadingBackdrop(self: *AppState) void {
+        _ = self;
+        const w = sapp.widthf();
+        const h = sapp.heightf();
+        const center = Vec2{ .x = w * 0.5, .y = h * 0.5 };
+
+        drawRect(.{ .x = 0, .y = 0 }, w, h, .{ 0.055, 0.065, 0.058, 1.0 });
+        drawDiamond(.{ .x = center.x - 170, .y = center.y - 92 }, 160, 80, .{ 0.50, 0.42, 0.28, 0.10 });
+        drawDiamond(.{ .x = center.x + 170, .y = center.y + 92 }, 180, 90, .{ 0.25, 0.48, 0.58, 0.08 });
+        drawDiamond(.{ .x = center.x, .y = center.y + 12 }, 420, 210, .{ 0.02, 0.025, 0.022, 0.34 });
+    }
+
+    fn drawLoadingUi(self: *AppState) void {
+        var stage_buf: [96]u8 = undefined;
+        var detail_buf: [192]u8 = undefined;
+        var detail_z_buf: [192]u8 = undefined;
+        var percent_buf: [24]u8 = undefined;
+        const stage_z = std.fmt.bufPrintZ(&stage_buf, "{s}", .{self.loadingStage()}) catch return;
+        const detail = self.loadingDetail(&detail_buf);
+        const detail_z = std.fmt.bufPrintZ(&detail_z_buf, "{s}", .{detail}) catch return;
+        const pct = @as(i32, @intFromFloat(@round(std.math.clamp(self.loading.progress, 0, 1) * 100)));
+        const percent_z = std.fmt.bufPrintZ(&percent_buf, "{d}%", .{pct}) catch return;
+
+        const panel_w = @min(520, @max(320, sapp.widthf() - 48));
+        c.igSetNextWindowPos(uiV2(sapp.widthf() * 0.5, sapp.heightf() * 0.5), c.ImGuiCond_Always, uiV2(0.5, 0.5));
+        c.igSetNextWindowSize(uiV2(panel_w, 154), c.ImGuiCond_Always);
+        c.igSetNextWindowBgAlpha(0.92);
+        c.igPushStyleColor_U32(c.ImGuiCol_WindowBg, uiCol32(13, 16, 15, 236));
+        c.igPushStyleColor_U32(c.ImGuiCol_Border, uiCol32(64, 70, 61, 255));
+        c.igPushStyleColor_U32(c.ImGuiCol_FrameBg, uiCol32(8, 10, 9, 255));
+        c.igPushStyleColor_U32(c.ImGuiCol_PlotHistogram, if (self.loading.phase == .failed) uiCol32(255, 116, 88, 255) else uiCol32(82, 166, 210, 255));
+        defer c.igPopStyleColor(4);
+
+        const flags = c.ImGuiWindowFlags_NoDecoration |
+            c.ImGuiWindowFlags_NoMove |
+            c.ImGuiWindowFlags_NoSavedSettings |
+            c.ImGuiWindowFlags_NoNav |
+            c.ImGuiWindowFlags_NoResize;
+        _ = c.igBegin("Loading##startup", null, flags);
+        defer c.igEnd();
+
+        c.igTextUnformatted("TOJam 2026 RTS Prototype", null);
+        c.igSpacing();
+        c.igTextUnformatted(stage_z.ptr, null);
+        c.igProgressBar(std.math.clamp(self.loading.progress, 0, 1), uiV2(-1, 16), percent_z.ptr);
+        c.igTextUnformatted(detail_z.ptr, null);
+        if (self.loading.skipped_assets > 0) {
+            var skipped_buf: [64]u8 = undefined;
+            const skipped_z = std.fmt.bufPrintZ(&skipped_buf, "Skipped {d} sprite(s)", .{self.loading.skipped_assets}) catch return;
+            c.igTextUnformatted(skipped_z.ptr, null);
+        }
     }
 
     fn loadAssets(self: *AppState) void {
@@ -822,6 +1036,17 @@ fn drawRect(pos: Vec2, w: f32, h: f32, color: [4]f32) void {
 fn line(a: Vec2, b: Vec2) void {
     sgl.v2f(a.x, a.y);
     sgl.v2f(b.x, b.y);
+}
+
+fn uiV2(x: f32, y: f32) c.ImVec2_c {
+    return .{ .x = x, .y = y };
+}
+
+fn uiCol32(r: u8, g: u8, b: u8, a: u8) c.ImU32 {
+    return @as(c.ImU32, r) |
+        (@as(c.ImU32, g) << 8) |
+        (@as(c.ImU32, b) << 16) |
+        (@as(c.ImU32, a) << 24);
 }
 
 fn hasCommandModifier(modifiers: u32) bool {
