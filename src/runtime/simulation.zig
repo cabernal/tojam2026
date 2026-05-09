@@ -3,6 +3,7 @@ const map_mod = @import("../map/map.zig");
 const path = @import("../pathfinding/mod.zig");
 
 const EngagementRange: f32 = 1.5;
+pub const MaxShotEvents = 96;
 
 pub const Phase = enum {
     setup_player_one,
@@ -11,21 +12,38 @@ pub const Phase = enum {
     game_over,
 };
 
+pub const ShotEvent = struct {
+    attacker_id: u32 = 0,
+    target_id: u32 = 0,
+    attacker_team: u8 = 0,
+    attacker_kind: map_mod.ObjectKind = .infantry,
+    target_kind: map_mod.ObjectKind = .infantry,
+    start_x: f32 = 0,
+    start_y: f32 = 0,
+    end_x: f32 = 0,
+    end_y: f32 = 0,
+    damage: f32 = 0,
+};
+
 pub const Simulation = struct {
     phase: Phase = .setup_player_one,
     winner: ?u8 = null,
     step_timer: f32 = 0,
+    shot_events: [MaxShotEvents]ShotEvent = [_]ShotEvent{.{}} ** MaxShotEvents,
+    shot_event_count: usize = 0,
 
     pub fn resetSetup(self: *Simulation) void {
         self.phase = .setup_player_one;
         self.winner = null;
         self.step_timer = 0;
+        self.clearShotEvents();
     }
 
     pub fn startPlaying(self: *Simulation) void {
         self.phase = .playing;
         self.winner = null;
         self.step_timer = 0;
+        self.clearShotEvents();
     }
 
     pub fn togglePlay(self: *Simulation) void {
@@ -79,6 +97,7 @@ pub const Simulation = struct {
         pathfinder: *path.HierarchicalPathfinder,
         dt: f32,
     ) void {
+        self.clearShotEvents();
         if (self.phase != .playing) return;
         self.step_timer += dt;
         self.resolveCombat(game_map, dt);
@@ -92,7 +111,6 @@ pub const Simulation = struct {
     }
 
     fn resolveCombat(self: *Simulation, game_map: *map_mod.GameMap, dt: f32) void {
-        _ = self;
         var i: usize = 0;
         while (i < game_map.object_count) : (i += 1) {
             if (!game_map.objects[i].active) continue;
@@ -114,13 +132,36 @@ pub const Simulation = struct {
                 }
             }
             if (target_idx) |j| {
-                game_map.objects[j].hp = @max(0, game_map.objects[j].hp - stats.damage_per_second * dt);
+                const damage = stats.damage_per_second * dt;
+                self.recordShot(attacker, game_map.objects[j], damage);
+                game_map.objects[j].hp = @max(0, game_map.objects[j].hp - damage);
                 if (game_map.objects[j].hp <= 0) {
                     game_map.objects[j].active = false;
                     game_map.version += 1;
                 }
             }
         }
+    }
+
+    fn clearShotEvents(self: *Simulation) void {
+        self.shot_event_count = 0;
+    }
+
+    fn recordShot(self: *Simulation, attacker: map_mod.MapObject, target: map_mod.MapObject, damage: f32) void {
+        if (self.shot_event_count >= self.shot_events.len) return;
+        self.shot_events[self.shot_event_count] = .{
+            .attacker_id = attacker.id,
+            .target_id = target.id,
+            .attacker_team = attacker.team,
+            .attacker_kind = attacker.kind,
+            .target_kind = target.kind,
+            .start_x = @as(f32, @floatFromInt(attacker.x)) + 0.5,
+            .start_y = @as(f32, @floatFromInt(attacker.y)) + 0.5,
+            .end_x = @as(f32, @floatFromInt(target.x)) + 0.5,
+            .end_y = @as(f32, @floatFromInt(target.y)) + 0.5,
+            .damage = damage,
+        };
+        self.shot_event_count += 1;
     }
 
     fn moveUnits(self: *Simulation, game_map: *map_mod.GameMap, grid_map: *path.GridMap, pathfinder: *path.HierarchicalPathfinder) void {
@@ -354,6 +395,25 @@ test "adjacent enemies stop movement and trade damage" {
     try std.testing.expectEqual(@as(i32, 4), attacker.x);
     try std.testing.expectEqual(@as(i32, 5), attacker.y);
     try std.testing.expect(blocker.hp < before);
+}
+
+test "combat records shot events for visual effects" {
+    var game_map: map_mod.GameMap = .{};
+    const attacker_id = game_map.addObject(.infantry, 4, 5, 0, 0, 0).?;
+    const target_id = game_map.addObject(.infantry, 5, 5, 1, 1, 0).?;
+
+    var sim: Simulation = .{};
+    sim.resolveCombat(&game_map, 0.25);
+
+    try std.testing.expect(sim.shot_event_count >= 1);
+    const event = sim.shot_events[0];
+    try std.testing.expectEqual(attacker_id, event.attacker_id);
+    try std.testing.expectEqual(target_id, event.target_id);
+    try std.testing.expectEqual(@as(u8, 0), event.attacker_team);
+    try std.testing.expectEqual(map_mod.ObjectKind.infantry, event.attacker_kind);
+    try std.testing.expectApproxEqAbs(@as(f32, 4.5), event.start_x, 0.001);
+    try std.testing.expectApproxEqAbs(@as(f32, 5.5), event.end_x, 0.001);
+    try std.testing.expect(event.damage > 0);
 }
 
 test "units resume citadel movement after contact enemy is destroyed" {
