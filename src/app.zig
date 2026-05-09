@@ -24,6 +24,7 @@ const tools = @import("editor/tools.zig");
 const imgui_ui = @import("editor/imgui_ui.zig");
 const platform = @import("platform/web.zig");
 const sim_mod = @import("runtime/simulation.zig");
+const audio_mod = @import("audio/audio.zig");
 
 const TileW: f32 = 64;
 const TileH: f32 = 32;
@@ -180,6 +181,8 @@ pub const AppState = struct {
     laser_fx_vertex_count: usize = 0,
     laser_rng: u32 = 0x6d2b79f5,
     perf: PerfStats = .{},
+    audio: audio_mod.Engine = .{},
+    music_started: bool = false,
 
     pub fn init(self: *AppState, allocator: std.mem.Allocator) void {
         self.allocator = allocator;
@@ -201,6 +204,7 @@ pub const AppState = struct {
         });
         sgl.setup(.{ .logger = .{ .func = slog.func } });
         simgui.setup(.{ .logger = .{ .func = slog.func } });
+        self.audio.init(allocator, platform.assetRoot());
 
         var alpha_desc: sg.PipelineDesc = .{};
         alpha_desc.colors[0].blend.enabled = true;
@@ -237,6 +241,7 @@ pub const AppState = struct {
         self.object_sprites.deinit();
         self.catalog.deinit();
         self.game.deinit();
+        self.audio.deinit();
         simgui.shutdown();
         sgl.shutdown();
         sg.shutdown();
@@ -258,6 +263,10 @@ pub const AppState = struct {
         }
         const is_ready = self.ready();
         if (is_ready) {
+            if (!self.music_started) {
+                self.audio.playMusic(.simple_bgm_loop, 0.34, true);
+                self.music_started = true;
+            }
             const update_start = stime.now();
             self.syncEditorPlayerWithSetup();
             self.updateHoverAt(self.mouse);
@@ -384,22 +393,25 @@ pub const AppState = struct {
                 if (ev.key_repeat) return;
                 switch (ev.key_code) {
                     .TAB => {
-                        if (self.allow_editor) self.editor.enabled = !self.editor.enabled;
+                        if (self.allow_editor) {
+                            self.editor.enabled = !self.editor.enabled;
+                            self.audio.playSfx(if (self.editor.enabled) .panel_open else .panel_close);
+                        }
                     },
                     .SPACE => self.togglePlaytest(),
                     .S => if (hasCommandModifier(ev.modifiers)) self.saveMap(),
                     .L => if (hasCommandModifier(ev.modifiers)) self.loadMap(),
                     ._1 => {
-                        if (hasShift(ev.modifiers)) self.selectAssetSlot(0) else self.editor.tool = .terrain;
+                        if (hasShift(ev.modifiers)) self.selectAssetSlot(0) else self.setEditorTool(.terrain);
                     },
                     ._2 => {
-                        if (hasShift(ev.modifiers)) self.selectAssetSlot(1) else self.editor.tool = .object;
+                        if (hasShift(ev.modifiers)) self.selectAssetSlot(1) else self.setEditorTool(.object);
                     },
                     ._3 => {
-                        if (hasShift(ev.modifiers)) self.selectAssetSlot(2) else self.editor.tool = .erase;
+                        if (hasShift(ev.modifiers)) self.selectAssetSlot(2) else self.setEditorTool(.erase);
                     },
                     ._4 => {
-                        if (hasShift(ev.modifiers)) self.selectAssetSlot(3) else self.editor.tool = .select;
+                        if (hasShift(ev.modifiers)) self.selectAssetSlot(3) else self.setEditorTool(.select);
                     },
                     ._5 => {
                         if (hasShift(ev.modifiers)) self.selectAssetSlot(4);
@@ -420,10 +432,10 @@ pub const AppState = struct {
                     .E => if (hasShift(ev.modifiers)) self.cycleObjectKind(1) else self.cycleBrushAsset(1),
                     .LEFT_BRACKET => self.adjustBrushRadius(-1),
                     .RIGHT_BRACKET => self.adjustBrushRadius(1),
-                    .T => self.editor.tool = .terrain,
-                    .O => self.editor.tool = .object,
-                    .X => self.editor.tool = .erase,
-                    .V => self.editor.tool = .select,
+                    .T => self.setEditorTool(.terrain),
+                    .O => self.setEditorTool(.object),
+                    .X => self.setEditorTool(.erase),
+                    .V => self.setEditorTool(.select),
                     else => {},
                 }
             },
@@ -481,9 +493,17 @@ pub const AppState = struct {
 
     pub fn selectAsset(self: *AppState, asset_id: u16) void {
         self.editor.brush_asset_id = asset_id;
+        self.audio.playSfx(.hover_tick);
         if (self.catalog.get(asset_id)) |asset| {
             self.editor.setStatus("Selected asset {d}: {s}", .{ asset.id, asset.name });
         }
+    }
+
+    fn setEditorTool(self: *AppState, tool: tools.Tool) void {
+        if (self.editor.tool != tool) {
+            self.audio.playSfx(.tool_cycle);
+        }
+        self.editor.tool = tool;
     }
 
     pub fn createGeneratedTerrainAsset(self: *AppState) void {
@@ -505,6 +525,7 @@ pub const AppState = struct {
         self.game.simulation.togglePlay();
         self.clearLaserFx();
         self.syncEditorPlayerWithSetup();
+        self.audio.playSfx(.click_confirm);
         self.editor.setStatus("Phase: {s}", .{@tagName(self.game.simulation.phase)});
     }
 
@@ -980,7 +1001,19 @@ pub const AppState = struct {
         for (self.game.simulation.shot_events[0..count]) |event| {
             if (!self.shouldEmitLaserShot(event)) continue;
             self.perf.visual_shots += 1;
+            self.playShotSfx(event);
             self.spawnLaserShot(event);
+        }
+    }
+
+    fn playShotSfx(self: *AppState, event: sim_mod.ShotEvent) void {
+        const sfx: audio_mod.SfxId = switch (event.attacker_kind) {
+            .artillery => .artillery_fire,
+            else => .infantry_attack,
+        };
+        self.audio.playSfxGain(sfx, 0.58);
+        if (event.target_kind == .citadel or event.target_kind == .outpost or event.target_kind == .defense_grid) {
+            self.audio.playSfxGain(.unit_hit_metal, 0.34);
         }
     }
 
@@ -1620,6 +1653,7 @@ pub const AppState = struct {
                 const asset = self.assetForObjectKind(self.editor.object_kind);
                 const player = self.game.simulation.placementPlayer(self.editor.current_player);
                 if (!self.game.simulation.canPlaceObject(&self.game.map, self.editor.object_kind, player)) {
+                    self.audio.playSfx(.invalid_action);
                     self.editor.setStatus("Setup placement limit reached for Player {d}.", .{player + 1});
                     return;
                 }
@@ -1631,7 +1665,10 @@ pub const AppState = struct {
                     player,
                     asset,
                 ) != null) {
+                    self.audio.playSfx(.build_complete);
                     self.markPathingDirty();
+                } else {
+                    self.audio.playSfx(.invalid_action);
                 }
             },
             .erase => {
