@@ -107,6 +107,9 @@ fn drawInspector(app: anytype) void {
     _ = c.igCheckbox("Sectors", &app.editor.show_sectors);
     _ = c.igCheckbox("Portals", &app.editor.show_portals);
     _ = c.igCheckbox("Simulation", &app.editor.show_simulation);
+    _ = c.igCheckbox("Perf", &app.editor.show_perf);
+
+    if (app.editor.show_perf) drawPerfStats(app);
 
     c.igSeparator();
     if (c.igButton("Save Map", v2(136, 0))) app.saveMap();
@@ -118,6 +121,45 @@ fn drawInspector(app: anytype) void {
     uiText("Route cache {d}/{d}  Flow {d}/{d}", .{ dbg.path_cache_hits, dbg.path_cache_misses, dbg.flow_cache_hits, dbg.flow_cache_misses });
     c.igSeparator();
     c.igTextUnformatted(&app.editor.status, null);
+}
+
+fn drawPerfStats(app: anytype) void {
+    const perf = app.perf;
+    c.igSeparator();
+    uiText("Perf: {s}", .{hotPerfLabel(perf)});
+    uiText("Frame {d:.1} ms  {d:.0} fps", .{ perf.frame_ms, perf.fps });
+    uiText("CPU {d:.2}  Submit {d:.2}", .{ perf.cpu_ms, perf.submit_ms });
+    uiText("Update {d:.2}  Sim {d:.2}", .{ perf.update_ms, perf.sim_ms });
+    uiText("FX step {d:.2}  Shots {d:.2}", .{ perf.fx_update_ms, perf.shot_ms });
+    uiText("World {d:.2}  SGL {d:.2}", .{ perf.world_ms, perf.sgl_ms });
+    uiText("Laser draw {d:.2}  UI {d:.2}", .{ perf.laser_draw_ms, perf.ui_ms + perf.imgui_render_ms });
+    uiText("Shots {d}->{d}  FX {d}/{d}", .{ perf.raw_shot_events, perf.visual_shots, perf.active_beams, perf.active_particles });
+    uiText("Objects {d}/{d}  Verts {d}", .{ perf.active_objects, perf.object_count, perf.laser_vertices });
+}
+
+fn hotPerfLabel(perf: anytype) []const u8 {
+    var label: []const u8 = "none";
+    var ms: f32 = 0;
+    if (perf.sim_ms > ms) {
+        label = "simulation";
+        ms = perf.sim_ms;
+    }
+    if (perf.fx_update_ms + perf.shot_ms > ms) {
+        label = "laser update";
+        ms = perf.fx_update_ms + perf.shot_ms;
+    }
+    if (perf.world_ms + perf.sgl_ms > ms) {
+        label = "world draw";
+        ms = perf.world_ms + perf.sgl_ms;
+    }
+    if (perf.laser_draw_ms > ms) {
+        label = "laser draw";
+        ms = perf.laser_draw_ms;
+    }
+    if (perf.submit_ms > ms) {
+        label = "submit/GPU";
+    }
+    return label;
 }
 
 fn drawAssetBrowser(app: anytype) void {

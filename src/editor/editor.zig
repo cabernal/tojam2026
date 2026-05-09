@@ -20,6 +20,7 @@ pub const EditorState = struct {
     show_sectors: bool = false,
     show_portals: bool = false,
     show_simulation: bool = true,
+    show_perf: bool = true,
     selected_cell_x: i32 = -1,
     selected_cell_y: i32 = -1,
     hover_cell_x: i32 = -1,

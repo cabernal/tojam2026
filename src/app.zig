@@ -8,6 +8,7 @@ const sgl = sokol.gl;
 const sglue = sokol.glue;
 const simgui = sokol.imgui;
 const slog = sokol.log;
+const stime = sokol.time;
 const c = @import("cimgui.zig").c;
 
 const runtime = @import("runtime/game.zig");
@@ -30,10 +31,12 @@ const MaxSprites = asset_loader.MaxAssets;
 const NoAsset: u16 = std.math.maxInt(u16);
 const MaxLaserBeams = 192;
 const MaxLaserParticles = 1024;
+const MaxLaserEmitters = map_mod.MaxObjects;
 const LaserBeamVertices = 12;
 const LaserParticleVertices = 12;
 const MaxLaserFxVertices = MaxLaserBeams * LaserBeamVertices + MaxLaserParticles * LaserParticleVertices;
 const LaserBeamLife: f32 = 0.13;
+const LaserEmitterIdleSeconds: f32 = 0.75;
 
 const LoadingPhase = enum {
     intro,
@@ -102,9 +105,39 @@ const LaserParticle = struct {
     color: [4]f32 = .{ 1, 1, 1, 1 },
 };
 
+const LaserEmitter = struct {
+    active: bool = false,
+    attacker_id: u32 = 0,
+    cooldown: f32 = 0,
+    idle_seconds: f32 = 0,
+};
+
 const LaserFxVertex = extern struct {
     position: [2]f32 = .{ 0, 0 },
     color: [4]f32 = .{ 1, 1, 1, 1 },
+};
+
+pub const PerfStats = struct {
+    frame_ms: f32 = 0,
+    fps: f32 = 0,
+    cpu_ms: f32 = 0,
+    update_ms: f32 = 0,
+    sim_ms: f32 = 0,
+    fx_update_ms: f32 = 0,
+    shot_ms: f32 = 0,
+    ui_ms: f32 = 0,
+    world_ms: f32 = 0,
+    sgl_ms: f32 = 0,
+    laser_draw_ms: f32 = 0,
+    imgui_render_ms: f32 = 0,
+    submit_ms: f32 = 0,
+    raw_shot_events: usize = 0,
+    visual_shots: usize = 0,
+    object_count: usize = 0,
+    active_objects: usize = 0,
+    active_beams: usize = 0,
+    active_particles: usize = 0,
+    laser_vertices: usize = 0,
 };
 
 pub const AppState = struct {
@@ -137,11 +170,16 @@ pub const AppState = struct {
     zoom: f32 = 1.0,
     laser_beams: [MaxLaserBeams]LaserBeam = [_]LaserBeam{.{}} ** MaxLaserBeams,
     laser_particles: [MaxLaserParticles]LaserParticle = [_]LaserParticle{.{}} ** MaxLaserParticles,
+    laser_emitters: [MaxLaserEmitters]LaserEmitter = [_]LaserEmitter{.{}} ** MaxLaserEmitters,
     laser_fx_vertices: [MaxLaserFxVertices]LaserFxVertex = undefined,
     laser_beam_cursor: usize = 0,
     laser_particle_cursor: usize = 0,
+    laser_emitter_cursor: usize = 0,
+    laser_beam_active_count: usize = 0,
+    laser_particle_active_count: usize = 0,
     laser_fx_vertex_count: usize = 0,
     laser_rng: u32 = 0x6d2b79f5,
+    perf: PerfStats = .{},
 
     pub fn init(self: *AppState, allocator: std.mem.Allocator) void {
         self.allocator = allocator;
@@ -156,6 +194,7 @@ pub const AppState = struct {
         self.zoom = 1.0;
         self.editor.setStatus("Editor ready. Assets are loaded from {s}.", .{platform.assetRoot()});
 
+        stime.setup();
         sg.setup(.{
             .environment = sglue.environment(),
             .logger = .{ .func = slog.func },
@@ -206,23 +245,41 @@ pub const AppState = struct {
 
     pub fn frame(self: *AppState) void {
         if (!self.initialized) return;
+        const frame_start = stime.now();
         var dt: f32 = @floatCast(sapp.frameDuration());
         if (!(dt > 0 and dt < 0.25)) dt = 1.0 / 60.0;
+        self.perf.frame_ms = dt * 1000.0;
+        self.perf.fps = if (dt > 0) 1.0 / dt else 0;
+        self.perf.raw_shot_events = 0;
+        self.perf.visual_shots = 0;
 
         if (!self.ready() and self.loading.frames_seen > 0 and self.loading.phase != .failed) {
             self.advanceLoading();
         }
         const is_ready = self.ready();
         if (is_ready) {
+            const update_start = stime.now();
             self.syncEditorPlayerWithSetup();
             self.updateHoverAt(self.mouse);
             if (!self.painting) self.flushPathingRebuild();
             self.handleKeyboardCamera(dt);
+            const sim_start = stime.now();
             self.game.update(dt);
+            const sim_end = stime.now();
+            const fx_start = stime.now();
             self.updateLaserFx(dt);
+            const fx_end = stime.now();
+            const shot_start = stime.now();
             self.consumeShotEvents();
+            const shot_end = stime.now();
+            smoothMs(&self.perf.sim_ms, elapsedMs(sim_start, sim_end));
+            smoothMs(&self.perf.fx_update_ms, elapsedMs(fx_start, fx_end));
+            smoothMs(&self.perf.shot_ms, elapsedMs(shot_start, shot_end));
+            smoothMs(&self.perf.update_ms, elapsedMs(update_start, shot_end));
+            self.refreshPerfCounters();
         }
 
+        const ui_start = stime.now();
         simgui.newFrame(.{
             .width = sapp.width(),
             .height = sapp.height(),
@@ -234,6 +291,8 @@ pub const AppState = struct {
         } else {
             self.drawLoadingUi();
         }
+        const ui_end = stime.now();
+        smoothMs(&self.perf.ui_ms, elapsedMs(ui_start, ui_end));
 
         sg.beginPass(.{
             .action = self.pass_action,
@@ -242,16 +301,32 @@ pub const AppState = struct {
 
         self.prepareScreenSgl();
 
+        const world_start = stime.now();
         if (is_ready) {
             self.drawWorld();
         } else {
             self.drawLoadingBackdrop();
         }
+        const world_end = stime.now();
+        smoothMs(&self.perf.world_ms, elapsedMs(world_start, world_end));
+        const sgl_start = stime.now();
         sgl.draw();
+        const sgl_end = stime.now();
+        smoothMs(&self.perf.sgl_ms, elapsedMs(sgl_start, sgl_end));
+        const laser_start = stime.now();
         if (is_ready) self.drawLaserFx();
+        const laser_end = stime.now();
+        smoothMs(&self.perf.laser_draw_ms, elapsedMs(laser_start, laser_end));
+        const imgui_render_start = stime.now();
         simgui.render();
+        const imgui_render_end = stime.now();
+        smoothMs(&self.perf.imgui_render_ms, elapsedMs(imgui_render_start, imgui_render_end));
+        const submit_start = stime.now();
         sg.endPass();
         sg.commit();
+        const submit_end = stime.now();
+        smoothMs(&self.perf.submit_ms, elapsedMs(submit_start, submit_end));
+        smoothMs(&self.perf.cpu_ms, elapsedMs(frame_start, submit_end));
 
         if (!is_ready and self.loading.phase != .complete) {
             self.loading.frames_seen +|= 1;
@@ -901,9 +976,36 @@ pub const AppState = struct {
 
     fn consumeShotEvents(self: *AppState) void {
         const count = @min(self.game.simulation.shot_event_count, self.game.simulation.shot_events.len);
+        self.perf.raw_shot_events = count;
         for (self.game.simulation.shot_events[0..count]) |event| {
+            if (!self.shouldEmitLaserShot(event)) continue;
+            self.perf.visual_shots += 1;
             self.spawnLaserShot(event);
         }
+    }
+
+    fn shouldEmitLaserShot(self: *AppState, event: sim_mod.ShotEvent) bool {
+        const emitter = self.laserEmitterFor(event.attacker_id);
+        emitter.idle_seconds = 0;
+        if (emitter.cooldown > 0) return false;
+        emitter.cooldown = laserVisualCooldown(event.attacker_kind);
+        return true;
+    }
+
+    fn laserEmitterFor(self: *AppState, attacker_id: u32) *LaserEmitter {
+        for (&self.laser_emitters) |*emitter| {
+            if (emitter.active and emitter.attacker_id == attacker_id) return emitter;
+        }
+        for (&self.laser_emitters) |*emitter| {
+            if (!emitter.active) {
+                emitter.* = .{ .active = true, .attacker_id = attacker_id };
+                return emitter;
+            }
+        }
+        const idx = self.laser_emitter_cursor;
+        self.laser_emitter_cursor = (idx + 1) % self.laser_emitters.len;
+        self.laser_emitters[idx] = .{ .active = true, .attacker_id = attacker_id };
+        return &self.laser_emitters[idx];
     }
 
     fn spawnLaserShot(self: *AppState, event: sim_mod.ShotEvent) void {
@@ -913,7 +1015,7 @@ pub const AppState = struct {
         end.y -= self.shotLift(event.target_kind) * 0.72;
 
         const color = laserColorForTeam(event.attacker_team);
-        const beam = self.nextLaserBeamSlot();
+        const beam = self.nextLaserBeamSlot() orelse return;
         beam.* = .{
             .active = true,
             .start = start,
@@ -933,7 +1035,7 @@ pub const AppState = struct {
         const particle_count: usize = if (event.damage >= 8) 6 else 4;
         var i: usize = 0;
         while (i < particle_count) : (i += 1) {
-            const p = self.nextLaserParticleSlot();
+            const p = self.nextLaserParticleSlot() orelse break;
             const t = self.nextLaserRandom();
             const scatter = (self.nextLaserRandom() - 0.5) * 10;
             const speed = 46 + self.nextLaserRandom() * 96;
@@ -962,7 +1064,7 @@ pub const AppState = struct {
 
         var impact: usize = 0;
         while (impact < 2) : (impact += 1) {
-            const p = self.nextLaserParticleSlot();
+            const p = self.nextLaserParticleSlot() orelse break;
             const angle = self.nextLaserRandom() * std.math.tau;
             const speed = 70 + self.nextLaserRandom() * 130;
             const life = 0.16 + self.nextLaserRandom() * 0.22;
@@ -986,16 +1088,26 @@ pub const AppState = struct {
     }
 
     fn updateLaserFx(self: *AppState, dt: f32) void {
+        for (&self.laser_emitters) |*emitter| {
+            if (!emitter.active) continue;
+            emitter.cooldown = @max(0, emitter.cooldown - dt);
+            emitter.idle_seconds += dt;
+            if (emitter.idle_seconds >= LaserEmitterIdleSeconds) emitter.active = false;
+        }
         for (&self.laser_beams) |*beam| {
             if (!beam.active) continue;
             beam.life -= dt;
-            if (beam.life <= 0) beam.active = false;
+            if (beam.life <= 0) {
+                beam.active = false;
+                if (self.laser_beam_active_count > 0) self.laser_beam_active_count -= 1;
+            }
         }
         for (&self.laser_particles) |*particle| {
             if (!particle.active) continue;
             particle.life -= dt;
             if (particle.life <= 0) {
                 particle.active = false;
+                if (self.laser_particle_active_count > 0) self.laser_particle_active_count -= 1;
                 continue;
             }
             particle.vel.x += particle.accel.x * dt;
@@ -1024,6 +1136,7 @@ pub const AppState = struct {
             const size = particle.radius * (1.6 + fade * 1.2);
             self.appendParticleFx(particle.pos, size, color);
         }
+        self.perf.laser_vertices = self.laser_fx_vertex_count;
         if (self.laser_fx_vertex_count == 0) return;
 
         sg.updateBuffer(self.laser_fx_vertex_buffer, sg.asRange(self.laser_fx_vertices[0..self.laser_fx_vertex_count]));
@@ -1034,24 +1147,55 @@ pub const AppState = struct {
         sg.draw(0, @intCast(self.laser_fx_vertex_count), 1);
     }
 
+    fn refreshPerfCounters(self: *AppState) void {
+        var active_objects: usize = 0;
+        for (self.game.map.objects[0..self.game.map.object_count]) |object| {
+            if (object.active) active_objects += 1;
+        }
+        self.perf.object_count = self.game.map.object_count;
+        self.perf.active_objects = active_objects;
+        self.perf.active_beams = self.laser_beam_active_count;
+        self.perf.active_particles = self.laser_particle_active_count;
+    }
+
     fn clearLaserFx(self: *AppState) void {
         for (&self.laser_beams) |*beam| beam.active = false;
         for (&self.laser_particles) |*particle| particle.active = false;
+        for (&self.laser_emitters) |*emitter| emitter.active = false;
         self.laser_beam_cursor = 0;
         self.laser_particle_cursor = 0;
+        self.laser_emitter_cursor = 0;
+        self.laser_beam_active_count = 0;
+        self.laser_particle_active_count = 0;
         self.laser_fx_vertex_count = 0;
     }
 
-    fn nextLaserBeamSlot(self: *AppState) *LaserBeam {
-        const idx = self.laser_beam_cursor;
-        self.laser_beam_cursor = (idx + 1) % self.laser_beams.len;
-        return &self.laser_beams[idx];
+    fn nextLaserBeamSlot(self: *AppState) ?*LaserBeam {
+        if (self.laser_beam_active_count >= self.laser_beams.len) return null;
+        var checked: usize = 0;
+        while (checked < self.laser_beams.len) : (checked += 1) {
+            const idx = self.laser_beam_cursor;
+            self.laser_beam_cursor = (idx + 1) % self.laser_beams.len;
+            if (!self.laser_beams[idx].active) {
+                self.laser_beam_active_count += 1;
+                return &self.laser_beams[idx];
+            }
+        }
+        return null;
     }
 
-    fn nextLaserParticleSlot(self: *AppState) *LaserParticle {
-        const idx = self.laser_particle_cursor;
-        self.laser_particle_cursor = (idx + 1) % self.laser_particles.len;
-        return &self.laser_particles[idx];
+    fn nextLaserParticleSlot(self: *AppState) ?*LaserParticle {
+        if (self.laser_particle_active_count >= self.laser_particles.len) return null;
+        var checked: usize = 0;
+        while (checked < self.laser_particles.len) : (checked += 1) {
+            const idx = self.laser_particle_cursor;
+            self.laser_particle_cursor = (idx + 1) % self.laser_particles.len;
+            if (!self.laser_particles[idx].active) {
+                self.laser_particle_active_count += 1;
+                return &self.laser_particles[idx];
+            }
+        }
+        return null;
     }
 
     fn nextLaserRandom(self: *AppState) f32 {
@@ -1959,6 +2103,28 @@ fn laserColorForTeam(team: u8) [4]f32 {
         .{ 0.38, 0.86, 1.0, 0.96 }
     else
         .{ 1.0, 0.34, 0.22, 0.96 };
+}
+
+fn laserVisualCooldown(kind: map_mod.ObjectKind) f32 {
+    return switch (kind) {
+        .imperator => 0.08,
+        .artillery => 0.16,
+        .outpost, .defense_grid => 0.12,
+        .captain => 0.11,
+        else => 0.13,
+    };
+}
+
+fn elapsedMs(start_ticks: u64, end_ticks: u64) f32 {
+    return @floatCast(stime.ms(stime.diff(end_ticks, start_ticks)));
+}
+
+fn smoothMs(target: *f32, value: f32) void {
+    if (target.* == 0) {
+        target.* = value;
+    } else {
+        target.* += (value - target.*) * 0.18;
+    }
 }
 
 fn line(a: Vec2, b: Vec2) void {

@@ -1,11 +1,32 @@
+const std = @import("std");
 const builtin = @import("builtin");
 
 pub const is_web = builtin.target.cpu.arch.isWasm() and builtin.target.os.tag == .emscripten;
 
 extern fn emscripten_run_script_int(script: [*:0]const u8) c_int;
 
+var native_asset_root_buf: [std.fs.max_path_bytes]u8 = undefined;
+var native_asset_root_len: usize = 0;
+
 pub fn assetRoot() []const u8 {
-    return if (is_web) "/assets" else "assets";
+    if (comptime is_web) return "/assets";
+    return nativeAssetRoot();
+}
+
+fn nativeAssetRoot() []const u8 {
+    if (native_asset_root_len != 0) {
+        return native_asset_root_buf[0..native_asset_root_len];
+    }
+    std.fs.cwd().access("assets", .{}) catch {
+        var exe_dir_buf: [std.fs.max_path_bytes]u8 = undefined;
+        const exe_dir = std.fs.selfExeDirPath(&exe_dir_buf) catch return "assets";
+        const path = std.fmt.bufPrint(&native_asset_root_buf, "{s}/../../assets", .{exe_dir}) catch return "assets";
+        native_asset_root_len = path.len;
+        return path;
+    };
+    @memcpy(native_asset_root_buf[0.."assets".len], "assets");
+    native_asset_root_len = "assets".len;
+    return native_asset_root_buf[0..native_asset_root_len];
 }
 
 pub fn canPersistMaps() bool {
