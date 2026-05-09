@@ -60,4 +60,4 @@ Full shortcut reference: [SHORTCUTS.md](SHORTCUTS.md).
 - `[` / `]`: adjust brush radius
 - `Ctrl/Cmd+S` and `Ctrl/Cmd+L`: save/load map on native builds
 
-Maps save as deterministic JSON to `assets/maps/default/map.json`.
+Maps save as deterministic JSON to `assets/maps/default/map.json`. Native builds persist that file on disk; web builds mirror the same JSON into browser localStorage and restore it before loading.

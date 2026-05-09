@@ -52,7 +52,7 @@ In `zig build run-game` or web builds made with `-Dapp-mode=game`, editor shortc
 
 | Input | Action |
 | --- | --- |
-| `Ctrl+S` / `Cmd+S` | Save map on native builds |
-| `Ctrl+L` / `Cmd+L` | Load map on native builds |
+| `Ctrl+S` / `Cmd+S` | Save map |
+| `Ctrl+L` / `Cmd+L` | Load map |
 
-Map save/load is disabled in the web build.
+Native saves to disk. Web saves the same JSON through browser localStorage.

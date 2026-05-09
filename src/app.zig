@@ -311,19 +311,27 @@ pub const AppState = struct {
 
     pub fn saveMap(self: *AppState) void {
         if (!platform.canPersistMaps()) {
-            self.editor.setStatus("Map save is disabled in the web build.", .{});
+            self.editor.setStatus("Map save is disabled on this platform.", .{});
             return;
         }
         map_io.save(schema.DefaultMapPath, &self.game.map) catch |err| {
             self.editor.setStatus("Save failed: {s}", .{@errorName(err)});
             return;
         };
+        if (!platform.persistMap(schema.DefaultMapPath)) {
+            self.editor.setStatus("Saved map, but browser persistence failed.", .{});
+            return;
+        }
         self.editor.setStatus("Saved {s}", .{schema.DefaultMapPath});
     }
 
     pub fn loadMap(self: *AppState) void {
         if (!platform.canPersistMaps()) {
-            self.editor.setStatus("Map load is disabled in the web build.", .{});
+            self.editor.setStatus("Map load is disabled on this platform.", .{});
+            return;
+        }
+        if (!platform.restoreMap(schema.DefaultMapPath)) {
+            self.editor.setStatus("No saved map found.", .{});
             return;
         }
         const loaded = map_io.load(self.allocator, schema.DefaultMapPath) catch |err| {

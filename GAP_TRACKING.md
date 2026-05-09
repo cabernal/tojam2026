@@ -14,7 +14,7 @@ Completed items are crossed out in the commit that addresses them.
 - [x] ~~Portal objects do not teleport or link units.~~ Addressed with linked portal exits for mobile units.
 - [x] ~~Healing pods have negative damage stats, but the combat system skips non-damaging objects instead of healing allies.~~ Addressed with allied healing pulses around healing pods.
 - [x] ~~The editor layer panel is currently a set of toggles rather than a fuller layer control surface.~~ Addressed with explicit terrain, object, health, preview, and debug layer controls.
-- [ ] Web map persistence is disabled while native save/load works.
+- [x] ~~Web map persistence is disabled while native save/load works.~~ Addressed with browser localStorage-backed JSON save/load for web builds.
 
 ## Already Verified
 
