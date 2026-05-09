@@ -34,12 +34,18 @@ Starter PNGs from `../notes/Arid Badlands` are copied under `assets/`. The loade
 
 ## Controls
 
-- Left mouse: paint terrain or place the selected object while the editor is enabled
-- Right mouse drag or WASD: pan
+Full shortcut reference: [SHORTCUTS.md](SHORTCUTS.md).
+
+- Left click/drag: paint, place, or erase with the active editor tool
+- Right click: pick terrain/object into the brush
+- Right mouse drag or `WASD`/arrow keys: pan
 - Mouse wheel: zoom
-- Tab: toggle editor overlay
-- Space: toggle playtest
-- 1/2/3: switch tool
-- S/L: save/load map on native builds
+- `Tab`: toggle editor overlay
+- `Space`: toggle playtest
+- `1`/`2`/`3`/`4` or `T`/`O`/`X`/`V`: switch tools
+- `Q`/`E`: cycle brush assets
+- `Shift+1..9`: select quick asset slots
+- `[` / `]`: adjust brush radius
+- `Ctrl/Cmd+S` and `Ctrl/Cmd+L`: save/load map on native builds
 
 Maps save as deterministic JSON to `assets/maps/default/map.json`.

@@ -62,6 +62,8 @@ fn drawInspector(app: anytype) void {
         _ = c.igCheckbox("Walkable", &app.editor.terrain_walkable);
         c.igSetNextItemWidth(160);
         _ = c.igSliderInt("Move Cost", &app.editor.terrain_cost, 1, 9, "%d", 0);
+        c.igSetNextItemWidth(160);
+        _ = c.igSliderInt("Brush Radius", &app.editor.brush_radius, 0, 4, "%d", 0);
         if (c.igButton("New Variant", v2(136, 0))) {
             app.editor.brush_terrain_id +%= 1;
             app.editor.setStatus("Created terrain variant {d}", .{app.editor.brush_terrain_id});
@@ -79,9 +81,13 @@ fn drawInspector(app: anytype) void {
                 uiText("*", .{});
             }
         }
+    } else if (app.editor.tool == .erase) {
+        c.igSetNextItemWidth(160);
+        _ = c.igSliderInt("Brush Radius", &app.editor.brush_radius, 0, 4, "%d", 0);
     }
 
     c.igSeparator();
+    _ = c.igCheckbox("Preview", &app.editor.show_preview);
     _ = c.igCheckbox("Grid", &app.editor.show_grid);
     _ = c.igCheckbox("Pathing", &app.editor.show_pathing);
     _ = c.igCheckbox("Sectors", &app.editor.show_sectors);

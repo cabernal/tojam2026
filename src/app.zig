@@ -84,6 +84,9 @@ pub const AppState = struct {
     mouse: Vec2 = .{ .x = 0, .y = 0 },
     last_mouse: Vec2 = .{ .x = 0, .y = 0 },
     panning: bool = false,
+    painting: bool = false,
+    right_pan_start: Vec2 = .{ .x = 0, .y = 0 },
+    right_pan_moved: bool = false,
     keys: [512]bool = [_]bool{false} ** 512,
     camera: Vec2 = .{ .x = 0, .y = 0 },
     zoom: f32 = 1.0,
@@ -205,20 +208,36 @@ pub const AppState = struct {
                 self.last_mouse = self.mouse;
                 self.mouse = .{ .x = ev.mouse_x, .y = ev.mouse_y };
                 if (self.panning) {
-                    self.camera.x -= (self.mouse.x - self.last_mouse.x) / self.zoom;
-                    self.camera.y -= (self.mouse.y - self.last_mouse.y) / self.zoom;
+                    const dx = self.mouse.x - self.last_mouse.x;
+                    const dy = self.mouse.y - self.last_mouse.y;
+                    self.camera.x -= dx / self.zoom;
+                    self.camera.y -= dy / self.zoom;
+                    const total_dx = self.mouse.x - self.right_pan_start.x;
+                    const total_dy = self.mouse.y - self.right_pan_start.y;
+                    if (total_dx * total_dx + total_dy * total_dy > 16) self.right_pan_moved = true;
+                } else if (self.painting and !consumed) {
+                    self.applyEditorAt(self.mouse);
                 }
             },
             .MOUSE_DOWN => {
                 self.mouse = .{ .x = ev.mouse_x, .y = ev.mouse_y };
                 if (ev.mouse_button == .RIGHT) {
                     self.panning = true;
+                    self.right_pan_start = self.mouse;
+                    self.right_pan_moved = false;
                 } else if (ev.mouse_button == .LEFT and !consumed) {
-                    self.applyEditorClick(self.mouse);
+                    self.painting = true;
+                    self.applyEditorAt(self.mouse);
                 }
             },
             .MOUSE_UP => {
-                if (ev.mouse_button == .RIGHT) self.panning = false;
+                if (ev.mouse_button == .RIGHT) {
+                    const was_pick = self.panning and !self.right_pan_moved and !consumed;
+                    self.panning = false;
+                    if (was_pick) self.pickEditorAt(self.mouse);
+                } else if (ev.mouse_button == .LEFT) {
+                    self.painting = false;
+                }
             },
             .MOUSE_SCROLL => {
                 if (!consumed) {
@@ -234,9 +253,41 @@ pub const AppState = struct {
                     .SPACE => self.togglePlaytest(),
                     .S => if (hasCommandModifier(ev.modifiers)) self.saveMap(),
                     .L => if (hasCommandModifier(ev.modifiers)) self.loadMap(),
-                    ._1 => self.editor.tool = .terrain,
-                    ._2 => self.editor.tool = .object,
-                    ._3 => self.editor.tool = .erase,
+                    ._1 => {
+                        if (hasShift(ev.modifiers)) self.selectAssetSlot(0) else self.editor.tool = .terrain;
+                    },
+                    ._2 => {
+                        if (hasShift(ev.modifiers)) self.selectAssetSlot(1) else self.editor.tool = .object;
+                    },
+                    ._3 => {
+                        if (hasShift(ev.modifiers)) self.selectAssetSlot(2) else self.editor.tool = .erase;
+                    },
+                    ._4 => {
+                        if (hasShift(ev.modifiers)) self.selectAssetSlot(3) else self.editor.tool = .select;
+                    },
+                    ._5 => {
+                        if (hasShift(ev.modifiers)) self.selectAssetSlot(4);
+                    },
+                    ._6 => {
+                        if (hasShift(ev.modifiers)) self.selectAssetSlot(5);
+                    },
+                    ._7 => {
+                        if (hasShift(ev.modifiers)) self.selectAssetSlot(6);
+                    },
+                    ._8 => {
+                        if (hasShift(ev.modifiers)) self.selectAssetSlot(7);
+                    },
+                    ._9 => {
+                        if (hasShift(ev.modifiers)) self.selectAssetSlot(8);
+                    },
+                    .Q => if (hasShift(ev.modifiers)) self.cycleObjectKind(-1) else self.cycleBrushAsset(-1),
+                    .E => if (hasShift(ev.modifiers)) self.cycleObjectKind(1) else self.cycleBrushAsset(1),
+                    .LEFT_BRACKET => self.adjustBrushRadius(-1),
+                    .RIGHT_BRACKET => self.adjustBrushRadius(1),
+                    .T => self.editor.tool = .terrain,
+                    .O => self.editor.tool = .object,
+                    .X => self.editor.tool = .erase,
+                    .V => self.editor.tool = .select,
                     else => {},
                 }
             },
@@ -599,6 +650,7 @@ pub const AppState = struct {
         if (self.editor.show_portals) self.drawPortalOverlay();
         if (self.editor.show_grid) self.drawGrid();
         self.drawObjects();
+        self.drawEditorPreviewOverlay();
     }
 
     fn drawTerrain(self: *AppState) void {
@@ -786,7 +838,134 @@ pub const AppState = struct {
         sgl.end();
     }
 
-    fn applyEditorClick(self: *AppState, screen: Vec2) void {
+    fn drawEditorPreviewOverlay(self: *AppState) void {
+        if (!self.editor.enabled or !self.editor.show_preview) return;
+        self.drawBrushPreview();
+        self.drawQuickAssetStrip();
+    }
+
+    fn drawBrushPreview(self: *AppState) void {
+        const world = self.screenToWorld(self.mouse);
+        const x: i32 = @intFromFloat(@floor(world.x));
+        const y: i32 = @intFromFloat(@floor(world.y));
+        if (!self.game.map.inBounds(x, y)) return;
+
+        if (self.editor.tool == .object) {
+            self.drawObjectPlacementPreview(x, y);
+            return;
+        }
+
+        const radius = switch (self.editor.tool) {
+            .terrain, .erase => self.editor.brush_radius,
+            else => 0,
+        };
+        var oy: i32 = -radius;
+        while (oy <= radius) : (oy += 1) {
+            var ox: i32 = -radius;
+            while (ox <= radius) : (ox += 1) {
+                if (@abs(ox) + @abs(oy) > radius) continue;
+                const tx = x + ox;
+                const ty = y + oy;
+                if (!self.game.map.inBounds(tx, ty)) continue;
+                const is_center = ox == 0 and oy == 0;
+                const center = self.worldToScreen(.{
+                    .x = @as(f32, @floatFromInt(tx)) + 0.5,
+                    .y = @as(f32, @floatFromInt(ty)) + 0.5,
+                });
+
+                switch (self.editor.tool) {
+                    .terrain => {
+                        if (self.spriteForAsset(self.editor.brush_asset_id)) |sprite| {
+                            drawSprite(sprite, self.sampler, self.alpha_pipeline, center, TileW * self.zoom, TileH * self.zoom, if (is_center) 0.48 else 0.30);
+                        } else {
+                            drawDiamond(center, TileW * self.zoom, TileH * self.zoom, .{ 0.42, 0.70, 0.92, if (is_center) 0.26 else 0.16 });
+                        }
+                        drawDiamondOutline(center, TileW * self.zoom, TileH * self.zoom, if (is_center) .{ 1.0, 0.86, 0.32, 0.95 } else .{ 0.85, 0.92, 0.96, 0.62 });
+                    },
+                    .erase => {
+                        drawDiamond(center, TileW * self.zoom, TileH * self.zoom, .{ 0.95, 0.20, 0.16, if (is_center) 0.20 else 0.12 });
+                        drawDiamondOutline(center, TileW * self.zoom, TileH * self.zoom, if (is_center) .{ 1.0, 0.36, 0.30, 0.98 } else .{ 0.95, 0.38, 0.32, 0.66 });
+                        drawCross(center, TileW * self.zoom * 0.42, TileH * self.zoom * 0.42, .{ 1.0, 0.28, 0.22, if (is_center) 0.98 else 0.72 });
+                    },
+                    .select => drawDiamondOutline(center, TileW * self.zoom, TileH * self.zoom, .{ 0.98, 0.86, 0.30, 0.92 }),
+                    else => {},
+                }
+            }
+        }
+    }
+
+    fn drawObjectPlacementPreview(self: *AppState, x: i32, y: i32) void {
+        const kind = self.editor.object_kind;
+        const def = self.object_sprites.get(kind);
+        const footprint_w = if (def) |object_def| object_def.footprint_w else @as(u8, 1);
+        const footprint_h = if (def) |object_def| object_def.footprint_h else @as(u8, 1);
+
+        var fy: u8 = 0;
+        while (fy < footprint_h) : (fy += 1) {
+            var fx: u8 = 0;
+            while (fx < footprint_w) : (fx += 1) {
+                const tx = x + @as(i32, @intCast(fx));
+                const ty = y + @as(i32, @intCast(fy));
+                if (!self.game.map.inBounds(tx, ty)) continue;
+                const occupied = self.game.map.objectAt(tx, ty) != null;
+                const terrain = self.game.map.terrain[@intCast(ty)][@intCast(tx)];
+                const ok = terrain.buildable and !occupied;
+                const center = self.worldToScreen(.{
+                    .x = @as(f32, @floatFromInt(tx)) + 0.5,
+                    .y = @as(f32, @floatFromInt(ty)) + 0.5,
+                });
+                drawDiamond(center, TileW * self.zoom, TileH * self.zoom, if (ok) .{ 0.18, 0.76, 0.36, 0.18 } else .{ 0.95, 0.20, 0.16, 0.22 });
+                drawDiamondOutline(center, TileW * self.zoom, TileH * self.zoom, if (ok) .{ 0.34, 0.94, 0.44, 0.82 } else .{ 1.0, 0.34, 0.26, 0.90 });
+            }
+        }
+
+        const center = self.worldToScreen(.{
+            .x = @as(f32, @floatFromInt(x)) + 0.5,
+            .y = @as(f32, @floatFromInt(y)) + 0.5,
+        });
+        const asset_id = self.assetForObjectKind(kind);
+        if (self.spriteForAsset(asset_id)) |sprite| {
+            if (def) |object_def| {
+                drawSpriteAnchored(sprite, self.sampler, self.alpha_pipeline, center, object_def, self.zoom, 0.58);
+            } else {
+                const scale: f32 = switch (kind) {
+                    .outpost, .defense_grid => 1.15,
+                    .obstacle => 0.82,
+                    else => 0.9,
+                };
+                const w = @min(112, sprite.width * scale) * self.zoom;
+                const h = @min(128, sprite.height * scale) * self.zoom;
+                drawSpriteBottom(sprite, self.sampler, self.alpha_pipeline, center, w, h, 0.58);
+            }
+        } else {
+            drawDiamond(center, TileW * self.zoom * 0.58, TileH * self.zoom * 0.68, .{ 0.94, 0.78, 0.24, 0.44 });
+        }
+    }
+
+    fn drawQuickAssetStrip(self: *AppState) void {
+        const slot_w: f32 = 48;
+        const slot_h: f32 = 36;
+        const gap: f32 = 6;
+        const max_slots: usize = 9;
+        var shown: usize = 0;
+        for (self.catalog.assets.items) |asset| {
+            if (shown >= max_slots) break;
+            if (!self.assetUsefulForCurrentTool(asset)) continue;
+
+            const x0 = 170 + @as(f32, @floatFromInt(shown)) * (slot_w + gap);
+            const y0 = 14;
+            drawRect(.{ .x = x0, .y = y0 }, slot_w, slot_h, .{ 0.025, 0.03, 0.028, 0.82 });
+            if (self.spriteForAsset(asset.id)) |sprite| {
+                const scale = @min((slot_w - 8) / @max(1, sprite.width), (slot_h - 8) / @max(1, sprite.height));
+                drawSprite(sprite, self.sampler, self.alpha_pipeline, .{ .x = x0 + slot_w * 0.5, .y = y0 + slot_h * 0.5 }, sprite.width * scale, sprite.height * scale, 0.92);
+            }
+            const selected = asset.id == self.editor.brush_asset_id;
+            drawRectOutline(.{ .x = x0, .y = y0 }, slot_w, slot_h, if (selected) .{ 0.95, 0.84, 0.25, 0.98 } else .{ 0.20, 0.23, 0.21, 0.78 });
+            shown += 1;
+        }
+    }
+
+    fn applyEditorAt(self: *AppState, screen: Vec2) void {
         if (!self.editor.enabled) return;
         const world = self.screenToWorld(screen);
         const x: i32 = @intFromFloat(@floor(world.x));
@@ -797,15 +976,27 @@ pub const AppState = struct {
 
         switch (self.editor.tool) {
             .terrain => {
-                self.game.map.paintTerrain(
-                    x,
-                    y,
-                    self.editor.brush_terrain_id,
-                    self.editor.brush_asset_id,
-                    self.editor.terrain_walkable,
-                    @intCast(@max(1, self.editor.terrain_cost)),
-                );
-                self.game.rebuildPathing() catch {};
+                var changed = false;
+                var oy: i32 = -self.editor.brush_radius;
+                while (oy <= self.editor.brush_radius) : (oy += 1) {
+                    var ox: i32 = -self.editor.brush_radius;
+                    while (ox <= self.editor.brush_radius) : (ox += 1) {
+                        if (@abs(ox) + @abs(oy) > self.editor.brush_radius) continue;
+                        const tx = x + ox;
+                        const ty = y + oy;
+                        if (!self.game.map.inBounds(tx, ty)) continue;
+                        self.game.map.paintTerrain(
+                            tx,
+                            ty,
+                            self.editor.brush_terrain_id,
+                            self.editor.brush_asset_id,
+                            self.editor.terrain_walkable,
+                            @intCast(@max(1, self.editor.terrain_cost)),
+                        );
+                        changed = true;
+                    }
+                }
+                if (changed) self.game.rebuildPathing() catch {};
             },
             .object => {
                 const asset = self.assetForObjectKind(self.editor.object_kind);
@@ -820,13 +1011,52 @@ pub const AppState = struct {
                 self.game.rebuildPathing() catch {};
             },
             .erase => {
-                if (!self.game.map.removeObjectAt(x, y)) {
-                    self.game.map.paintTerrain(x, y, 0, self.editor.brush_asset_id, true, 1);
+                var changed = false;
+                var oy: i32 = -self.editor.brush_radius;
+                while (oy <= self.editor.brush_radius) : (oy += 1) {
+                    var ox: i32 = -self.editor.brush_radius;
+                    while (ox <= self.editor.brush_radius) : (ox += 1) {
+                        if (@abs(ox) + @abs(oy) > self.editor.brush_radius) continue;
+                        const tx = x + ox;
+                        const ty = y + oy;
+                        if (!self.game.map.inBounds(tx, ty)) continue;
+                        if (!self.game.map.removeObjectAt(tx, ty)) {
+                            self.game.map.paintTerrain(tx, ty, 0, self.editor.brush_asset_id, true, 1);
+                        }
+                        changed = true;
+                    }
                 }
-                self.game.rebuildPathing() catch {};
+                if (changed) self.game.rebuildPathing() catch {};
             },
             .select => {},
         }
+    }
+
+    fn pickEditorAt(self: *AppState, screen: Vec2) void {
+        if (!self.editor.enabled) return;
+        const world = self.screenToWorld(screen);
+        const x: i32 = @intFromFloat(@floor(world.x));
+        const y: i32 = @intFromFloat(@floor(world.y));
+        if (!self.game.map.inBounds(x, y)) return;
+        self.editor.selected_cell_x = x;
+        self.editor.selected_cell_y = y;
+
+        if (self.game.map.objectAt(x, y)) |object| {
+            self.editor.tool = .object;
+            self.editor.object_kind = object.kind;
+            self.editor.current_player = object.team;
+            if (self.catalog.get(object.asset_id) != null) self.editor.brush_asset_id = object.asset_id;
+            self.editor.setStatus("Picked {s} at {d},{d}", .{ tools.objectKindName(object.kind), x, y });
+            return;
+        }
+
+        const cell = self.game.map.terrain[@intCast(y)][@intCast(x)];
+        self.editor.tool = .terrain;
+        self.editor.brush_terrain_id = cell.terrain_id;
+        self.editor.brush_asset_id = cell.asset_id;
+        self.editor.terrain_walkable = cell.walkable;
+        self.editor.terrain_cost = cell.movement_cost;
+        self.editor.setStatus("Picked terrain {d} at {d},{d}", .{ cell.terrain_id, x, y });
     }
 
     fn handleKeyboardCamera(self: *AppState, dt: f32) void {
@@ -849,6 +1079,67 @@ pub const AppState = struct {
         if (raw < 0) return false;
         const idx: usize = @intCast(raw);
         return idx < self.keys.len and self.keys[idx];
+    }
+
+    fn adjustBrushRadius(self: *AppState, delta: i32) void {
+        self.editor.brush_radius = std.math.clamp(self.editor.brush_radius + delta, 0, 4);
+        self.editor.setStatus("Brush radius {d}", .{self.editor.brush_radius});
+    }
+
+    fn cycleObjectKind(self: *AppState, delta: i32) void {
+        var current: usize = 0;
+        for (tools.ObjectPalette, 0..) |kind, i| {
+            if (kind == self.editor.object_kind) {
+                current = i;
+                break;
+            }
+        }
+        const next: usize = @intCast(@mod(@as(i32, @intCast(current)) + delta, @as(i32, @intCast(tools.ObjectPalette.len))));
+        self.editor.tool = .object;
+        self.editor.object_kind = tools.ObjectPalette[next];
+        self.editor.setStatus("Object brush: {s}", .{tools.objectKindName(self.editor.object_kind)});
+    }
+
+    fn selectAssetSlot(self: *AppState, slot: usize) void {
+        var shown: usize = 0;
+        for (self.catalog.assets.items) |asset| {
+            if (!self.assetUsefulForCurrentTool(asset)) continue;
+            if (shown == slot) {
+                self.selectAsset(asset.id);
+                return;
+            }
+            shown += 1;
+        }
+    }
+
+    fn cycleBrushAsset(self: *AppState, delta: i32) void {
+        var count: usize = 0;
+        var current_pos: ?usize = null;
+        for (self.catalog.assets.items) |asset| {
+            if (!self.assetUsefulForCurrentTool(asset)) continue;
+            if (asset.id == self.editor.brush_asset_id) current_pos = count;
+            count += 1;
+        }
+        if (count == 0) return;
+        const base = current_pos orelse 0;
+        const next: usize = @intCast(@mod(@as(i32, @intCast(base)) + delta, @as(i32, @intCast(count))));
+        var shown: usize = 0;
+        for (self.catalog.assets.items) |asset| {
+            if (!self.assetUsefulForCurrentTool(asset)) continue;
+            if (shown == next) {
+                self.selectAsset(asset.id);
+                return;
+            }
+            shown += 1;
+        }
+    }
+
+    fn assetUsefulForCurrentTool(self: *const AppState, asset: asset_loader.SpriteAsset) bool {
+        return switch (self.editor.tool) {
+            .terrain => asset.kind == .terrain or asset.kind == .water,
+            .object => asset.kind == .building or asset.kind == .doodad or asset.kind == .unit or asset.kind == .water,
+            .erase, .select => true,
+        };
     }
 
     fn assetForObjectKind(self: *const AppState, kind: map_mod.ObjectKind) u16 {
@@ -946,6 +1237,13 @@ fn emitDiamondLine(center: Vec2, w: f32, h: f32) void {
     sgl.v2f(center.x, center.y - h * 0.5);
 }
 
+fn drawDiamondOutline(center: Vec2, w: f32, h: f32, color: [4]f32) void {
+    sgl.beginLines();
+    sgl.c4f(color[0], color[1], color[2], color[3]);
+    emitDiamondLine(center, w, h);
+    sgl.end();
+}
+
 fn drawSprite(sprite: Sprite, sampler: sg.Sampler, pipeline: sgl.Pipeline, center: Vec2, w: f32, h: f32, alpha: f32) void {
     sgl.loadPipeline(pipeline);
     sgl.enableTexture();
@@ -1033,6 +1331,30 @@ fn drawRect(pos: Vec2, w: f32, h: f32, color: [4]f32) void {
     sgl.end();
 }
 
+fn drawRectOutline(pos: Vec2, w: f32, h: f32, color: [4]f32) void {
+    sgl.beginLines();
+    sgl.c4f(color[0], color[1], color[2], color[3]);
+    sgl.v2f(pos.x, pos.y);
+    sgl.v2f(pos.x + w, pos.y);
+    sgl.v2f(pos.x + w, pos.y);
+    sgl.v2f(pos.x + w, pos.y + h);
+    sgl.v2f(pos.x + w, pos.y + h);
+    sgl.v2f(pos.x, pos.y + h);
+    sgl.v2f(pos.x, pos.y + h);
+    sgl.v2f(pos.x, pos.y);
+    sgl.end();
+}
+
+fn drawCross(center: Vec2, w: f32, h: f32, color: [4]f32) void {
+    sgl.beginLines();
+    sgl.c4f(color[0], color[1], color[2], color[3]);
+    sgl.v2f(center.x - w * 0.5, center.y - h * 0.5);
+    sgl.v2f(center.x + w * 0.5, center.y + h * 0.5);
+    sgl.v2f(center.x + w * 0.5, center.y - h * 0.5);
+    sgl.v2f(center.x - w * 0.5, center.y + h * 0.5);
+    sgl.end();
+}
+
 fn line(a: Vec2, b: Vec2) void {
     sgl.v2f(a.x, a.y);
     sgl.v2f(b.x, b.y);
@@ -1051,6 +1373,10 @@ fn uiCol32(r: u8, g: u8, b: u8, a: u8) c.ImU32 {
 
 fn hasCommandModifier(modifiers: u32) bool {
     return (modifiers & sapp.modifier_ctrl) != 0 or (modifiers & sapp.modifier_super) != 0;
+}
+
+fn hasShift(modifiers: u32) bool {
+    return (modifiers & sapp.modifier_shift) != 0;
 }
 
 pub fn appDesc() sapp.Desc {
