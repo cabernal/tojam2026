@@ -22,6 +22,8 @@ pub const EditorState = struct {
     show_simulation: bool = true,
     selected_cell_x: i32 = -1,
     selected_cell_y: i32 = -1,
+    hover_cell_x: i32 = -1,
+    hover_cell_y: i32 = -1,
     status: [192]u8 = [_]u8{0} ** 192,
 
     pub fn setStatus(self: *EditorState, comptime fmt: []const u8, args: anytype) void {

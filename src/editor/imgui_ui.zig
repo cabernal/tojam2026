@@ -90,6 +90,8 @@ fn drawInspector(app: anytype) void {
     } else if (app.editor.tool == .erase) {
         c.igSetNextItemWidth(160);
         _ = c.igSliderInt("Brush Radius", &app.editor.brush_radius, 0, 4, "%d", 0);
+    } else if (app.editor.tool == .select) {
+        drawHoverProperties(app);
     }
 
     c.igSeparator();
@@ -178,6 +180,45 @@ fn phaseButtonLabel(phase: sim.Phase) [:0]const u8 {
         .playing => "Pause",
         .game_over => "Reset",
     };
+}
+
+fn drawHoverProperties(app: anytype) void {
+    uiText("Hover", .{});
+    const x = app.editor.hover_cell_x;
+    const y = app.editor.hover_cell_y;
+    if (!app.game.map.inBounds(x, y)) {
+        uiText("Tile: none", .{});
+        return;
+    }
+
+    const ux: usize = @intCast(x);
+    const uy: usize = @intCast(y);
+    const cell = app.game.map.terrain[uy][ux];
+    uiText("Tile: {d}, {d}", .{ x, y });
+    uiText("Terrain ID: {d}", .{cell.terrain_id});
+    uiText("Asset ID: {d}", .{cell.asset_id});
+    if (app.catalog.get(cell.asset_id)) |asset| {
+        uiText("Asset: {s}", .{trimName(asset.name)});
+    }
+    uiText("Walkable: {s}", .{yesNo(cell.walkable)});
+    uiText("Buildable: {s}", .{yesNo(cell.buildable)});
+    uiText("Move Cost: {d}", .{cell.movement_cost});
+    uiText("Height: {d}", .{cell.height});
+
+    if (app.game.map.objectAt(x, y)) |object| {
+        c.igSeparator();
+        uiText("Object: {s}", .{tools.objectKindName(object.kind)});
+        uiText("ID: {d}  Team: {d}", .{ object.id, object.team });
+        uiText("HP: {d:.0}/{d:.0}", .{ object.hp, object.max_hp });
+        uiText("Object Asset: {d}", .{object.asset_id});
+    } else {
+        c.igSeparator();
+        uiText("Object: none", .{});
+    }
+}
+
+fn yesNo(value: bool) []const u8 {
+    return if (value) "yes" else "no";
 }
 
 fn trimName(name: []const u8) []const u8 {

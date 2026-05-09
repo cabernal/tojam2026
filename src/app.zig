@@ -169,6 +169,7 @@ pub const AppState = struct {
         const is_ready = self.ready();
         if (is_ready) {
             self.syncEditorPlayerWithSetup();
+            self.updateHoverAt(self.mouse);
             if (!self.painting) self.flushPathingRebuild();
             self.handleKeyboardCamera(dt);
             self.game.update(dt);
@@ -414,6 +415,24 @@ pub const AppState = struct {
         if (self.game.simulation.activeSetupPlayer()) |player| {
             self.editor.current_player = player;
         }
+    }
+
+    fn updateHoverAt(self: *AppState, screen: Vec2) void {
+        if (!self.editor.enabled) {
+            self.editor.hover_cell_x = -1;
+            self.editor.hover_cell_y = -1;
+            return;
+        }
+        const world = self.screenToWorld(screen);
+        const x: i32 = @intFromFloat(@floor(world.x));
+        const y: i32 = @intFromFloat(@floor(world.y));
+        if (!self.game.map.inBounds(x, y)) {
+            self.editor.hover_cell_x = -1;
+            self.editor.hover_cell_y = -1;
+            return;
+        }
+        self.editor.hover_cell_x = x;
+        self.editor.hover_cell_y = y;
     }
 
     fn markPathingDirty(self: *AppState) void {
