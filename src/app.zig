@@ -167,6 +167,7 @@ pub const AppState = struct {
         }
         const is_ready = self.ready();
         if (is_ready) {
+            self.syncEditorPlayerWithSetup();
             self.handleKeyboardCamera(dt);
             self.game.update(dt);
         }
@@ -337,6 +338,8 @@ pub const AppState = struct {
 
     pub fn resetDefaultMap(self: *AppState) void {
         self.game.map = map_mod.GameMap.initDefault();
+        self.game.simulation.resetSetup();
+        self.syncEditorPlayerWithSetup();
         self.assignStarterAssets();
         self.game.rebuildPathing() catch {};
         self.editor.setStatus("Reset to starter battlefield.", .{});
@@ -366,6 +369,7 @@ pub const AppState = struct {
     pub fn togglePlaytest(self: *AppState) void {
         if (!self.allow_editor) return;
         self.game.simulation.togglePlay();
+        self.syncEditorPlayerWithSetup();
         self.editor.setStatus("Phase: {s}", .{@tagName(self.game.simulation.phase)});
     }
 
@@ -390,6 +394,12 @@ pub const AppState = struct {
                 self.editor.enabled = false;
                 self.game.simulation.startPlaying();
             },
+        }
+    }
+
+    fn syncEditorPlayerWithSetup(self: *AppState) void {
+        if (self.game.simulation.activeSetupPlayer()) |player| {
+            self.editor.current_player = player;
         }
     }
 
@@ -748,6 +758,7 @@ pub const AppState = struct {
     fn drawObjects(self: *AppState) void {
         for (self.game.map.objects[0..self.game.map.object_count]) |object| {
             if (!object.active) continue;
+            if (!self.objectVisibleInPhase(object)) continue;
             const center = self.worldToScreen(.{
                 .x = @as(f32, @floatFromInt(object.x)) + 0.5,
                 .y = @as(f32, @floatFromInt(object.y)) + 0.5,
@@ -757,6 +768,11 @@ pub const AppState = struct {
             }
             self.drawHealthBar(object, center);
         }
+    }
+
+    fn objectVisibleInPhase(self: *const AppState, object: map_mod.MapObject) bool {
+        const setup_player = self.game.simulation.activeSetupPlayer() orelse return true;
+        return object.team == setup_player or object.kind == .obstacle;
     }
 
     fn tryDrawObjectSprite(self: *AppState, object: map_mod.MapObject, center: Vec2) bool {
@@ -1075,12 +1091,17 @@ pub const AppState = struct {
             },
             .object => {
                 const asset = self.assetForObjectKind(self.editor.object_kind);
+                const player = self.game.simulation.placementPlayer(self.editor.current_player);
+                if (!self.game.simulation.canPlaceObject(&self.game.map, self.editor.object_kind, player)) {
+                    self.editor.setStatus("Setup placement limit reached for Player {d}.", .{player + 1});
+                    return;
+                }
                 _ = self.game.map.addObject(
                     self.editor.object_kind,
                     x,
                     y,
-                    self.editor.current_player,
-                    self.editor.current_player,
+                    player,
+                    player,
                     asset,
                 );
                 self.game.rebuildPathing() catch {};

@@ -53,7 +53,7 @@ Full shortcut reference: [SHORTCUTS.md](SHORTCUTS.md).
 - Right mouse drag or `WASD`/arrow keys: pan
 - Mouse wheel: zoom
 - `Tab`: toggle editor overlay
-- `Space`: toggle playtest
+- `Space`: advance setup from Player 1 to Player 2 to gameplay, then reset from gameplay/game over
 - `1`/`2`/`3`/`4` or `T`/`O`/`X`/`V`: switch tools
 - `Q`/`E`: cycle brush assets
 - `Shift+1..9`: select quick asset slots

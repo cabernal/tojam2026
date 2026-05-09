@@ -25,7 +25,7 @@ fn drawToolbar(app: anytype) void {
     toolButton(app, .select, "Select");
 
     c.igSeparator();
-    if (c.igButton(if (app.game.simulation.phase == .playing) "Pause" else "Playtest", v2(104, 0))) {
+    if (c.igButton(phaseButtonLabel(app.game.simulation.phase), v2(104, 0))) {
         app.togglePlaytest();
     }
     if (c.igButton("Default", v2(104, 0))) {
@@ -162,6 +162,15 @@ fn phaseName(phase: sim.Phase) []const u8 {
         .setup_player_two => "Setup P2",
         .playing => "Playing",
         .game_over => "Game Over",
+    };
+}
+
+fn phaseButtonLabel(phase: sim.Phase) [:0]const u8 {
+    return switch (phase) {
+        .setup_player_one => "P2 Setup",
+        .setup_player_two => "Start",
+        .playing => "Pause",
+        .game_over => "Reset",
     };
 }
 

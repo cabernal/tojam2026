@@ -13,7 +13,7 @@
 
 | Input | Action |
 | --- | --- |
-| `Space` | Toggle playtest/pause |
+| `Space` | Advance setup from Player 1 to Player 2 to gameplay; reset from gameplay/game over |
 | `Tab` | Toggle the editor overlay |
 
 In `zig build run-game` or web builds made with `-Dapp-mode=game`, editor shortcuts are disabled and gameplay starts immediately.
