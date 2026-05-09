@@ -1353,13 +1353,9 @@ pub const AppState = struct {
         }
 
         if (!self.assetFitsObjectKind(object.kind, asset_id)) return false;
-        const scale: f32 = switch (object.kind) {
-            .outpost, .defense_grid => 1.15,
-            .obstacle => 0.82,
-            else => 0.9,
-        };
-        const w = @min(112, sprite.width * scale) * self.zoom;
-        const h = @min(128, sprite.height * scale) * self.zoom;
+        const size = fallbackObjectDrawSize(object.kind, sprite);
+        const w = size.x * self.zoom;
+        const h = size.y * self.zoom;
         drawSpriteBottom(sprite, self.sampler, self.alpha_pipeline, center, w, h, 1.0);
         return true;
     }
@@ -1580,13 +1576,9 @@ pub const AppState = struct {
             if (def) |object_def| {
                 drawSpriteAnchored(sprite, self.sampler, self.alpha_pipeline, center, object_def, self.zoom, 0.58);
             } else {
-                const scale: f32 = switch (kind) {
-                    .outpost, .defense_grid => 1.15,
-                    .obstacle => 0.82,
-                    else => 0.9,
-                };
-                const w = @min(112, sprite.width * scale) * self.zoom;
-                const h = @min(128, sprite.height * scale) * self.zoom;
+                const size = fallbackObjectDrawSize(kind, sprite);
+                const w = size.x * self.zoom;
+                const h = size.y * self.zoom;
                 drawSpriteBottom(sprite, self.sampler, self.alpha_pipeline, center, w, h, 0.58);
             }
         } else {
@@ -2081,6 +2073,23 @@ fn drawSpriteAnchored(
     sgl.end();
     sgl.disableTexture();
     sgl.loadDefaultPipeline();
+}
+
+fn fallbackObjectDrawSize(kind: map_mod.ObjectKind, sprite: Sprite) Vec2 {
+    const scale: f32 = switch (kind) {
+        .outpost, .defense_grid => 1.15,
+        .obstacle => 0.82,
+        else => 0.9,
+    };
+    const max_w: f32 = 112;
+    const max_h: f32 = 128;
+    const source_w = @max(1.0, sprite.width * scale);
+    const source_h = @max(1.0, sprite.height * scale);
+    const fit = @min(max_w / source_w, max_h / source_h);
+    return .{
+        .x = source_w * fit,
+        .y = source_h * fit,
+    };
 }
 
 fn emitTexturedQuadCentered(center: Vec2, w: f32, h: f32) void {
