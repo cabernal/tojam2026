@@ -2,7 +2,7 @@ name: Deploy Web to GitHub Pages
 
 on:
   push:
-    branches: ["main"]
+    branches: ["release/tojam2026"]
   workflow_dispatch:
 
 permissions:
