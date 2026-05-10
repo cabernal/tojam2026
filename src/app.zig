@@ -1652,7 +1652,7 @@ pub const AppState = struct {
         return switch (object.kind) {
             .outpost => self.originalBuilding(if (object.team == 0) 0 else 3),
             .defense_grid => self.originalBuilding(if (object.team == 0) 1 else 2),
-            .obstacle => self.originalDoodad(object.id),
+            .obstacle => self.originalBarrierAsset(object.id),
             else => null,
         };
     }
@@ -1667,15 +1667,18 @@ pub const AppState = struct {
         return self.catalog.findByPathSuffix(suffixes[index % suffixes.len]);
     }
 
-    fn originalDoodad(self: *const AppState, object_id: u32) ?u16 {
+    fn originalBarrierAsset(self: *const AppState, object_id: u32) ?u16 {
         const suffixes = [_][]const u8{
-            "doodads/arid_badlands/flora/Acacia Style Trees Patch 2z2 B-green.png",
-            "doodads/arid_badlands/flora/Giant Cactus Patch 2x2 A-green.png",
+            "buildings/arid_badlands/Building A1.2 sz2 shadow.png",
+            "buildings/arid_badlands/Building B1.2 sz2 shadow.png",
+            "buildings/arid_badlands/Building E1.2 sz3 shadow.png",
+            "buildings/arid_badlands/Building G1.2 sz1 shadow.png",
+            "doodads/arid_badlands/odds/Desert_terrain_l_Objective-Crashed Aerostatic-sz1-0.1.png",
             "doodads/arid_badlands/odds/Rail Segment 2.2.png",
-            "doodads/arid_badlands/rocks/Dersert Rocks - Size 1A - light.png",
-            "doodads/arid_badlands/rocks/Dersert Rocks - Size 1B - medium.png",
-            "doodads/arid_badlands/rocks/Dersert Rocks - Size 2A - dark.png",
-            "doodads/arid_badlands/rocks/Desert Small Rockpile- Dif terrain C - light.png",
+            "doodads/arid_badlands/flora/Acacia Style Trees Patch 2z2 A-green.png",
+            "doodads/arid_badlands/flora/Giant Cactus Patch 2x2 C-green.png",
+            "doodads/arid_badlands/rocks/Dersert Rocks - Size 3A - medium.png",
+            "doodads/arid_badlands/rocks/Desert Sunken Rocks- Dif terrain C - medium.png",
         };
         const index: usize = @intCast(object_id % suffixes.len);
         return self.catalog.findByPathSuffix(suffixes[index]);
@@ -2637,7 +2640,7 @@ pub const AppState = struct {
             .citadel, .outpost, .defense_grid => asset.kind == .building,
             .imperator, .infantry, .captain, .artillery => asset.kind == .unit,
             .portal, .healing_pod => asset.kind == .doodad,
-            .obstacle => asset.kind == .doodad or asset.kind == .water,
+            .obstacle => asset.kind == .building or asset.kind == .doodad or asset.kind == .water,
         };
     }
 
