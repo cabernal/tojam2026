@@ -694,7 +694,7 @@ pub const AppState = struct {
 
     fn shouldDrawEditorUi(self: *const AppState) bool {
         return switch (self.game_shell_screen) {
-            .disabled, .map_editor, .setup => self.editor.enabled,
+            .disabled, .map_editor => self.editor.enabled,
             else => false,
         };
     }
@@ -1064,7 +1064,7 @@ pub const AppState = struct {
         const active_player = self.game.simulation.activeSetupPlayer() orelse 0;
         const counts = self.countEntitiesForPlayer(active_player);
         c.igSetNextWindowPos(uiV2(170, 56), c.ImGuiCond_Always, uiV2(0, 0));
-        c.igSetNextWindowSize(uiV2(@min(760, @max(420, sapp.widthf() - 520)), 188), c.ImGuiCond_Always);
+        c.igSetNextWindowSize(uiV2(@min(620, @max(420, sapp.widthf() - 620)), 188), c.ImGuiCond_Always);
         c.igSetNextWindowBgAlpha(0.90);
         self.pushShellStyle();
         defer c.igPopStyleColor(3);
@@ -1074,20 +1074,38 @@ pub const AppState = struct {
             c.ImGuiWindowFlags_NoSavedSettings |
             c.ImGuiWindowFlags_NoResize;
         _ = c.igBegin("Player Setup##game-shell", null, flags);
-        defer c.igEnd();
 
         c.igPushStyleColor_U32(c.ImGuiCol_Text, playerUiColor(active_player, 255));
         var player_buf: [96]u8 = undefined;
-        const player_z = std.fmt.bufPrintZ(&player_buf, "Player {d} Setup", .{active_player + 1}) catch return;
+        const player_z = std.fmt.bufPrintZ(&player_buf, "Player {d} Setup", .{active_player + 1}) catch "Player Setup";
         c.igTextUnformatted(player_z.ptr, null);
         c.igPopStyleColor(1);
 
         c.igSameLine(0, 18);
-        const action_label: [:0]const u8 = if (self.game.simulation.phase == .setup_player_one) "Player Setup" else "Start Game";
+        const action_label: [:0]const u8 = if (self.game.simulation.phase == .setup_player_one) "Finish Setup" else "Start Game";
         c.igPushStyleColor_U32(c.ImGuiCol_Button, playerUiColor(active_player, 255));
         c.igPushStyleColor_U32(c.ImGuiCol_ButtonHovered, playerUiColor(active_player, 220));
         if (c.igButton(action_label.ptr, uiV2(136, 0))) self.advanceGameSetupAction();
         c.igPopStyleColor(2);
+
+        c.igSameLine(0, 10);
+        const erase_active = self.editor.tool == .erase;
+        if (erase_active) {
+            c.igPushStyleColor_U32(c.ImGuiCol_Button, uiCol32(190, 82, 62, 255));
+            c.igPushStyleColor_U32(c.ImGuiCol_ButtonHovered, uiCol32(216, 99, 76, 255));
+        }
+        if (c.igButton("Erase", uiV2(82, 0))) {
+            self.editor.brush_radius = 0;
+            self.audio.playSfx(.click_confirm);
+            if (erase_active) {
+                self.editor.tool = .object;
+                self.editor.setStatus("Place entities.", .{});
+            } else {
+                self.editor.tool = .erase;
+                self.editor.setStatus("Erase entities to refund their setup slots.", .{});
+            }
+        }
+        if (erase_active) c.igPopStyleColor(2);
 
         c.igSeparator();
         self.drawCountLine("Citadel", counts.citadel, 1);
@@ -1106,8 +1124,41 @@ pub const AppState = struct {
             &detail_buf,
             "Inf {d}  Cap {d}  Art {d}  Outpost {d}  Defense {d}",
             .{ counts.infantry, counts.captain, counts.artillery, counts.outpost, counts.defense_grid },
-        ) catch return;
+        ) catch "Entity details unavailable";
         c.igTextUnformatted(detail_z.ptr, null);
+        c.igEnd();
+
+        self.drawSetupEntitiesShell(active_player);
+    }
+
+    fn drawSetupEntitiesShell(self: *AppState, active_player: u8) void {
+        const panel_w: f32 = @min(430.0, @max(360.0, sapp.widthf() - 48.0));
+        c.igSetNextWindowPos(uiV2(@max(12.0, sapp.widthf() - panel_w - 12.0), 56), c.ImGuiCond_Always, uiV2(0, 0));
+        c.igSetNextWindowSize(uiV2(panel_w, @min(430.0, @max(360.0, sapp.heightf() - 84.0))), c.ImGuiCond_Always);
+        c.igSetNextWindowBgAlpha(0.90);
+        self.pushShellStyle();
+        defer c.igPopStyleColor(3);
+
+        const flags = c.ImGuiWindowFlags_NoCollapse |
+            c.ImGuiWindowFlags_NoMove |
+            c.ImGuiWindowFlags_NoSavedSettings |
+            c.ImGuiWindowFlags_NoResize;
+        _ = c.igBegin("Entities##game-shell", null, flags);
+        defer c.igEnd();
+
+        c.igPushStyleColor_U32(c.ImGuiCol_Text, playerUiColor(active_player, 255));
+        var title_buf: [64]u8 = undefined;
+        const title_z = std.fmt.bufPrintZ(&title_buf, "Entities - Player {d}", .{active_player + 1}) catch return;
+        c.igTextUnformatted(title_z.ptr, null);
+        c.igPopStyleColor(1);
+        c.igSeparator();
+
+        for (tools.ObjectPalette) |kind| {
+            self.drawSetupEntityRow(kind);
+        }
+
+        c.igSeparator();
+        self.drawInspectorStateSummary(active_player);
     }
 
     fn drawBattleShell(self: *AppState) void {
@@ -1116,19 +1167,33 @@ pub const AppState = struct {
             return;
         }
         if (self.game.simulation.phase != .game_over) return;
-        c.igSetNextWindowPos(uiV2(sapp.widthf() * 0.5, 100), c.ImGuiCond_Always, uiV2(0.5, 0));
-        c.igSetNextWindowSize(uiV2(320, 84), c.ImGuiCond_Always);
-        c.igSetNextWindowBgAlpha(0.90);
-        self.pushShellStyle();
+        const winner = self.game.simulation.winner orelse 0;
+        var reason_buf: [192]u8 = undefined;
+        const reason_z = self.gameOverReasonZ(&reason_buf);
+
+        c.igSetNextWindowPos(uiV2(sapp.widthf() * 0.5, sapp.heightf() * 0.5), c.ImGuiCond_Always, uiV2(0.5, 0.5));
+        c.igSetNextWindowSize(uiV2(@min(460.0, @max(320.0, sapp.widthf() - 48.0)), 154), c.ImGuiCond_Always);
+        c.igSetNextWindowBgAlpha(0.95);
+        c.igPushStyleColor_U32(c.ImGuiCol_WindowBg, playerPanelColor(winner, 232));
+        c.igPushStyleColor_U32(c.ImGuiCol_Border, playerUiColor(winner, 255));
+        c.igPushStyleColor_U32(c.ImGuiCol_Text, playerUiColor(winner, 255));
         defer c.igPopStyleColor(3);
         const flags = c.ImGuiWindowFlags_NoCollapse |
             c.ImGuiWindowFlags_NoMove |
             c.ImGuiWindowFlags_NoSavedSettings |
-            c.ImGuiWindowFlags_NoResize;
+            c.ImGuiWindowFlags_NoResize |
+            c.ImGuiWindowFlags_NoTitleBar;
         _ = c.igBegin("Game Over##game-shell", null, flags);
         defer c.igEnd();
         c.igTextUnformatted("Game Over", null);
-        if (c.igButton("Back To Menu", uiV2(-1, 0))) self.cancelGameToMenu();
+        c.igSeparator();
+        c.igTextUnformatted(reason_z.ptr, null);
+        c.igSpacing();
+        c.igPushStyleColor_U32(c.ImGuiCol_Button, playerUiColor(winner, 255));
+        c.igPushStyleColor_U32(c.ImGuiCol_ButtonHovered, playerUiColor(winner, 220));
+        c.igPushStyleColor_U32(c.ImGuiCol_Text, uiCol32(245, 248, 242, 255));
+        if (c.igButton("Back To Menu", uiV2(-1, 30))) self.cancelGameToMenu();
+        c.igPopStyleColor(3);
     }
 
     fn drawPauseShell(self: *AppState) void {
@@ -1152,6 +1217,7 @@ pub const AppState = struct {
 
     fn drawGameOverToast(self: *AppState) void {
         if (!self.game_over_toast.active) return;
+        if (self.game_shell_screen == .battle and self.game.simulation.phase == .game_over) return;
         var text_buf: [192]u8 = undefined;
         const text_z = std.fmt.bufPrintZ(&text_buf, "{s}", .{self.game_over_toast.text()}) catch return;
 
@@ -1178,6 +1244,78 @@ pub const AppState = struct {
         const remaining = if (placed >= limit) @as(usize, 0) else limit - placed;
         const z = std.fmt.bufPrintZ(&buf, "{s}: {d}/{d} ({d})", .{ label, placed, limit, remaining }) catch return;
         c.igTextUnformatted(z.ptr, null);
+    }
+
+    fn drawSetupEntityRow(self: *AppState, kind: map_mod.ObjectKind) void {
+        const summary = self.objectPlacementSummary(kind);
+        var label_buf: [96]u8 = undefined;
+        const label_z = std.fmt.bufPrintZ(
+            &label_buf,
+            "{s} {d}/{d} ({d})",
+            .{ tools.objectKindName(kind), summary.placed, summary.limit, summary.remaining },
+        ) catch return;
+        var stats_buf: [96]u8 = undefined;
+        const stats_z = entityStatsZ(kind, &stats_buf);
+
+        const selected = self.editor.tool == .object and self.editor.object_kind == kind;
+        if (selected) {
+            c.igPushStyleColor_U32(c.ImGuiCol_Button, playerUiColor(self.editor.current_player, 255));
+            c.igPushStyleColor_U32(c.ImGuiCol_ButtonHovered, playerUiColor(self.editor.current_player, 220));
+        } else if (summary.full) {
+            c.igPushStyleColor_U32(c.ImGuiCol_Button, uiCol32(54, 58, 58, 255));
+            c.igPushStyleColor_U32(c.ImGuiCol_ButtonHovered, uiCol32(54, 58, 58, 255));
+        }
+        defer {
+            if (selected or summary.full) c.igPopStyleColor(2);
+        }
+
+        if (summary.full) c.igBeginDisabled(true);
+        const clicked = c.igButton(label_z.ptr, uiV2(176, 24));
+        if (summary.full) c.igEndDisabled();
+        if (clicked) {
+            self.editor.tool = .object;
+            self.editor.object_kind = kind;
+            self.editor.brush_asset_id = self.assetForObjectKind(kind);
+            self.audio.playSfx(.click_confirm);
+            self.editor.setStatus("Place {s}.", .{tools.objectKindName(kind)});
+        }
+        c.igSameLine(0, 8);
+        c.igTextUnformatted(stats_z.ptr, null);
+    }
+
+    fn drawInspectorStateSummary(self: *AppState, active_player: u8) void {
+        var buf: [192]u8 = undefined;
+        const active = self.activeObjectCount();
+        const phase = if (self.game.simulation.phase == .setup_player_one) "P1 Setup" else "P2 Setup";
+        const z = std.fmt.bufPrintZ(
+            &buf,
+            "{s}  Player {d}  Objects {d}/{d}",
+            .{ phase, active_player + 1, active, self.game.map.object_count },
+        ) catch return;
+        c.igTextUnformatted(z.ptr, null);
+        c.igPushTextWrapPos(0);
+        c.igTextWrapped("%s", &self.editor.status);
+        c.igPopTextWrapPos();
+    }
+
+    fn activeObjectCount(self: *const AppState) usize {
+        var count: usize = 0;
+        for (self.game.map.objects[0..self.game.map.object_count]) |object| {
+            if (object.active) count += 1;
+        }
+        return count;
+    }
+
+    fn gameOverReasonZ(self: *const AppState, buf: []u8) [:0]const u8 {
+        if (self.game.simulation.winner) |winner| {
+            const loser = if (winner == 0) @as(u8, 1) else @as(u8, 0);
+            return std.fmt.bufPrintZ(
+                buf,
+                "Player {d} wins because Player {d}'s Imperator was destroyed.",
+                .{ winner + 1, loser + 1 },
+            ) catch "Battle finished.";
+        }
+        return std.fmt.bufPrintZ(buf, "Battle finished.", .{}) catch "Battle finished.";
     }
 
     fn pushShellStyle(self: *AppState) void {
@@ -1300,14 +1438,15 @@ pub const AppState = struct {
         self.game_paused = false;
         self.editor.enabled = true;
         self.editor.tool = .object;
+        self.editor.show_preview = true;
         self.editor.current_player = 0;
         self.syncEditorPlayerWithSetup();
         self.clearLaserFx();
         self.audio.playSfx(.click_confirm);
         if (random) {
-            self.editor.setStatus("Random map: {s}. Player 1 setup. Place entities, then choose Player Setup.", .{map_name});
+            self.editor.setStatus("Random map: {s}. Player 1 setup. Place entities, then choose Finish Setup.", .{map_name});
         } else {
-            self.editor.setStatus("Selected map: {s}. Player 1 setup. Place entities, then choose Player Setup.", .{map_name});
+            self.editor.setStatus("Selected map: {s}. Player 1 setup. Place entities, then choose Finish Setup.", .{map_name});
         }
     }
 
@@ -2672,7 +2811,7 @@ pub const AppState = struct {
     fn drawEditorPreviewOverlay(self: *AppState) void {
         if (!self.editor.enabled or !self.editor.show_preview) return;
         self.drawBrushPreview();
-        self.drawQuickAssetStrip();
+        if (self.game_shell_screen != .setup) self.drawQuickAssetStrip();
     }
 
     fn drawBrushPreview(self: *AppState) void {
@@ -2854,6 +2993,12 @@ pub const AppState = struct {
             },
             .erase => {
                 var changed = false;
+                const setup_limited = self.game_shell_screen == .setup or self.game_shell_screen == .disabled;
+                const player = self.game.simulation.placementPlayer(self.editor.current_player);
+                if (setup_limited) {
+                    if (self.removeSetupObjectAtScreen(screen, player)) self.markPathingDirty();
+                    return;
+                }
                 var oy: i32 = -self.editor.brush_radius;
                 while (oy <= self.editor.brush_radius) : (oy += 1) {
                     var ox: i32 = -self.editor.brush_radius;
@@ -2873,6 +3018,61 @@ pub const AppState = struct {
             },
             .select => {},
         }
+    }
+
+    fn removeSetupObjectAtScreen(self: *AppState, screen: Vec2, player: u8) bool {
+        var best_index: ?usize = null;
+        var best_dist: f32 = std.math.floatMax(f32);
+        var i: usize = 0;
+        while (i < self.game.map.object_count) : (i += 1) {
+            const object = self.game.map.objects[i];
+            if (!object.active or object.team != player) continue;
+            const center = self.worldToScreen(.{
+                .x = @as(f32, @floatFromInt(object.x)) + 0.5,
+                .y = @as(f32, @floatFromInt(object.y)) + 0.5,
+            });
+            if (!self.screenHitsObject(object, center, screen)) continue;
+            const dx = screen.x - center.x;
+            const dy = screen.y - center.y;
+            const dist = dx * dx + dy * dy;
+            if (dist < best_dist) {
+                best_dist = dist;
+                best_index = i;
+            }
+        }
+        if (best_index) |index| {
+            self.game.map.objects[index] = self.game.map.objects[self.game.map.object_count - 1];
+            self.game.map.object_count -= 1;
+            self.game.map.version += 1;
+            return true;
+        }
+        return false;
+    }
+
+    fn screenHitsObject(self: *const AppState, object: map_mod.MapObject, center: Vec2, screen: Vec2) bool {
+        if (self.object_sprites.get(object.kind)) |def| {
+            const w = def.draw_width * self.zoom;
+            const h = def.draw_height * self.zoom;
+            const anchor_x = center.x + def.offset_x * self.zoom;
+            const anchor_y = center.y + def.offset_y * self.zoom;
+            const pad = 8.0 * self.zoom;
+            const x0 = anchor_x - w * def.anchor_x - pad;
+            const y0 = anchor_y - h * def.anchor_y - pad;
+            return screen.x >= x0 and screen.x <= x0 + w + pad * 2 and
+                screen.y >= y0 and screen.y <= y0 + h + pad * 2;
+        }
+        if (self.spriteForAsset(object.asset_id)) |sprite| {
+            const size = fallbackObjectDrawSize(object.kind, sprite);
+            const w = size.x * self.zoom;
+            const h = size.y * self.zoom;
+            const x0 = center.x - w * 0.5 - 8.0 * self.zoom;
+            const y0 = center.y - h - 8.0 * self.zoom;
+            return screen.x >= x0 and screen.x <= x0 + w + 16.0 * self.zoom and
+                screen.y >= y0 and screen.y <= y0 + h + 16.0 * self.zoom;
+        }
+        const dx = @abs(screen.x - center.x);
+        const dy = @abs(screen.y - center.y);
+        return dx <= TileW * self.zoom * 0.45 and dy <= TileH * self.zoom * 0.65;
     }
 
     fn pickEditorAt(self: *AppState, screen: Vec2) void {
@@ -3428,6 +3628,29 @@ fn playerUiColor(player: u8, alpha: u8) c.ImU32 {
         uiCol32(72, 161, 216, alpha)
     else
         uiCol32(224, 76, 58, alpha);
+}
+
+fn playerPanelColor(player: u8, alpha: u8) c.ImU32 {
+    return if (player == 0)
+        uiCol32(16, 42, 58, alpha)
+    else
+        uiCol32(64, 26, 22, alpha);
+}
+
+fn entityStatsZ(kind: map_mod.ObjectKind, buf: []u8) [:0]const u8 {
+    const stats = map_mod.defaultStats(kind);
+    return switch (kind) {
+        .citadel => std.fmt.bufPrintZ(buf, "HP {d:.0}  Base", .{stats.hp}) catch "HP --",
+        .portal => std.fmt.bufPrintZ(buf, "HP {d:.0}  Teleport", .{stats.hp}) catch "HP --",
+        .healing_pod => std.fmt.bufPrintZ(buf, "HP {d:.0}  Heal {d:.0}  Rng {d:.1}", .{ stats.hp, -stats.damage_per_second, stats.range }) catch "HP --",
+        .obstacle => std.fmt.bufPrintZ(buf, "Blocks", .{}) catch "Blocks",
+        .outpost, .defense_grid => std.fmt.bufPrintZ(buf, "HP {d:.0}  Dmg {d:.0}  Rng {d:.1}", .{ stats.hp, stats.damage_per_second, stats.range }) catch "HP --",
+        .imperator, .infantry, .captain, .artillery => std.fmt.bufPrintZ(
+            buf,
+            "HP {d:.0}  Dmg {d:.0}  Rng {d:.1}  Move {d:.2}",
+            .{ stats.hp, stats.damage_per_second, stats.range, stats.move_seconds },
+        ) catch "HP --",
+    };
 }
 
 fn copyToBuffer(buffer: []u8, value: []const u8) usize {

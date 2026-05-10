@@ -244,7 +244,7 @@ fn phaseName(phase: sim.Phase) []const u8 {
 
 fn phaseButtonLabel(phase: sim.Phase) [:0]const u8 {
     return switch (phase) {
-        .setup_player_one => "P2 Setup",
+        .setup_player_one => "Finish Setup",
         .setup_player_two => "Start",
         .playing => "Pause",
         .game_over => "Reset",
