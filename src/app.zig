@@ -96,6 +96,7 @@ const GameShellScreen = enum {
     disabled,
     menu,
     sound,
+    rules,
     choose_map,
     map_editor,
     setup,
@@ -319,6 +320,7 @@ pub const AppState = struct {
     music_volume: f32 = 1.0,
     ambient_volume: f32 = 1.0,
     game_shell_screen: GameShellScreen = .disabled,
+    rules_show_entities: bool = false,
     maps: [MaxGameMaps]GameMapChoice = [_]GameMapChoice{.{}} ** MaxGameMaps,
     map_count: usize = 0,
     selected_map_index: usize = 0,
@@ -774,6 +776,7 @@ pub const AppState = struct {
             .disabled => {},
             .menu => self.drawMainMenuShell(),
             .sound => self.drawSoundShell(),
+            .rules => self.drawRulesShell(),
             .choose_map => self.drawChooseMapShell(),
             .map_editor => self.drawMapEditorShell(),
             .setup => self.drawSetupShell(),
@@ -788,7 +791,7 @@ pub const AppState = struct {
 
         const panel_w = @min(420, @max(300, sapp.widthf() - 48));
         c.igSetNextWindowPos(uiV2(sapp.widthf() * 0.5, sapp.heightf() * 0.5), c.ImGuiCond_Always, uiV2(0.5, 0.5));
-        c.igSetNextWindowSize(uiV2(panel_w, 340), c.ImGuiCond_Always);
+        c.igSetNextWindowSize(uiV2(panel_w, 374), c.ImGuiCond_Always);
         c.igSetNextWindowBgAlpha(0.94);
         self.pushShellStyle();
         defer c.igPopStyleColor(3);
@@ -808,6 +811,7 @@ pub const AppState = struct {
         if (c.igButton("Select Level", uiV2(-1, 30))) self.enterChooseMapShell();
         if (c.igButton("Level Editor", uiV2(-1, 30))) self.enterMapEditorShell(self.selected_map_index);
         if (c.igButton("Sound", uiV2(-1, 30))) self.enterSoundShell();
+        if (c.igButton("Rules", uiV2(-1, 30))) self.enterRulesShell();
         c.igSpacing();
         c.igPushStyleColor_U32(c.ImGuiCol_Button, uiCol32(42, 119, 174, 255));
         c.igPushStyleColor_U32(c.ImGuiCol_ButtonHovered, uiCol32(54, 143, 204, 255));
@@ -857,6 +861,89 @@ pub const AppState = struct {
         c.igSameLine(0, 12);
         c.igSetNextItemWidth(-1);
         if (c.igSliderFloat(id.ptr, value, 0, 1, "%.2f", 0)) self.applyAudioLevels();
+    }
+
+    fn drawRulesShell(self: *AppState) void {
+        const panel_w = @min(620, @max(340, sapp.widthf() - 56));
+        c.igSetNextWindowPos(uiV2(sapp.widthf() * 0.5, sapp.heightf() * 0.5), c.ImGuiCond_Always, uiV2(0.5, 0.5));
+        c.igSetNextWindowSize(uiV2(panel_w, 500), c.ImGuiCond_Always);
+        c.igSetNextWindowBgAlpha(0.94);
+        self.pushShellStyle();
+        defer c.igPopStyleColor(3);
+
+        const flags = c.ImGuiWindowFlags_NoCollapse |
+            c.ImGuiWindowFlags_NoMove |
+            c.ImGuiWindowFlags_NoSavedSettings |
+            c.ImGuiWindowFlags_NoResize;
+        _ = c.igBegin("Rules##game-shell", null, flags);
+        defer c.igEnd();
+
+        c.igTextUnformatted("How To Play", null);
+        c.igSeparator();
+
+        if (c.igButton("Rules##rules-tab", uiV2((panel_w - 34) * 0.5, 30))) self.rules_show_entities = false;
+        c.igSameLine(0, 8);
+        if (c.igButton("Entities##rules-tab", uiV2((panel_w - 34) * 0.5, 30))) self.rules_show_entities = true;
+        c.igSeparator();
+
+        c.igPushTextWrapPos(0);
+        defer c.igPopTextWrapPos();
+        if (self.rules_show_entities) {
+            self.drawEntityRules();
+        } else {
+            self.drawGameplayRules();
+        }
+
+        c.igSeparator();
+        if (c.igButton("Back", uiV2(-1, 30))) self.enterMainMenuShell();
+    }
+
+    fn drawGameplayRules(self: *AppState) void {
+        _ = self;
+        c.igTextUnformatted("Goal", null);
+        ruleBullet("Destroy the enemy Imperator. The battle ends immediately when either Imperator falls.");
+        ruleBullet("Citadels anchor the battlefield and pull enemy units across the map, but the Imperator is the win condition.");
+        c.igSpacing();
+
+        c.igTextUnformatted("Setup", null);
+        ruleBullet("Pick a selected level or start a random game from the start menu.");
+        ruleBullet("Player 1 places first, then Player 2 places. Erasing an entity refunds that slot.");
+        ruleBullet("The setup panel shows placed counts and remaining limits directly on the entity buttons.");
+        c.igSpacing();
+
+        c.igTextUnformatted("Battle", null);
+        ruleBullet("When the game starts, mobile units advance toward the opposing citadel using the available lanes.");
+        ruleBullet("If mobile enemies meet, they stop moving, fight nearby targets, then continue once the contact is cleared.");
+        ruleBullet("Attackers prefer enemy units first, then combat structures, then support buildings.");
+        ruleBullet("Press Escape during battle to pause, continue, or cancel back to the start menu.");
+        c.igSpacing();
+
+        c.igTextUnformatted("Placement Limits", null);
+        ruleBullet("Each player gets 1 Citadel, 1 Imperator, 14 total mobile units, 2 Portals, 2 Healing Pods, 4 total combat structures, and 12 Obstacles.");
+    }
+
+    fn drawEntityRules(self: *AppState) void {
+        _ = self;
+        c.igTextUnformatted("Core", null);
+        ruleBullet("Citadel: High-health base. Enemy mobile units path toward it, but destroying it does not end the game.");
+        ruleBullet("Imperator: Tough commander with long-range damage. If your Imperator dies, you lose.");
+        c.igSpacing();
+
+        c.igTextUnformatted("Mobile Units", null);
+        ruleBullet("Infantry: Fast, cheap front-line unit with short-range damage.");
+        ruleBullet("Captain: Slower and tougher than infantry, with better range and damage.");
+        ruleBullet("Artillery: Long-range damage dealer. Slower and more fragile than the captain.");
+        c.igSpacing();
+
+        c.igTextUnformatted("Support", null);
+        ruleBullet("Portal: Linked portals teleport mobile units that step onto them to the other portal's nearest open exit.");
+        ruleBullet("Healing Pod: Repairs nearby friendly entities over time. It is targetable by enemies.");
+        c.igSpacing();
+
+        c.igTextUnformatted("Structures And Terrain Control", null);
+        ruleBullet("Outpost: Static defensive structure with solid health and medium range.");
+        ruleBullet("Defense Grid: Static defensive structure with longer range and strong sustained damage.");
+        ruleBullet("Obstacle: Blocks movement and shapes lanes. Obstacles are not combat targets.");
     }
 
     fn drawChooseMapShell(self: *AppState) void {
@@ -1107,6 +1194,13 @@ pub const AppState = struct {
         self.editor.enabled = false;
         self.game_paused = false;
         self.game_shell_screen = .sound;
+        self.audio.playSfx(.panel_open);
+    }
+
+    fn enterRulesShell(self: *AppState) void {
+        self.editor.enabled = false;
+        self.game_paused = false;
+        self.game_shell_screen = .rules;
         self.audio.playSfx(.panel_open);
     }
 
@@ -1907,7 +2001,7 @@ pub const AppState = struct {
 
     fn drawStartMenuBranding(self: *AppState) void {
         switch (self.game_shell_screen) {
-            .menu, .sound => {},
+            .menu, .sound, .rules => {},
             else => return,
         }
 
@@ -3063,6 +3157,10 @@ fn emitStarDiamond(center: Vec2, radius: f32, color: [4]f32) void {
     sgl.v2f(center.x + radius, center.y);
     sgl.v2f(center.x, center.y + radius);
     sgl.v2f(center.x - radius, center.y);
+}
+
+fn ruleBullet(text: [*:0]const u8) void {
+    c.igTextWrapped("- %s", text);
 }
 
 fn drawSprite(sprite: Sprite, sampler: sg.Sampler, pipeline: sgl.Pipeline, center: Vec2, w: f32, h: f32, alpha: f32) void {
