@@ -22,7 +22,7 @@ zig build run-editor
 zig build run-game
 ```
 
-`run-editor` starts with the editor enabled. `run-game` starts at the game-mode menu, where you can choose a map, open the map editor, or start player setup before battle. The game menu's `Default Map` is the built-in starter battlefield; additional editable maps live under `assets/maps/generated/`. The same startup mode can be selected for native or web builds with `-Dapp-mode=integrated`, `-Dapp-mode=editor`, or `-Dapp-mode=game`.
+`run-editor` starts with the editor enabled. `run-game` starts at the game-mode menu, where you can preview/edit a map, start the selected level, or start a random map before player setup. The game menu's `Default Map` is the built-in starter battlefield; additional editable maps live under `assets/maps/generated/`, including open battlefields, maze-like lanes, island crossings, and fortified layouts. The same startup mode can be selected for native or web builds with `-Dapp-mode=integrated`, `-Dapp-mode=editor`, or `-Dapp-mode=game`.
 
 ## Test
 

@@ -2,13 +2,14 @@
 
 ## Game Mode Shell
 
-When the app starts in `game` mode, it opens to a start menu before entering the battlefield. The menu shows the currently selected map, defaulting to the built-in `Default Map`.
+When the app starts in `game` mode, it opens to a start menu before entering the battlefield. The menu shows the current preview/edit map, defaulting to the built-in `Default Map`.
 
 Menu options:
 
 - `Choose Map`
 - `Map Editor`
-- `Start Game`
+- `Start Selected Level`
+- `Start Random Game`
 
 ## Choose Map
 
@@ -19,13 +20,20 @@ The view lists available maps. Each map row has:
 - `Select`: saves the selected map and returns to the start menu.
 - `Edit`: loads that map and opens it in the map editor.
 
-The default map is selected when no other map has been chosen. Returning to the menu shows the selected map name.
+The default map is selected when no other map has been chosen. Returning to the menu shows the current preview/edit map name. `Start Selected Level` loads that map directly. `Start Random Game` rolls a random level from the available maps.
 
 `Default Map` is the built-in starter battlefield. Editable maps are JSON files under `assets/maps/generated/`, and the selector includes the generated starter maps:
 
 - `Canyon Divide`
 - `Oasis Ring`
 - `Ruins Crossfire`
+- `Open Dunes`
+- `Maze Warren`
+- `Island Chain`
+- `Four Lanes`
+- `Crossfire Plaza`
+- `Spiral Ruins`
+- `Twin Forts`
 
 ## Map Editor
 
@@ -41,7 +49,7 @@ The editor remains the normal editing experience for terrain, objects, erase, se
 
 ## Start Game And Setup
 
-`Start Game` loads the selected map and starts player setup.
+`Start Selected Level` loads the current preview/edit map and starts player setup. `Start Random Game` chooses one available map at random, loads it, and starts player setup.
 
 Setup flow:
 

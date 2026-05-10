@@ -50,6 +50,13 @@ const StaticEditableMaps = [_]struct {
     .{ .name = "Canyon Divide", .rel_path = "maps/generated/canyon_divide.json" },
     .{ .name = "Oasis Ring", .rel_path = "maps/generated/oasis_ring.json" },
     .{ .name = "Ruins Crossfire", .rel_path = "maps/generated/ruins_crossfire.json" },
+    .{ .name = "Open Dunes", .rel_path = "maps/generated/open_dunes.json" },
+    .{ .name = "Maze Warren", .rel_path = "maps/generated/maze_warren.json" },
+    .{ .name = "Island Chain", .rel_path = "maps/generated/island_chain.json" },
+    .{ .name = "Four Lanes", .rel_path = "maps/generated/four_lanes.json" },
+    .{ .name = "Crossfire Plaza", .rel_path = "maps/generated/crossfire_plaza.json" },
+    .{ .name = "Spiral Ruins", .rel_path = "maps/generated/spiral_ruins.json" },
+    .{ .name = "Twin Forts", .rel_path = "maps/generated/twin_forts.json" },
 };
 
 const LoadingPhase = enum {
@@ -282,6 +289,7 @@ pub const AppState = struct {
     laser_particle_active_count: usize = 0,
     laser_fx_vertex_count: usize = 0,
     laser_rng: u32 = 0x6d2b79f5,
+    map_rng: u32 = 0x9e3779b9,
     perf: PerfStats = .{},
     audio: audio_mod.Engine = .{},
     music_started: bool = false,
@@ -694,11 +702,11 @@ pub const AppState = struct {
 
     fn drawMainMenuShell(self: *AppState) void {
         var selected_buf: [160]u8 = undefined;
-        const selected_z = std.fmt.bufPrintZ(&selected_buf, "Selected map: {s}", .{self.selectedMapName()}) catch return;
+        const selected_z = std.fmt.bufPrintZ(&selected_buf, "Preview/edit map: {s}", .{self.selectedMapName()}) catch return;
 
         const panel_w = @min(420, @max(300, sapp.widthf() - 48));
         c.igSetNextWindowPos(uiV2(sapp.widthf() * 0.5, sapp.heightf() * 0.5), c.ImGuiCond_Always, uiV2(0.5, 0.5));
-        c.igSetNextWindowSize(uiV2(panel_w, 236), c.ImGuiCond_Always);
+        c.igSetNextWindowSize(uiV2(panel_w, 276), c.ImGuiCond_Always);
         c.igSetNextWindowBgAlpha(0.94);
         self.pushShellStyle();
         defer c.igPopStyleColor(3);
@@ -721,7 +729,8 @@ pub const AppState = struct {
         c.igPushStyleColor_U32(c.ImGuiCol_Button, uiCol32(42, 119, 174, 255));
         c.igPushStyleColor_U32(c.ImGuiCol_ButtonHovered, uiCol32(54, 143, 204, 255));
         defer c.igPopStyleColor(2);
-        if (c.igButton("Start Game", uiV2(-1, 34))) self.startSelectedGameSetup();
+        if (c.igButton("Start Selected Level", uiV2(-1, 34))) self.startSelectedGameSetup();
+        if (c.igButton("Start Random Game", uiV2(-1, 34))) self.startRandomGameSetup();
     }
 
     fn drawChooseMapShell(self: *AppState) void {
@@ -989,7 +998,20 @@ pub const AppState = struct {
         self.audio.playSfx(.panel_close);
     }
 
+    fn startRandomGameSetup(self: *AppState) void {
+        self.refreshAvailableMaps();
+        if (self.map_count > 0) self.selected_map_index = self.randomMapIndex();
+        const map_name = self.selectedMapName();
+        self.startCurrentMapSetup(map_name, true);
+    }
+
     fn startSelectedGameSetup(self: *AppState) void {
+        self.refreshAvailableMaps();
+        const map_name = self.selectedMapName();
+        self.startCurrentMapSetup(map_name, false);
+    }
+
+    fn startCurrentMapSetup(self: *AppState, map_name: []const u8, random: bool) void {
         if (!self.loadSelectedMapForShell(true)) return;
         self.game.simulation.resetSetup();
         self.last_sim_phase = self.game.simulation.phase;
@@ -1001,7 +1023,26 @@ pub const AppState = struct {
         self.syncEditorPlayerWithSetup();
         self.clearLaserFx();
         self.audio.playSfx(.click_confirm);
-        self.editor.setStatus("Player 1 setup. Place entities, then choose Player Setup.", .{});
+        if (random) {
+            self.editor.setStatus("Random map: {s}. Player 1 setup. Place entities, then choose Player Setup.", .{map_name});
+        } else {
+            self.editor.setStatus("Selected map: {s}. Player 1 setup. Place entities, then choose Player Setup.", .{map_name});
+        }
+    }
+
+    fn randomMapIndex(self: *AppState) usize {
+        if (self.map_count <= 1) return 0;
+        const value = self.nextMapRandom();
+        return @intCast(value % @as(u32, @intCast(self.map_count)));
+    }
+
+    fn nextMapRandom(self: *AppState) u32 {
+        const ticks = stime.now();
+        self.map_rng ^= @as(u32, @truncate(ticks));
+        self.map_rng ^= @as(u32, @truncate(ticks >> 32));
+        self.map_rng = self.map_rng *% 1664525 +% 1013904223;
+        if (self.map_rng == 0) self.map_rng = 0x9e3779b9;
+        return self.map_rng;
     }
 
     fn advanceGameSetupAction(self: *AppState) void {
