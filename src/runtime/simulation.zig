@@ -121,14 +121,18 @@ pub const Simulation = struct {
             const attack_range_sq = attack_range * attack_range;
 
             var target_idx: ?usize = null;
+            var best_priority: u8 = 255;
             var best_dist_sq: f32 = 999999;
             for (game_map.objects[0..game_map.object_count], 0..) |target, j| {
                 if (!target.active or target.team == attacker.team) continue;
+                if (!isTargetable(target.kind)) continue;
                 const dx: f32 = @floatFromInt(attacker.x - target.x);
                 const dy: f32 = @floatFromInt(attacker.y - target.y);
                 const dist_sq = dx * dx + dy * dy;
-                if (dist_sq <= attack_range_sq and dist_sq < best_dist_sq) {
+                const priority = targetPriority(target.kind);
+                if (dist_sq <= attack_range_sq and (priority < best_priority or (priority == best_priority and dist_sq < best_dist_sq))) {
                     target_idx = j;
+                    best_priority = priority;
                     best_dist_sq = dist_sq;
                 }
             }
@@ -302,6 +306,22 @@ fn effectiveAttackRange(kind: map_mod.ObjectKind, base_range: f32) f32 {
     return if (isMobileUnit(kind)) @max(base_range, EngagementRange) else base_range;
 }
 
+fn isTargetable(kind: map_mod.ObjectKind) bool {
+    return switch (kind) {
+        .obstacle => false,
+        else => true,
+    };
+}
+
+fn targetPriority(kind: map_mod.ObjectKind) u8 {
+    return switch (kind) {
+        .imperator, .infantry, .captain, .artillery => 0,
+        .citadel, .outpost, .defense_grid => 1,
+        .healing_pod, .portal => 2,
+        .obstacle => 255,
+    };
+}
+
 fn tileDistanceSq(a: map_mod.MapObject, b: map_mod.MapObject) f32 {
     const dx: f32 = @floatFromInt(a.x - b.x);
     const dy: f32 = @floatFromInt(a.y - b.y);
@@ -416,6 +436,36 @@ test "combat records shot events for visual effects" {
     try std.testing.expectApproxEqAbs(@as(f32, 4.5), event.start_x, 0.001);
     try std.testing.expectApproxEqAbs(@as(f32, 5.5), event.end_x, 0.001);
     try std.testing.expect(event.damage > 0);
+}
+
+test "combat ignores non-targetable obstacles" {
+    var game_map: map_mod.GameMap = .{};
+    _ = game_map.addObject(.captain, 4, 5, 0, 0, 0);
+    const obstacle_id = game_map.addObject(.obstacle, 5, 5, 1, 1, 0).?;
+    const infantry_id = game_map.addObject(.infantry, 6, 5, 1, 1, 0).?;
+
+    var sim: Simulation = .{};
+    sim.resolveCombat(&game_map, 0.25);
+
+    const obstacle_target = objectById(&game_map, obstacle_id).?;
+    const infantry_target = objectById(&game_map, infantry_id).?;
+    try std.testing.expectEqual(obstacle_target.max_hp, obstacle_target.hp);
+    try std.testing.expect(infantry_target.hp < infantry_target.max_hp);
+}
+
+test "combat priority beats nearest target distance" {
+    var game_map: map_mod.GameMap = .{};
+    _ = game_map.addObject(.artillery, 4, 5, 0, 0, 0);
+    const support_id = game_map.addObject(.healing_pod, 5, 5, 1, 1, 0).?;
+    const threat_id = game_map.addObject(.infantry, 8, 5, 1, 1, 0).?;
+
+    var sim: Simulation = .{};
+    sim.resolveCombat(&game_map, 0.25);
+
+    const support = objectById(&game_map, support_id).?;
+    const threat = objectById(&game_map, threat_id).?;
+    try std.testing.expectEqual(support.max_hp, support.hp);
+    try std.testing.expect(threat.hp < threat.max_hp);
 }
 
 test "units resume citadel movement after contact enemy is destroyed" {

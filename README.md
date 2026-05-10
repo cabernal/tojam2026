@@ -22,7 +22,7 @@ zig build run-editor
 zig build run-game
 ```
 
-`run-editor` starts with the editor enabled. `run-game` starts directly in gameplay with editor controls disabled. The same startup mode can be selected for native or web builds with `-Dapp-mode=integrated`, `-Dapp-mode=editor`, or `-Dapp-mode=game`.
+`run-editor` starts with the editor enabled. `run-game` starts at the game-mode menu, where you can choose a map, open the map editor, or start player setup before battle. The game menu's `Default Map` is the built-in starter battlefield; additional editable maps live under `assets/maps/generated/`. The same startup mode can be selected for native or web builds with `-Dapp-mode=integrated`, `-Dapp-mode=editor`, or `-Dapp-mode=game`.
 
 ## Test
 
@@ -77,12 +77,13 @@ Full shortcut reference: [SHORTCUTS.md](SHORTCUTS.md).
 - Right click: pick terrain/object into the brush
 - Right mouse drag or `WASD`/arrow keys: pan
 - Mouse wheel: zoom
-- `Tab`: toggle editor overlay
-- `Space`: advance setup from Player 1 to Player 2 to gameplay, then reset from gameplay/game over
+- `Tab`: toggle editor overlay in integrated/editor modes
+- `Space`: advance game-mode setup from Player 1 to Player 2 to gameplay
+- `Escape`: pause/resume an active battle; the pause menu can continue or cancel back to the game menu
 - `1`/`2`/`3`/`4` or `T`/`O`/`X`/`V`: switch tools
 - `Q`/`E`: cycle brush assets
 - `Shift+1..9`: select quick asset slots
 - `[` / `]`: adjust brush radius
 - `Ctrl/Cmd+S` and `Ctrl/Cmd+L`: save/load map on native builds
 
-Maps save as deterministic JSON to `assets/maps/default/map.json`. Native builds persist that file on disk; web builds mirror the same JSON into browser localStorage and restore it before loading.
+Maps save as deterministic JSON. Integrated/editor save-load uses `assets/maps/default/map.json`; game-mode generated maps save back to their file under `assets/maps/generated/`. Native builds persist map JSON on disk; web builds persist the preexisting default save through browser localStorage.
