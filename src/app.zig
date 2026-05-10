@@ -38,6 +38,11 @@ const LaserParticleVertices = 12;
 const MaxLaserFxVertices = MaxLaserBeams * LaserBeamVertices + MaxLaserParticles * LaserParticleVertices;
 const LaserBeamLife: f32 = 0.13;
 const LaserEmitterIdleSeconds: f32 = 0.75;
+const StarParallaxLayers = [_]StarLayer{
+    .{ .count = 46, .parallax = 0.010, .zoom_reactivity = 0.030, .drift_x = 8.0, .drift_y = 1.8, .radius_min = 0.45, .radius_range = 0.55, .alpha = 0.16, .tint = .{ 0.62, 0.78, 0.96 } },
+    .{ .count = 38, .parallax = 0.022, .zoom_reactivity = 0.055, .drift_x = 13.0, .drift_y = 3.0, .radius_min = 0.55, .radius_range = 0.80, .alpha = 0.20, .tint = .{ 0.78, 0.84, 0.98 } },
+    .{ .count = 24, .parallax = 0.040, .zoom_reactivity = 0.085, .drift_x = 20.0, .drift_y = 4.7, .radius_min = 0.70, .radius_range = 1.05, .alpha = 0.24, .tint = .{ 0.96, 0.88, 0.68 } },
+};
 const StaticEditableMaps = [_]struct {
     name: []const u8,
     rel_path: []const u8,
@@ -159,6 +164,18 @@ const Vec2 = struct {
     y: f32,
 };
 
+const StarLayer = struct {
+    count: usize,
+    parallax: f32,
+    zoom_reactivity: f32,
+    drift_x: f32,
+    drift_y: f32,
+    radius_min: f32,
+    radius_range: f32,
+    alpha: f32,
+    tint: [3]f32,
+};
+
 const Sprite = struct {
     image: sg.Image = .{},
     view: sg.View = .{},
@@ -253,6 +270,7 @@ pub const AppState = struct {
     keys: [512]bool = [_]bool{false} ** 512,
     camera: Vec2 = .{ .x = 0, .y = 0 },
     zoom: f32 = 1.0,
+    starfield_time: f32 = 0,
     laser_beams: [MaxLaserBeams]LaserBeam = [_]LaserBeam{.{}} ** MaxLaserBeams,
     laser_particles: [MaxLaserParticles]LaserParticle = [_]LaserParticle{.{}} ** MaxLaserParticles,
     laser_emitters: [MaxLaserEmitters]LaserEmitter = [_]LaserEmitter{.{}} ** MaxLaserEmitters,
@@ -349,6 +367,7 @@ pub const AppState = struct {
         self.perf.fps = if (dt > 0) 1.0 / dt else 0;
         self.perf.raw_shot_events = 0;
         self.perf.visual_shots = 0;
+        self.updateStarfield(dt);
 
         if (!self.ready() and self.loading.frames_seen > 0 and self.loading.phase != .failed) {
             self.advanceLoading();
@@ -1664,6 +1683,7 @@ pub const AppState = struct {
     }
 
     fn drawWorld(self: *AppState) void {
+        self.drawStarParallax();
         if (self.editor.show_terrain) self.drawTerrain();
         if (self.editor.show_pathing) self.drawPathingOverlay();
         if (self.editor.show_sectors) self.drawSectorOverlay();
@@ -1671,6 +1691,57 @@ pub const AppState = struct {
         if (self.editor.show_grid) self.drawGrid();
         if (self.editor.show_objects) self.drawObjects();
         self.drawEditorPreviewOverlay();
+    }
+
+    fn drawStarParallax(self: *AppState) void {
+        const screen_w = @max(1, sapp.widthf());
+        const screen_h = @max(1, sapp.heightf());
+        const center = Vec2{ .x = screen_w * 0.5, .y = screen_h * 0.5 };
+        const margin: f32 = 150;
+        const field_w = screen_w + margin * 2;
+        const field_h = screen_h + margin * 2;
+
+        sgl.beginQuads();
+        for (StarParallaxLayers, 0..) |layer, layer_index| {
+            const layer_seed: u32 = 0x91e10da5 +% @as(u32, @intCast(layer_index)) *% 0x45d9f3b;
+            const camera_drift_x = (self.camera.x * layer.parallax + self.camera.y * layer.parallax * 0.18) * self.zoom;
+            const camera_drift_y = (self.camera.y * layer.parallax - self.camera.x * layer.parallax * 0.12) * self.zoom;
+            const zoom_scale = 1.0 + (self.zoom - 1.0) * layer.zoom_reactivity;
+            for (0..layer.count) |i| {
+                const seed = layer_seed +% @as(u32, @intCast(i)) *% 0x9e3779b9;
+                const rx = starHash01(seed ^ 0x68bc21eb);
+                const ry = starHash01(seed ^ 0x02e5be93);
+                const rs = starHash01(seed ^ 0x4211f1d3);
+                const rb = starHash01(seed ^ 0xb5297a4d);
+                const speed = 0.70 + rs * 0.55;
+                const phase = rb * std.math.tau;
+                const twinkle = 0.86 + @sin(self.starfield_time * 0.9 + phase) * 0.08;
+                const shimmer = (0.72 + rb * 0.28) * twinkle;
+                const drift_x = camera_drift_x + self.starfield_time * layer.drift_x * speed;
+                const drift_y = camera_drift_y + self.starfield_time * layer.drift_y * (0.8 + rb * 0.4);
+
+                const wrapped_x = wrapFloat(rx * field_w - margin - drift_x, -margin, screen_w + margin);
+                const wrapped_y = wrapFloat(ry * field_h - margin - drift_y, -margin, screen_h + margin);
+                const x = center.x + (wrapped_x - center.x) * zoom_scale;
+                const y = center.y + (wrapped_y - center.y) * zoom_scale;
+                if (x < -margin or x > screen_w + margin or y < -margin or y > screen_h + margin) continue;
+
+                const size = layer.radius_min + rs * layer.radius_range;
+                const color: [4]f32 = .{
+                    @min(1.0, layer.tint[0] * shimmer),
+                    @min(1.0, layer.tint[1] * shimmer),
+                    @min(1.0, layer.tint[2] * shimmer),
+                    layer.alpha * (0.62 + rs * 0.38),
+                };
+                emitStarDiamond(.{ .x = x, .y = y }, size, color);
+            }
+        }
+        sgl.end();
+    }
+
+    fn updateStarfield(self: *AppState, dt: f32) void {
+        self.starfield_time += dt;
+        if (self.starfield_time > 3600) self.starfield_time -= 3600;
     }
 
     fn drawTerrain(self: *AppState) void {
@@ -2728,6 +2799,14 @@ fn drawDiamondOutline(center: Vec2, w: f32, h: f32, color: [4]f32) void {
     sgl.end();
 }
 
+fn emitStarDiamond(center: Vec2, radius: f32, color: [4]f32) void {
+    sgl.c4f(color[0], color[1], color[2], color[3]);
+    sgl.v2f(center.x, center.y - radius);
+    sgl.v2f(center.x + radius, center.y);
+    sgl.v2f(center.x, center.y + radius);
+    sgl.v2f(center.x - radius, center.y);
+}
+
 fn drawSprite(sprite: Sprite, sampler: sg.Sampler, pipeline: sgl.Pipeline, center: Vec2, w: f32, h: f32, alpha: f32) void {
     sgl.loadPipeline(pipeline);
     sgl.enableTexture();
@@ -2854,6 +2933,22 @@ fn drawCross(center: Vec2, w: f32, h: f32, color: [4]f32) void {
     sgl.v2f(center.x + w * 0.5, center.y - h * 0.5);
     sgl.v2f(center.x - w * 0.5, center.y + h * 0.5);
     sgl.end();
+}
+
+fn starHash01(seed: u32) f32 {
+    var x = seed;
+    x ^= x >> 16;
+    x *%= 0x7feb352d;
+    x ^= x >> 15;
+    x *%= 0x846ca68b;
+    x ^= x >> 16;
+    return @as(f32, @floatFromInt(x & 0xffff)) / 65535.0;
+}
+
+fn wrapFloat(value: f32, min: f32, max: f32) f32 {
+    const span = max - min;
+    if (!(span > 0)) return min;
+    return value - @floor((value - min) / span) * span;
 }
 
 fn laserColorForTeam(team: u8) [4]f32 {
