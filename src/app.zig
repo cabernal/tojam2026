@@ -119,6 +119,14 @@ const EntityCounts = struct {
     }
 };
 
+pub const ObjectPlacementSummary = struct {
+    limited: bool = false,
+    placed: usize = 0,
+    limit: usize = 0,
+    remaining: usize = 0,
+    full: bool = false,
+};
+
 const GameToast = struct {
     active: bool = false,
     timer: f32 = 0,
@@ -1139,6 +1147,56 @@ pub const AppState = struct {
     fn editingMapName(self: *const AppState) []const u8 {
         if (self.map_count == 0 or self.editing_map_index >= self.map_count) return "Default Map";
         return self.maps[self.editing_map_index].nameSlice();
+    }
+
+    pub fn objectPlacementSummary(self: *const AppState, kind: map_mod.ObjectKind) ObjectPlacementSummary {
+        if (!self.placementLimitsVisible()) return .{};
+        const player = self.game.simulation.placementPlayer(self.editor.current_player);
+        const counts = self.countEntitiesForPlayer(player);
+        var placed: usize = 0;
+        var limit: usize = 0;
+        switch (kind) {
+            .citadel => {
+                placed = counts.citadel;
+                limit = 1;
+            },
+            .imperator => {
+                placed = counts.imperator;
+                limit = 1;
+            },
+            .infantry, .captain, .artillery => {
+                placed = counts.mobile();
+                limit = 14;
+            },
+            .portal => {
+                placed = counts.portal;
+                limit = 2;
+            },
+            .healing_pod => {
+                placed = counts.healing_pod;
+                limit = 2;
+            },
+            .outpost, .defense_grid => {
+                placed = counts.structures();
+                limit = 4;
+            },
+            .obstacle => {
+                placed = counts.obstacle;
+                limit = 12;
+            },
+        }
+        const remaining = if (placed >= limit) @as(usize, 0) else limit - placed;
+        return .{
+            .limited = true,
+            .placed = placed,
+            .limit = limit,
+            .remaining = remaining,
+            .full = remaining == 0,
+        };
+    }
+
+    fn placementLimitsVisible(self: *const AppState) bool {
+        return (self.game_shell_screen == .setup or self.game_shell_screen == .disabled) and self.game.simulation.activeSetupPlayer() != null;
     }
 
     fn countEntitiesForPlayer(self: *const AppState, player: u8) EntityCounts {

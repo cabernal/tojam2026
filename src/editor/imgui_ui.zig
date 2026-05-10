@@ -74,9 +74,22 @@ fn drawInspector(app: anytype) void {
     } else if (app.editor.tool == .object) {
         uiText("Object Type", .{});
         for (tools.ObjectPalette) |kind| {
-            var label: [48]u8 = undefined;
-            const z = std.fmt.bufPrintZ(&label, "{s}", .{tools.objectKindName(kind)}) catch continue;
-            if (c.igButton(z.ptr, v2(136, 0))) {
+            var label: [96]u8 = undefined;
+            const summary = app.objectPlacementSummary(kind);
+            const z = if (summary.limited)
+                std.fmt.bufPrintZ(
+                    &label,
+                    "{s} {d}/{d} | {d} left",
+                    .{ tools.objectKindName(kind), summary.placed, summary.limit, summary.remaining },
+                ) catch continue
+            else
+                std.fmt.bufPrintZ(&label, "{s}", .{tools.objectKindName(kind)}) catch continue;
+            if (summary.full) pushDisabledButtonStyle();
+            if (summary.full) c.igBeginDisabled(true);
+            const clicked = c.igButton(z.ptr, v2(if (summary.limited) 206 else 136, 0));
+            if (summary.full) c.igEndDisabled();
+            if (summary.full) c.igPopStyleColor(3);
+            if (clicked) {
                 app.editor.object_kind = kind;
             }
             if (kind == app.editor.object_kind) {
@@ -204,6 +217,12 @@ fn toolButton(app: anytype, tool: tools.Tool, label: [:0]const u8) void {
     } else if (c.igButton(label.ptr, v2(104, 0))) {
         app.editor.tool = tool;
     }
+}
+
+fn pushDisabledButtonStyle() void {
+    c.igPushStyleColor_U32(c.ImGuiCol_Button, col32(58, 61, 62, 255));
+    c.igPushStyleColor_U32(c.ImGuiCol_ButtonHovered, col32(58, 61, 62, 255));
+    c.igPushStyleColor_U32(c.ImGuiCol_ButtonActive, col32(58, 61, 62, 255));
 }
 
 fn phaseName(phase: sim.Phase) []const u8 {
