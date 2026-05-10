@@ -51,4 +51,5 @@ jobs:
           BUTLER_API_KEY: ${{ secrets.BUTLER_API_KEY }}
         run: |
           VERSION="build-${GITHUB_RUN_NUMBER}-${GITHUB_SHA::7}"
-          butler push zig-out/web cabernal/tojam2026:html5 --userversion "$VERSION"
+          ITCH_USER="$(curl --fail --silent "https://itch.io/api/1/${BUTLER_API_KEY}/me" | python3 -c 'import json, sys; print(json.load(sys.stdin)["user"]["username"])')"
+          butler push zig-out/web "${ITCH_USER}/tojam2026:html5" --userversion "$VERSION"
