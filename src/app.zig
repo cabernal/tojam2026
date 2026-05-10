@@ -28,6 +28,8 @@ const audio_mod = @import("audio/audio.zig");
 
 const TileW: f32 = 64;
 const TileH: f32 = 32;
+const GameTitle = "Imperator's Gambit";
+const EventBlurb = "Created at TOJam 2026: Twenty years, one weekend";
 const MaxSprites = asset_loader.MaxAssets;
 const NoAsset: u16 = std.math.maxInt(u16);
 const MaxLaserBeams = 192;
@@ -273,6 +275,8 @@ pub const AppState = struct {
     editor: editor_mod.EditorState = .{},
     sprites: [MaxSprites]Sprite = [_]Sprite{.{}} ** MaxSprites,
     sprite_count: usize = 0,
+    tojam_logo_sprite: Sprite = .{},
+    tojam_goat_sprite: Sprite = .{},
     sampler: sg.Sampler = .{},
     alpha_pipeline: sgl.Pipeline = .{},
     pass_action: sg.PassAction = .{},
@@ -371,6 +375,8 @@ pub const AppState = struct {
 
     pub fn cleanup(self: *AppState) void {
         if (!self.initialized) return;
+        destroySprite(&self.tojam_logo_sprite);
+        destroySprite(&self.tojam_goat_sprite);
         for (self.sprites[0..self.sprite_count]) |*sprite| destroySprite(sprite);
         if (self.laser_fx_vertex_buffer.id != 0) sg.destroyBuffer(self.laser_fx_vertex_buffer);
         if (self.laser_fx_pipeline.id != 0) sg.destroyPipeline(self.laser_fx_pipeline);
@@ -782,7 +788,7 @@ pub const AppState = struct {
 
         const panel_w = @min(420, @max(300, sapp.widthf() - 48));
         c.igSetNextWindowPos(uiV2(sapp.widthf() * 0.5, sapp.heightf() * 0.5), c.ImGuiCond_Always, uiV2(0.5, 0.5));
-        c.igSetNextWindowSize(uiV2(panel_w, 300), c.ImGuiCond_Always);
+        c.igSetNextWindowSize(uiV2(panel_w, 340), c.ImGuiCond_Always);
         c.igSetNextWindowBgAlpha(0.94);
         self.pushShellStyle();
         defer c.igPopStyleColor(3);
@@ -794,7 +800,7 @@ pub const AppState = struct {
         _ = c.igBegin("Start Menu##game-shell", null, flags);
         defer c.igEnd();
 
-        c.igTextUnformatted("TOJam 2026 RTS Prototype", null);
+        c.igTextUnformatted(GameTitle, null);
         c.igSeparator();
         c.igTextUnformatted(selected_z.ptr, null);
         c.igSpacing();
@@ -808,6 +814,9 @@ pub const AppState = struct {
         defer c.igPopStyleColor(2);
         if (c.igButton("Start Selected Level", uiV2(-1, 34))) self.startSelectedGameSetup();
         if (c.igButton("Start Random Game", uiV2(-1, 34))) self.startRandomGameSetup();
+        c.igSpacing();
+        c.igSeparator();
+        c.igTextUnformatted(EventBlurb, null);
     }
 
     fn drawSoundShell(self: *AppState) void {
@@ -1535,6 +1544,7 @@ pub const AppState = struct {
             .assign_world => {
                 self.loading.progress = 0.94;
                 self.assignStarterAssets();
+                self.loadTojamBrandingSprites();
                 self.refreshAvailableMaps();
                 if (self.game_shell_screen != .disabled) _ = self.loadSelectedMapForShell(false);
                 self.game.rebuildPathing() catch {};
@@ -1676,7 +1686,7 @@ pub const AppState = struct {
         _ = c.igBegin("Loading##startup", null, flags);
         defer c.igEnd();
 
-        c.igTextUnformatted("TOJam 2026 RTS Prototype", null);
+        c.igTextUnformatted(GameTitle, null);
         c.igSpacing();
         c.igTextUnformatted(stage_z.ptr, null);
         c.igProgressBar(std.math.clamp(self.loading.progress, 0, 1), uiV2(-1, 16), percent_z.ptr);
@@ -1721,6 +1731,23 @@ pub const AppState = struct {
             if (def.asset_id != null) linked += 1;
         }
         self.editor.setStatus("Loaded {d} object sprite definitions ({d} linked).", .{ self.object_sprites.objects.items.len, linked });
+    }
+
+    fn loadTojamBrandingSprites(self: *AppState) void {
+        if (!self.tojam_logo_sprite.valid()) {
+            self.tojam_logo_sprite = self.loadBrandSprite("tojam/logo.png") catch .{};
+        }
+        if (!self.tojam_goat_sprite.valid()) {
+            self.tojam_goat_sprite = self.loadBrandSprite("tojam/goat.png") catch .{};
+        }
+    }
+
+    fn loadBrandSprite(self: *AppState, rel_path: []const u8) !Sprite {
+        var path_buf: [1024]u8 = undefined;
+        const path = try std.fmt.bufPrint(&path_buf, "{s}/{s}", .{ platform.assetRoot(), rel_path });
+        const image = try png_loader.loadRgba(self.allocator, path);
+        defer image.deinit();
+        return createSprite(image.width, image.height, image.pixels);
     }
 
     fn assignStarterAssets(self: *AppState) void {
@@ -1875,6 +1902,43 @@ pub const AppState = struct {
         if (self.editor.show_grid) self.drawGrid();
         if (self.editor.show_objects) self.drawObjects();
         self.drawEditorPreviewOverlay();
+        self.drawStartMenuBranding();
+    }
+
+    fn drawStartMenuBranding(self: *AppState) void {
+        switch (self.game_shell_screen) {
+            .menu, .sound => {},
+            else => return,
+        }
+
+        const screen_w = sapp.widthf();
+        const screen_h = sapp.heightf();
+        const edge: f32 = 28.0;
+        const t = self.starfield_time;
+
+        if (self.tojam_logo_sprite.valid()) {
+            const logo_w = @min(330.0, @max(140.0, screen_w * 0.22));
+            const logo_h = logo_w * (self.tojam_logo_sprite.height / self.tojam_logo_sprite.width);
+            const drift_x = @sin(t * 0.75) * 5.0;
+            const drift_y = @sin(t * 1.15) * 7.0;
+            const center = Vec2{
+                .x = edge + logo_w * 0.5 + drift_x,
+                .y = edge + logo_h * 0.5 + drift_y,
+            };
+            drawSpriteUpright(self.tojam_logo_sprite, self.sampler, self.alpha_pipeline, center, logo_w, logo_h, 0.92);
+        }
+
+        if (self.tojam_goat_sprite.valid()) {
+            const goat_h = @min(250.0, @max(130.0, screen_h * 0.26));
+            const goat_w = goat_h * (self.tojam_goat_sprite.width / self.tojam_goat_sprite.height);
+            const drift_x = @sin(t * 0.85 + 1.4) * 6.0;
+            const drift_y = @sin(t * 1.25 + 0.7) * 10.0;
+            const center = Vec2{
+                .x = screen_w - edge - goat_w * 0.5 + drift_x,
+                .y = edge + goat_h * 0.5 + drift_y,
+            };
+            drawSpriteUpright(self.tojam_goat_sprite, self.sampler, self.alpha_pipeline, center, goat_w, goat_h, 0.92);
+        }
     }
 
     fn drawStarParallax(self: *AppState) void {
@@ -3013,6 +3077,23 @@ fn drawSprite(sprite: Sprite, sampler: sg.Sampler, pipeline: sgl.Pipeline, cente
     sgl.loadDefaultPipeline();
 }
 
+fn drawSpriteUpright(sprite: Sprite, sampler: sg.Sampler, pipeline: sgl.Pipeline, center: Vec2, w: f32, h: f32, alpha: f32) void {
+    sgl.loadPipeline(pipeline);
+    sgl.enableTexture();
+    sgl.texture(sprite.view, sampler);
+    sgl.beginQuads();
+    sgl.c4f(1, 1, 1, alpha);
+    const x0 = center.x - w * 0.5;
+    const y0 = center.y - h * 0.5;
+    sgl.v2fT2f(x0, y0, 0, 1);
+    sgl.v2fT2f(x0 + w, y0, 1, 1);
+    sgl.v2fT2f(x0 + w, y0 + h, 1, 0);
+    sgl.v2fT2f(x0, y0 + h, 0, 0);
+    sgl.end();
+    sgl.disableTexture();
+    sgl.loadDefaultPipeline();
+}
+
 fn drawSpriteBottom(sprite: Sprite, sampler: sg.Sampler, pipeline: sgl.Pipeline, bottom: Vec2, w: f32, h: f32, alpha: f32) void {
     sgl.loadPipeline(pipeline);
     sgl.enableTexture();
@@ -3261,7 +3342,7 @@ pub fn appDesc() sapp.Desc {
         .width = 1440,
         .height = 900,
         .sample_count = 1,
-        .window_title = "TOJam 2026 RTS Prototype",
+        .window_title = GameTitle,
         .icon = .{ .sokol_default = true },
         .high_dpi = !is_web,
         .html5 = .{

@@ -351,6 +351,13 @@ fn makeWebLinkStep(b: *std.Build, options: WebLinkOptions) *std.Build.Step.Insta
         .install_subdir = "web",
     });
     install.step.dependOn(&emcc.step);
+    const branding_install = b.addInstallDirectory(.{
+        .source_dir = b.path("assets/tojam"),
+        .install_dir = .prefix,
+        .install_subdir = "web/assets/tojam",
+        .include_extensions = &.{".png"},
+    });
+    install.step.dependOn(&branding_install.step);
     return install;
 }
 
@@ -365,7 +372,7 @@ fn makeWebAssetBundle(b: *std.Build) std.Build.LazyPath {
     while (walker.next() catch @panic("failed to walk assets directory")) |entry| {
         if (entry.kind != .file) continue;
         const is_png = endsWithIgnoreCase(entry.basename, ".png");
-        if (is_png and !isRuntimeAssetPath(entry.path)) {
+        if (is_png and !isRuntimeAssetPath(entry.path) and !isBrandingAssetPath(entry.path)) {
             paths.append(b.allocator, b.dupe(entry.path)) catch @panic("OOM");
         }
         if (isRawBackgroundSheetPath(entry.path)) continue;
@@ -420,6 +427,10 @@ fn endsWithIgnoreCase(haystack: []const u8, suffix: []const u8) bool {
 
 fn isRuntimeAssetPath(path: []const u8) bool {
     return std.mem.startsWith(u8, path, "runtime/");
+}
+
+fn isBrandingAssetPath(path: []const u8) bool {
+    return std.mem.startsWith(u8, path, "tojam/");
 }
 
 fn isRawBackgroundSheetPath(path: []const u8) bool {

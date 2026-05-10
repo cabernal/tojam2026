@@ -1,4 +1,4 @@
-# TOJam 2026 RTS Prototype
+# Imperator's Gambit
 
 An early Zig/Sokol isometric RTS prototype with an integrated ImGui editor. The code is split into runtime, editor, map, asset, and rendering-free pathfinding modules so the MVP can grow without turning into a one-file experiment.
 

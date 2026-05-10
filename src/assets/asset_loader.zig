@@ -4,6 +4,7 @@ const builtin = @import("builtin");
 pub const MaxAssets = 160;
 const RuntimeAssetPrefix = "runtime/";
 const BackgroundSheetPrefix = "tilesets/arid_badlands/backgrounds/";
+const BrandingAssetPrefix = "tojam/";
 
 pub const AssetKind = enum {
     terrain,
@@ -176,7 +177,8 @@ fn kindRank(kind: AssetKind) u8 {
 }
 
 fn isRuntimeAsset(rel_path: []const u8) bool {
-    return std.mem.startsWith(u8, rel_path, RuntimeAssetPrefix);
+    return std.mem.startsWith(u8, rel_path, RuntimeAssetPrefix) or
+        std.mem.startsWith(u8, rel_path, BrandingAssetPrefix);
 }
 
 fn runtimeLoadPath(root_path: []const u8, rel_path: []const u8, buffer: []u8) ?[]const u8 {
