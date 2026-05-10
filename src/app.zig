@@ -1132,9 +1132,9 @@ pub const AppState = struct {
     }
 
     fn drawSetupEntitiesShell(self: *AppState, active_player: u8) void {
-        const panel_w: f32 = @min(430.0, @max(360.0, sapp.widthf() - 48.0));
+        const panel_w: f32 = @min(500.0, @max(420.0, sapp.widthf() - 48.0));
         c.igSetNextWindowPos(uiV2(@max(12.0, sapp.widthf() - panel_w - 12.0), 56), c.ImGuiCond_Always, uiV2(0, 0));
-        c.igSetNextWindowSize(uiV2(panel_w, @min(430.0, @max(360.0, sapp.heightf() - 84.0))), c.ImGuiCond_Always);
+        c.igSetNextWindowSize(uiV2(panel_w, @min(392.0, @max(348.0, sapp.heightf() - 84.0))), c.ImGuiCond_Always);
         c.igSetNextWindowBgAlpha(0.90);
         self.pushShellStyle();
         defer c.igPopStyleColor(3);
@@ -1142,8 +1142,9 @@ pub const AppState = struct {
         const flags = c.ImGuiWindowFlags_NoCollapse |
             c.ImGuiWindowFlags_NoMove |
             c.ImGuiWindowFlags_NoSavedSettings |
-            c.ImGuiWindowFlags_NoResize;
-        _ = c.igBegin("Entities##game-shell", null, flags);
+            c.ImGuiWindowFlags_NoResize |
+            c.ImGuiWindowFlags_NoTitleBar;
+        _ = c.igBegin("##entities-game-shell", null, flags);
         defer c.igEnd();
 
         c.igPushStyleColor_U32(c.ImGuiCol_Text, playerUiColor(active_player, 255));
@@ -1183,7 +1184,7 @@ pub const AppState = struct {
             c.ImGuiWindowFlags_NoSavedSettings |
             c.ImGuiWindowFlags_NoResize |
             c.ImGuiWindowFlags_NoTitleBar;
-        _ = c.igBegin("Game Over##game-shell", null, flags);
+        _ = c.igBegin("##game-over-shell", null, flags);
         defer c.igEnd();
         c.igTextUnformatted("Game Over", null);
         c.igSeparator();
@@ -1270,7 +1271,7 @@ pub const AppState = struct {
         }
 
         if (summary.full) c.igBeginDisabled(true);
-        const clicked = c.igButton(label_z.ptr, uiV2(176, 24));
+        const clicked = c.igButton(label_z.ptr, uiV2(180, 23));
         if (summary.full) c.igEndDisabled();
         if (clicked) {
             self.editor.tool = .object;
@@ -3642,12 +3643,12 @@ fn entityStatsZ(kind: map_mod.ObjectKind, buf: []u8) [:0]const u8 {
     return switch (kind) {
         .citadel => std.fmt.bufPrintZ(buf, "HP {d:.0}  Base", .{stats.hp}) catch "HP --",
         .portal => std.fmt.bufPrintZ(buf, "HP {d:.0}  Teleport", .{stats.hp}) catch "HP --",
-        .healing_pod => std.fmt.bufPrintZ(buf, "HP {d:.0}  Heal {d:.0}  Rng {d:.1}", .{ stats.hp, -stats.damage_per_second, stats.range }) catch "HP --",
+        .healing_pod => std.fmt.bufPrintZ(buf, "HP {d:.0}  Heal {d:.0}  Range {d:.1}", .{ stats.hp, -stats.damage_per_second, stats.range }) catch "HP --",
         .obstacle => std.fmt.bufPrintZ(buf, "Blocks", .{}) catch "Blocks",
-        .outpost, .defense_grid => std.fmt.bufPrintZ(buf, "HP {d:.0}  Dmg {d:.0}  Rng {d:.1}", .{ stats.hp, stats.damage_per_second, stats.range }) catch "HP --",
+        .outpost, .defense_grid => std.fmt.bufPrintZ(buf, "HP {d:.0}  Dmg {d:.0}  Range {d:.1}", .{ stats.hp, stats.damage_per_second, stats.range }) catch "HP --",
         .imperator, .infantry, .captain, .artillery => std.fmt.bufPrintZ(
             buf,
-            "HP {d:.0}  Dmg {d:.0}  Rng {d:.1}  Move {d:.2}",
+            "HP {d:.0}  Dmg {d:.0}  Range {d:.1}  Move {d:.2}",
             .{ stats.hp, stats.damage_per_second, stats.range, stats.move_seconds },
         ) catch "HP --",
     };
