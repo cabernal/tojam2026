@@ -16,6 +16,12 @@ pub const TerrainCell = struct {
     height: i16 = 0,
 };
 
+pub const VoidTerrainId: u8 = 15;
+
+pub fn isVoidTerrain(cell: TerrainCell) bool {
+    return cell.terrain_id == VoidTerrainId and !cell.walkable;
+}
+
 pub const MapObject = struct {
     id: u32 = 0,
     kind: ObjectKind = .infantry,
@@ -90,7 +96,34 @@ pub const GameMap = struct {
                 };
             }
         }
+        const void_tiles = [_][2]i32{
+            .{ 10, 4 },
+            .{ 11, 4 },
+            .{ 21, 27 },
+            .{ 22, 27 },
+            .{ 6, 23 },
+            .{ 25, 8 },
+            .{ 14, 12 },
+            .{ 17, 19 },
+        };
+        for (void_tiles) |tile| {
+            self.paintVoidTerrain(tile[0], tile[1]);
+        }
         self.version += 1;
+    }
+
+    fn paintVoidTerrain(self: *GameMap, x: i32, y: i32) void {
+        if (!self.inBounds(x, y)) return;
+        const ux: usize = @intCast(x);
+        const uy: usize = @intCast(y);
+        self.terrain[uy][ux] = .{
+            .terrain_id = VoidTerrainId,
+            .asset_id = 0,
+            .walkable = false,
+            .buildable = false,
+            .movement_cost = 1,
+            .height = -1,
+        };
     }
 
     pub fn inBounds(self: *const GameMap, x: i32, y: i32) bool {
@@ -103,19 +136,28 @@ pub const GameMap = struct {
         const uy: usize = @intCast(y);
         const next_cost = @max(1, movement_cost);
         const current = self.terrain[uy][ux];
+        const next_asset_id: u16 = if (terrain_id == VoidTerrainId and !walkable) 0 else asset_id;
+        const next_height: i16 = if (terrain_id == VoidTerrainId and !walkable)
+            -1
+        else if (isVoidTerrain(current))
+            0
+        else
+            current.height;
         if (current.terrain_id == terrain_id and
-            current.asset_id == asset_id and
+            current.asset_id == next_asset_id and
             current.walkable == walkable and
             current.buildable == walkable and
-            current.movement_cost == next_cost)
+            current.movement_cost == next_cost and
+            current.height == next_height)
         {
             return false;
         }
         self.terrain[uy][ux].terrain_id = terrain_id;
-        self.terrain[uy][ux].asset_id = asset_id;
+        self.terrain[uy][ux].asset_id = next_asset_id;
         self.terrain[uy][ux].walkable = walkable;
         self.terrain[uy][ux].buildable = walkable;
         self.terrain[uy][ux].movement_cost = next_cost;
+        self.terrain[uy][ux].height = next_height;
         self.version += 1;
         return true;
     }
@@ -230,4 +272,18 @@ test "painting identical terrain is a no-op" {
     );
     try std.testing.expect(!changed);
     try std.testing.expectEqual(before, game_map.version);
+}
+
+test "painting void terrain creates a floor cutout" {
+    var game_map = GameMap.initDefault();
+    const changed = game_map.paintTerrain(0, 0, VoidTerrainId, 4, false, 3);
+    try std.testing.expect(changed);
+    try std.testing.expect(isVoidTerrain(game_map.terrain[0][0]));
+    try std.testing.expectEqual(@as(u16, 0), game_map.terrain[0][0].asset_id);
+    try std.testing.expectEqual(@as(i16, -1), game_map.terrain[0][0].height);
+
+    const restored = game_map.paintTerrain(0, 0, 1, 2, true, 1);
+    try std.testing.expect(restored);
+    try std.testing.expect(!isVoidTerrain(game_map.terrain[0][0]));
+    try std.testing.expectEqual(@as(i16, 0), game_map.terrain[0][0].height);
 }

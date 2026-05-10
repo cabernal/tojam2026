@@ -39,9 +39,10 @@ const MaxLaserFxVertices = MaxLaserBeams * LaserBeamVertices + MaxLaserParticles
 const LaserBeamLife: f32 = 0.13;
 const LaserEmitterIdleSeconds: f32 = 0.75;
 const StarParallaxLayers = [_]StarLayer{
-    .{ .count = 46, .parallax = 0.010, .zoom_reactivity = 0.030, .drift_x = 8.0, .drift_y = 1.8, .radius_min = 0.45, .radius_range = 0.55, .alpha = 0.16, .tint = .{ 0.62, 0.78, 0.96 } },
-    .{ .count = 38, .parallax = 0.022, .zoom_reactivity = 0.055, .drift_x = 13.0, .drift_y = 3.0, .radius_min = 0.55, .radius_range = 0.80, .alpha = 0.20, .tint = .{ 0.78, 0.84, 0.98 } },
-    .{ .count = 24, .parallax = 0.040, .zoom_reactivity = 0.085, .drift_x = 20.0, .drift_y = 4.7, .radius_min = 0.70, .radius_range = 1.05, .alpha = 0.24, .tint = .{ 0.96, 0.88, 0.68 } },
+    .{ .count = 880, .parallax = 0.010, .zoom_reactivity = 0.030, .drift_x = 8.0, .drift_y = 1.8, .radius_min = 0.46, .radius_range = 0.62, .alpha = 0.36, .tint = .{ 0.62, 0.78, 0.96 } },
+    .{ .count = 720, .parallax = 0.022, .zoom_reactivity = 0.055, .drift_x = 13.0, .drift_y = 3.0, .radius_min = 0.56, .radius_range = 0.84, .alpha = 0.44, .tint = .{ 0.78, 0.84, 0.98 } },
+    .{ .count = 520, .parallax = 0.040, .zoom_reactivity = 0.085, .drift_x = 20.0, .drift_y = 4.7, .radius_min = 0.70, .radius_range = 1.08, .alpha = 0.54, .tint = .{ 0.96, 0.88, 0.68 } },
+    .{ .count = 320, .parallax = 0.066, .zoom_reactivity = 0.115, .drift_x = 29.0, .drift_y = 6.4, .radius_min = 0.92, .radius_range = 1.28, .alpha = 0.50, .tint = .{ 0.72, 0.96, 1.0 } },
 };
 const StaticEditableMaps = [_]struct {
     name: []const u8,
@@ -1606,7 +1607,9 @@ pub const AppState = struct {
         for (0..self.game.map.height) |y| {
             for (0..self.game.map.width) |x| {
                 var cell = &self.game.map.terrain[y][x];
-                if (cell.terrain_id == 3) {
+                if (map_mod.isVoidTerrain(cell.*)) {
+                    cell.asset_id = NoAsset;
+                } else if (cell.terrain_id == 3) {
                     cell.asset_id = water_id;
                 } else if (!cell.walkable) {
                     cell.asset_id = if (rock_id != NoAsset) rock_id else self.terrainAsset(cell.terrain_id);
@@ -1810,6 +1813,9 @@ pub const AppState = struct {
                     .x = @as(f32, @floatFromInt(x)) + 0.5,
                     .y = @as(f32, @floatFromInt(y)) + 0.5,
                 });
+                if (map_mod.isVoidTerrain(cell)) {
+                    continue;
+                }
                 const color = render.terrainColor(cell);
                 drawDiamond(center, TileW * self.zoom, TileH * self.zoom, color);
                 if (self.spriteForAsset(cell.asset_id)) |sprite| {
@@ -2274,6 +2280,7 @@ pub const AppState = struct {
         sgl.c4f(0.06, 0.06, 0.055, 0.32);
         for (0..self.game.map.height) |y| {
             for (0..self.game.map.width) |x| {
+                if (map_mod.isVoidTerrain(self.game.map.terrain[y][x])) continue;
                 const center = self.worldToScreen(.{
                     .x = @as(f32, @floatFromInt(x)) + 0.5,
                     .y = @as(f32, @floatFromInt(y)) + 0.5,
@@ -2287,7 +2294,8 @@ pub const AppState = struct {
     fn drawPathingOverlay(self: *AppState) void {
         for (0..self.game.map.height) |y| {
             for (0..self.game.map.width) |x| {
-                if (self.game.map.terrain[y][x].walkable) continue;
+                const cell = self.game.map.terrain[y][x];
+                if (cell.walkable or map_mod.isVoidTerrain(cell)) continue;
                 const center = self.worldToScreen(.{
                     .x = @as(f32, @floatFromInt(x)) + 0.5,
                     .y = @as(f32, @floatFromInt(y)) + 0.5,
@@ -2363,12 +2371,17 @@ pub const AppState = struct {
 
                 switch (self.editor.tool) {
                     .terrain => {
-                        if (self.spriteForAsset(self.editor.brush_asset_id)) |sprite| {
+                        const preview_void = self.editor.brush_terrain_id == map_mod.VoidTerrainId and !self.editor.terrain_walkable;
+                        if (preview_void) {
+                            drawDiamondOutline(center, TileW * self.zoom, TileH * self.zoom, if (is_center) .{ 0.82, 0.94, 1.0, 0.82 } else .{ 0.70, 0.86, 1.0, 0.48 });
+                        } else if (self.spriteForAsset(self.editor.brush_asset_id)) |sprite| {
                             drawSprite(sprite, self.sampler, self.alpha_pipeline, center, TileW * self.zoom, TileH * self.zoom, if (is_center) 0.48 else 0.30);
                         } else {
                             drawDiamond(center, TileW * self.zoom, TileH * self.zoom, .{ 0.42, 0.70, 0.92, if (is_center) 0.26 else 0.16 });
                         }
-                        drawDiamondOutline(center, TileW * self.zoom, TileH * self.zoom, if (is_center) .{ 1.0, 0.86, 0.32, 0.95 } else .{ 0.85, 0.92, 0.96, 0.62 });
+                        if (!preview_void) {
+                            drawDiamondOutline(center, TileW * self.zoom, TileH * self.zoom, if (is_center) .{ 1.0, 0.86, 0.32, 0.95 } else .{ 0.85, 0.92, 0.96, 0.62 });
+                        }
                     },
                     .erase => {
                         drawDiamond(center, TileW * self.zoom, TileH * self.zoom, .{ 0.95, 0.20, 0.16, if (is_center) 0.20 else 0.12 });

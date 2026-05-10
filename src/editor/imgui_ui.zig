@@ -5,6 +5,7 @@ const c = @import("../cimgui.zig").c;
 const tools = @import("tools.zig");
 const assets = @import("../assets/asset_loader.zig");
 const sim = @import("../runtime/simulation.zig");
+const map_mod = @import("../map/map.zig");
 
 pub fn draw(app: anytype) void {
     if (!app.editor.enabled) return;
@@ -67,6 +68,13 @@ fn drawInspector(app: anytype) void {
         if (c.igButton("New Variant", v2(136, 0))) {
             app.editor.brush_terrain_id +%= 1;
             app.editor.setStatus("Created terrain variant {d}", .{app.editor.brush_terrain_id});
+        }
+        if (c.igButton("Void Tile", v2(136, 0))) {
+            app.editor.brush_terrain_id = map_mod.VoidTerrainId;
+            app.editor.brush_asset_id = 0;
+            app.editor.terrain_walkable = false;
+            app.editor.terrain_cost = 1;
+            app.editor.setStatus("Selected void terrain.", .{});
         }
         if (c.igButton("New Sprite", v2(136, 0))) {
             app.createGeneratedTerrainAsset();
