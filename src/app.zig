@@ -97,6 +97,7 @@ const GameShellScreen = enum {
     menu,
     sound,
     rules,
+    credits,
     choose_map,
     map_editor,
     setup,
@@ -777,6 +778,7 @@ pub const AppState = struct {
             .menu => self.drawMainMenuShell(),
             .sound => self.drawSoundShell(),
             .rules => self.drawRulesShell(),
+            .credits => self.drawCreditsShell(),
             .choose_map => self.drawChooseMapShell(),
             .map_editor => self.drawMapEditorShell(),
             .setup => self.drawSetupShell(),
@@ -791,7 +793,7 @@ pub const AppState = struct {
 
         const panel_w = @min(420, @max(300, sapp.widthf() - 48));
         c.igSetNextWindowPos(uiV2(sapp.widthf() * 0.5, sapp.heightf() * 0.5), c.ImGuiCond_Always, uiV2(0.5, 0.5));
-        c.igSetNextWindowSize(uiV2(panel_w, 374), c.ImGuiCond_Always);
+        c.igSetNextWindowSize(uiV2(panel_w, 408), c.ImGuiCond_Always);
         c.igSetNextWindowBgAlpha(0.94);
         self.pushShellStyle();
         defer c.igPopStyleColor(3);
@@ -812,6 +814,7 @@ pub const AppState = struct {
         if (c.igButton("Level Editor", uiV2(-1, 30))) self.enterMapEditorShell(self.selected_map_index);
         if (c.igButton("Sound", uiV2(-1, 30))) self.enterSoundShell();
         if (c.igButton("Rules", uiV2(-1, 30))) self.enterRulesShell();
+        if (c.igButton("Credits", uiV2(-1, 30))) self.enterCreditsShell();
         c.igSpacing();
         c.igPushStyleColor_U32(c.ImGuiCol_Button, uiCol32(42, 119, 174, 255));
         c.igPushStyleColor_U32(c.ImGuiCol_ButtonHovered, uiCol32(54, 143, 204, 255));
@@ -944,6 +947,50 @@ pub const AppState = struct {
         ruleBullet("Outpost: Static defensive structure with solid health and medium range.");
         ruleBullet("Defense Grid: Static defensive structure with longer range and strong sustained damage.");
         ruleBullet("Obstacle: Blocks movement and shapes lanes. Obstacles are not combat targets.");
+    }
+
+    fn drawCreditsShell(self: *AppState) void {
+        const panel_w = @min(620, @max(340, sapp.widthf() - 56));
+        c.igSetNextWindowPos(uiV2(sapp.widthf() * 0.5, sapp.heightf() * 0.5), c.ImGuiCond_Always, uiV2(0.5, 0.5));
+        c.igSetNextWindowSize(uiV2(panel_w, 462), c.ImGuiCond_Always);
+        c.igSetNextWindowBgAlpha(0.94);
+        self.pushShellStyle();
+        defer c.igPopStyleColor(3);
+
+        const flags = c.ImGuiWindowFlags_NoCollapse |
+            c.ImGuiWindowFlags_NoMove |
+            c.ImGuiWindowFlags_NoSavedSettings |
+            c.ImGuiWindowFlags_NoResize;
+        _ = c.igBegin("Credits##game-shell", null, flags);
+        defer c.igEnd();
+
+        c.igTextUnformatted("Credits", null);
+        c.igSeparator();
+        c.igPushTextWrapPos(0);
+        defer c.igPopTextWrapPos();
+
+        c.igTextUnformatted("Game", null);
+        ruleBullet("Imperator's Gambit was created at TOJam 2026: Twenty years, one weekend.");
+        c.igSpacing();
+
+        c.igTextUnformatted("Visual Assets", null);
+        ruleBullet("Arid Badlands environment art: tiles, floors, structures, rocks, flora, waterways, and props imported from the Arid Badlands pack under notes/Arid Badlands.");
+        ruleBullet("Starter unit/object sprites: project-specific sprites in assets/sprites/starter, generated for this prototype.");
+        ruleBullet("TOJam logo and goat artwork: TOJam branding assets in assets/tojam.");
+        c.igSpacing();
+
+        c.igTextUnformatted("Audio", null);
+        ruleBullet("Sound effects: Kenney UI Audio, Sci-fi Sounds, Digital Audio, and Impact Sounds packs, licensed CC0.");
+        ruleBullet("Music: Into the Stars by KiluaBoy and Simple BGM Loop by Theforeshadower from OpenGameArt, licensed CC0.");
+        ruleBullet("Ambience: Scifi City - Ambient Loop by TinyWorlds from OpenGameArt, licensed CC0.");
+        ruleBullet("Additional sci-fi music tracks are user-provided runtime music files in assets/audio/music.");
+        c.igSpacing();
+
+        c.igTextUnformatted("Tech", null);
+        ruleBullet("Built with Zig, Sokol, Dear ImGui/cimgui, and stb_image.");
+
+        c.igSeparator();
+        if (c.igButton("Back", uiV2(-1, 30))) self.enterMainMenuShell();
     }
 
     fn drawChooseMapShell(self: *AppState) void {
@@ -1201,6 +1248,13 @@ pub const AppState = struct {
         self.editor.enabled = false;
         self.game_paused = false;
         self.game_shell_screen = .rules;
+        self.audio.playSfx(.panel_open);
+    }
+
+    fn enterCreditsShell(self: *AppState) void {
+        self.editor.enabled = false;
+        self.game_paused = false;
+        self.game_shell_screen = .credits;
         self.audio.playSfx(.panel_open);
     }
 
@@ -2001,7 +2055,7 @@ pub const AppState = struct {
 
     fn drawStartMenuBranding(self: *AppState) void {
         switch (self.game_shell_screen) {
-            .menu, .sound, .rules => {},
+            .menu, .sound, .rules, .credits => {},
             else => return,
         }
 
