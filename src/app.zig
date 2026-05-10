@@ -1611,7 +1611,7 @@ pub const AppState = struct {
                 } else if (!cell.walkable) {
                     cell.asset_id = if (rock_id != NoAsset) rock_id else self.terrainAsset(cell.terrain_id);
                 } else if (terrain_count > 0) {
-                    cell.asset_id = self.terrainAsset(cell.terrain_id);
+                    cell.asset_id = self.terrainAssetForCell(x, y, cell.terrain_id);
                 } else {
                     cell.asset_id = NoAsset;
                 }
@@ -1688,6 +1688,20 @@ pub const AppState = struct {
         const count = self.countAssets(.terrain);
         if (count == 0) return NoAsset;
         return self.catalog.nthOfKind(.terrain, @as(usize, terrain_id) % count) orelse NoAsset;
+    }
+
+    fn terrainAssetForCell(self: *const AppState, x: usize, y: usize, terrain_id: u8) u16 {
+        const count = self.countAssets(.terrain);
+        if (count == 0) return NoAsset;
+        const base_count = @min(count, 4);
+        const base_asset = self.catalog.nthOfKind(.terrain, @as(usize, terrain_id) % base_count) orelse NoAsset;
+        if (count <= base_count) return base_asset;
+
+        const hash = terrainVariantHash(x, y, terrain_id);
+        if (hash % 100 >= 42) return base_asset;
+        const variant_count = count - base_count;
+        const variant_index = base_count + (@as(usize, @intCast(hash / 100)) % variant_count);
+        return self.catalog.nthOfKind(.terrain, variant_index) orelse base_asset;
     }
 
     fn countAssets(self: *const AppState, kind: asset_loader.AssetKind) usize {
@@ -3052,6 +3066,14 @@ fn copyToBuffer(buffer: []u8, value: []const u8) usize {
     const len = @min(buffer.len, value.len);
     @memcpy(buffer[0..len], value[0..len]);
     return len;
+}
+
+fn terrainVariantHash(x: usize, y: usize, terrain_id: u8) u32 {
+    var hash: u32 = 2166136261;
+    hash = (hash ^ @as(u32, @intCast(x))) *% 16777619;
+    hash = (hash ^ @as(u32, @intCast(y))) *% 16777619;
+    hash = (hash ^ @as(u32, terrain_id)) *% 16777619;
+    return hash;
 }
 
 fn hasCommandModifier(modifiers: u32) bool {
