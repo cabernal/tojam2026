@@ -40,7 +40,7 @@ jobs:
           ln -sf "$(command -v python3)" /tmp/emsdk/python/3.13.3_64bit/bin/python3
 
       - name: Build web bundle
-        run: zig build web -Demsdk=/tmp/emsdk -Doptimize=ReleaseFast
+        run: zig build web -Demsdk=/tmp/emsdk -Doptimize=ReleaseFast -Dapp-mode=game
 
       - name: Prepare Pages output
         run: |
