@@ -44,6 +44,20 @@ const StarParallaxLayers = [_]StarLayer{
     .{ .count = 520, .parallax = 0.040, .zoom_reactivity = 0.085, .drift_x = 20.0, .drift_y = 4.7, .radius_min = 0.70, .radius_range = 1.08, .alpha = 0.54, .tint = .{ 0.96, 0.88, 0.68 } },
     .{ .count = 320, .parallax = 0.066, .zoom_reactivity = 0.115, .drift_x = 29.0, .drift_y = 6.4, .radius_min = 0.92, .radius_range = 1.28, .alpha = 0.50, .tint = .{ 0.72, 0.96, 1.0 } },
 };
+const MusicTrack = struct {
+    id: audio_mod.MusicId,
+    name: []const u8,
+    gain: f32,
+};
+const MusicPlaylist = [_]MusicTrack{
+    .{ .id = .scifi, .name = "Scifi", .gain = 0.34 },
+    .{ .id = .scifi2, .name = "Scifi 2", .gain = 0.58 },
+    .{ .id = .scifitrimmed, .name = "Scifi Trimmed", .gain = 0.54 },
+    .{ .id = .simple_bgm_loop, .name = "Simple BGM Loop", .gain = 0.24 },
+};
+const AmbientGain: f32 = 0.18;
+const ShotSfxGain: f32 = 0.42;
+const HitSfxGain: f32 = 0.22;
 const StaticEditableMaps = [_]struct {
     name: []const u8,
     rel_path: []const u8,
@@ -294,6 +308,8 @@ pub const AppState = struct {
     perf: PerfStats = .{},
     audio: audio_mod.Engine = .{},
     music_started: bool = false,
+    music_track_index: usize = 0,
+    music_muted: bool = false,
     game_shell_screen: GameShellScreen = .disabled,
     maps: [MaxGameMaps]GameMapChoice = [_]GameMapChoice{.{}} ** MaxGameMaps,
     map_count: usize = 0,
@@ -383,10 +399,8 @@ pub const AppState = struct {
         }
         const is_ready = self.ready();
         if (is_ready) {
-            if (!self.music_started) {
-                self.audio.playMusic(.simple_bgm_loop, 0.34, true);
-                self.music_started = true;
-            }
+            self.ensureBackgroundAudio();
+            self.updateMusicCycle();
             const update_start = stime.now();
             self.syncEditorPlayerWithSetup();
             self.updateHoverAt(self.mouse);
@@ -689,6 +703,53 @@ pub const AppState = struct {
         self.last_sim_phase = phase;
     }
 
+    fn ensureBackgroundAudio(self: *AppState) void {
+        if (self.music_started) return;
+        self.music_track_index %= MusicPlaylist.len;
+        if (!self.music_muted) self.playCurrentMusicTrack();
+        self.audio.playAmbient(.scifi_city_ambient_loop, AmbientGain);
+        self.music_started = true;
+    }
+
+    fn updateMusicCycle(self: *AppState) void {
+        if (!self.music_started or self.music_muted or self.audio.musicActive()) return;
+        self.nextMusicTrack(false);
+    }
+
+    fn nextMusicTrack(self: *AppState, announce: bool) void {
+        self.music_track_index = (self.music_track_index + 1) % MusicPlaylist.len;
+        if (!self.music_muted) self.playCurrentMusicTrack();
+        if (announce) {
+            self.audio.playSfx(.click_confirm);
+            self.editor.setStatus("Music: {s}", .{self.currentMusicName()});
+        }
+    }
+
+    fn toggleMusicMute(self: *AppState) void {
+        self.music_muted = !self.music_muted;
+        if (self.music_muted) {
+            self.audio.stopMusic();
+            self.editor.setStatus("Music muted. Ambient remains on.", .{});
+        } else {
+            self.playCurrentMusicTrack();
+            self.editor.setStatus("Music: {s}", .{self.currentMusicName()});
+        }
+        self.audio.playSfx(.click_confirm);
+    }
+
+    fn playCurrentMusicTrack(self: *AppState) void {
+        const track = MusicPlaylist[self.music_track_index % MusicPlaylist.len];
+        self.audio.playMusic(track.id, track.gain, false);
+    }
+
+    fn currentMusicName(self: *const AppState) []const u8 {
+        return MusicPlaylist[self.music_track_index % MusicPlaylist.len].name;
+    }
+
+    fn musicMuteLabel(self: *const AppState) [:0]const u8 {
+        return if (self.music_muted) "Unmute Music" else "Mute Music";
+    }
+
     fn drawGameShellUi(self: *AppState) void {
         switch (self.game_shell_screen) {
             .disabled => {},
@@ -707,7 +768,7 @@ pub const AppState = struct {
 
         const panel_w = @min(420, @max(300, sapp.widthf() - 48));
         c.igSetNextWindowPos(uiV2(sapp.widthf() * 0.5, sapp.heightf() * 0.5), c.ImGuiCond_Always, uiV2(0.5, 0.5));
-        c.igSetNextWindowSize(uiV2(panel_w, 276), c.ImGuiCond_Always);
+        c.igSetNextWindowSize(uiV2(panel_w, 350), c.ImGuiCond_Always);
         c.igSetNextWindowBgAlpha(0.94);
         self.pushShellStyle();
         defer c.igPopStyleColor(3);
@@ -722,6 +783,11 @@ pub const AppState = struct {
         c.igTextUnformatted("TOJam 2026 RTS Prototype", null);
         c.igSeparator();
         c.igTextUnformatted(selected_z.ptr, null);
+        var music_buf: [96]u8 = undefined;
+        const music_z = std.fmt.bufPrintZ(&music_buf, "Music: {s}{s}", .{ self.currentMusicName(), if (self.music_muted) " (muted)" else "" }) catch return;
+        c.igTextUnformatted(music_z.ptr, null);
+        if (c.igButton("Skip Song", uiV2(-1, 26))) self.nextMusicTrack(true);
+        if (c.igButton(self.musicMuteLabel().ptr, uiV2(-1, 26))) self.toggleMusicMute();
         c.igSpacing();
 
         if (c.igButton("Choose Map", uiV2(-1, 30))) self.enterChooseMapShell();
@@ -1856,9 +1922,9 @@ pub const AppState = struct {
             .artillery => .artillery_fire,
             else => .infantry_attack,
         };
-        self.audio.playSfxGain(sfx, 0.58);
+        self.audio.playSfxGain(sfx, ShotSfxGain);
         if (event.target_kind == .citadel or event.target_kind == .outpost or event.target_kind == .defense_grid) {
-            self.audio.playSfxGain(.unit_hit_metal, 0.34);
+            self.audio.playSfxGain(.unit_hit_metal, HitSfxGain);
         }
     }
 
