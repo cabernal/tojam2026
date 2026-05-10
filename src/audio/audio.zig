@@ -77,6 +77,9 @@ pub const Engine = struct {
     voices: [MaxVoices]Voice = [_]Voice{.{}} ** MaxVoices,
     music_state: MusicState = .{},
     ambient_state: MusicState = .{ .track = .scifi_city_ambient_loop, .gain = 0.12, .loop = true },
+    sfx_volume: f32 = 1.0,
+    music_volume: f32 = 1.0,
+    ambient_volume: f32 = 1.0,
     mutex: std.Thread.Mutex = .{},
     initialized: bool = false,
     valid: bool = false,
@@ -179,6 +182,24 @@ pub const Engine = struct {
         return self.music_state.active;
     }
 
+    pub fn setSfxVolume(self: *Engine, volume: f32) void {
+        self.mutex.lock();
+        defer self.mutex.unlock();
+        self.sfx_volume = std.math.clamp(volume, 0, 1);
+    }
+
+    pub fn setMusicVolume(self: *Engine, volume: f32) void {
+        self.mutex.lock();
+        defer self.mutex.unlock();
+        self.music_volume = std.math.clamp(volume, 0, 1);
+    }
+
+    pub fn setAmbientVolume(self: *Engine, volume: f32) void {
+        self.mutex.lock();
+        defer self.mutex.unlock();
+        self.ambient_volume = std.math.clamp(volume, 0, 1);
+    }
+
     fn loadAssets(self: *Engine, asset_root: []const u8) !void {
         try self.loadSfx(asset_root, .click_confirm, "audio/sfx/ui/click_confirm.wav");
         try self.loadSfx(asset_root, .click_cancel, "audio/sfx/ui/click_cancel.wav");
@@ -222,8 +243,8 @@ pub const Engine = struct {
         self.mutex.lock();
         defer self.mutex.unlock();
 
-        self.mixTrackState(&self.ambient_state, out, frames, channels);
-        self.mixTrackState(&self.music_state, out, frames, channels);
+        self.mixTrackState(&self.ambient_state, out, frames, channels, self.ambient_volume);
+        self.mixTrackState(&self.music_state, out, frames, channels, self.music_volume);
 
         for (&self.voices) |*voice| {
             if (!voice.active) continue;
@@ -234,7 +255,7 @@ pub const Engine = struct {
                     break;
                 }
                 for (0..channels) |channel| {
-                    out[frame * channels + channel] += clip.sample(voice.cursor, channel) * voice.gain;
+                    out[frame * channels + channel] += clip.sample(voice.cursor, channel) * voice.gain * self.sfx_volume;
                 }
                 voice.cursor += 1;
             }
@@ -245,7 +266,7 @@ pub const Engine = struct {
         }
     }
 
-    fn mixTrackState(self: *Engine, state: *MusicState, out: []f32, frames: usize, channels: usize) void {
+    fn mixTrackState(self: *Engine, state: *MusicState, out: []f32, frames: usize, channels: usize, master_gain: f32) void {
         if (!state.active) return;
         const clip = &self.music[indexOf(state.track)];
         if (clip.frames == 0) {
@@ -264,7 +285,7 @@ pub const Engine = struct {
                 }
             }
             for (0..channels) |channel| {
-                out[frame * channels + channel] += clip.sample(state.cursor, channel) * state.gain;
+                out[frame * channels + channel] += clip.sample(state.cursor, channel) * state.gain * master_gain;
             }
             state.cursor += 1;
         }

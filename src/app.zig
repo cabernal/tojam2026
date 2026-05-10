@@ -93,6 +93,7 @@ const AppMode = enum {
 const GameShellScreen = enum {
     disabled,
     menu,
+    sound,
     choose_map,
     map_editor,
     setup,
@@ -310,6 +311,9 @@ pub const AppState = struct {
     music_started: bool = false,
     music_track_index: usize = 0,
     music_muted: bool = false,
+    sfx_volume: f32 = 1.0,
+    music_volume: f32 = 1.0,
+    ambient_volume: f32 = 1.0,
     game_shell_screen: GameShellScreen = .disabled,
     maps: [MaxGameMaps]GameMapChoice = [_]GameMapChoice{.{}} ** MaxGameMaps,
     map_count: usize = 0,
@@ -705,6 +709,7 @@ pub const AppState = struct {
 
     fn ensureBackgroundAudio(self: *AppState) void {
         if (self.music_started) return;
+        self.applyAudioLevels();
         self.music_track_index %= MusicPlaylist.len;
         if (!self.music_muted) self.playCurrentMusicTrack();
         self.audio.playAmbient(.scifi_city_ambient_loop, AmbientGain);
@@ -729,8 +734,10 @@ pub const AppState = struct {
         self.music_muted = !self.music_muted;
         if (self.music_muted) {
             self.audio.stopMusic();
+            self.applyAudioLevels();
             self.editor.setStatus("Music muted. Ambient remains on.", .{});
         } else {
+            self.applyAudioLevels();
             self.playCurrentMusicTrack();
             self.editor.setStatus("Music: {s}", .{self.currentMusicName()});
         }
@@ -750,10 +757,17 @@ pub const AppState = struct {
         return if (self.music_muted) "Unmute Music" else "Mute Music";
     }
 
+    fn applyAudioLevels(self: *AppState) void {
+        self.audio.setSfxVolume(self.sfx_volume);
+        self.audio.setMusicVolume(if (self.music_muted) 0 else self.music_volume);
+        self.audio.setAmbientVolume(self.ambient_volume);
+    }
+
     fn drawGameShellUi(self: *AppState) void {
         switch (self.game_shell_screen) {
             .disabled => {},
             .menu => self.drawMainMenuShell(),
+            .sound => self.drawSoundShell(),
             .choose_map => self.drawChooseMapShell(),
             .map_editor => self.drawMapEditorShell(),
             .setup => self.drawSetupShell(),
@@ -764,11 +778,11 @@ pub const AppState = struct {
 
     fn drawMainMenuShell(self: *AppState) void {
         var selected_buf: [160]u8 = undefined;
-        const selected_z = std.fmt.bufPrintZ(&selected_buf, "Preview/edit map: {s}", .{self.selectedMapName()}) catch return;
+        const selected_z = std.fmt.bufPrintZ(&selected_buf, "Selected map: {s}", .{self.selectedMapName()}) catch return;
 
         const panel_w = @min(420, @max(300, sapp.widthf() - 48));
         c.igSetNextWindowPos(uiV2(sapp.widthf() * 0.5, sapp.heightf() * 0.5), c.ImGuiCond_Always, uiV2(0.5, 0.5));
-        c.igSetNextWindowSize(uiV2(panel_w, 350), c.ImGuiCond_Always);
+        c.igSetNextWindowSize(uiV2(panel_w, 300), c.ImGuiCond_Always);
         c.igSetNextWindowBgAlpha(0.94);
         self.pushShellStyle();
         defer c.igPopStyleColor(3);
@@ -783,21 +797,57 @@ pub const AppState = struct {
         c.igTextUnformatted("TOJam 2026 RTS Prototype", null);
         c.igSeparator();
         c.igTextUnformatted(selected_z.ptr, null);
-        var music_buf: [96]u8 = undefined;
-        const music_z = std.fmt.bufPrintZ(&music_buf, "Music: {s}{s}", .{ self.currentMusicName(), if (self.music_muted) " (muted)" else "" }) catch return;
-        c.igTextUnformatted(music_z.ptr, null);
-        if (c.igButton("Skip Song", uiV2(-1, 26))) self.nextMusicTrack(true);
-        if (c.igButton(self.musicMuteLabel().ptr, uiV2(-1, 26))) self.toggleMusicMute();
         c.igSpacing();
 
-        if (c.igButton("Choose Map", uiV2(-1, 30))) self.enterChooseMapShell();
-        if (c.igButton("Map Editor", uiV2(-1, 30))) self.enterMapEditorShell(self.selected_map_index);
+        if (c.igButton("Select Level", uiV2(-1, 30))) self.enterChooseMapShell();
+        if (c.igButton("Level Editor", uiV2(-1, 30))) self.enterMapEditorShell(self.selected_map_index);
+        if (c.igButton("Sound", uiV2(-1, 30))) self.enterSoundShell();
         c.igSpacing();
         c.igPushStyleColor_U32(c.ImGuiCol_Button, uiCol32(42, 119, 174, 255));
         c.igPushStyleColor_U32(c.ImGuiCol_ButtonHovered, uiCol32(54, 143, 204, 255));
         defer c.igPopStyleColor(2);
         if (c.igButton("Start Selected Level", uiV2(-1, 34))) self.startSelectedGameSetup();
         if (c.igButton("Start Random Game", uiV2(-1, 34))) self.startRandomGameSetup();
+    }
+
+    fn drawSoundShell(self: *AppState) void {
+        const panel_w = @min(420, @max(300, sapp.widthf() - 48));
+        c.igSetNextWindowPos(uiV2(sapp.widthf() * 0.5, sapp.heightf() * 0.5), c.ImGuiCond_Always, uiV2(0.5, 0.5));
+        c.igSetNextWindowSize(uiV2(panel_w, 310), c.ImGuiCond_Always);
+        c.igSetNextWindowBgAlpha(0.94);
+        self.pushShellStyle();
+        defer c.igPopStyleColor(3);
+
+        const flags = c.ImGuiWindowFlags_NoCollapse |
+            c.ImGuiWindowFlags_NoMove |
+            c.ImGuiWindowFlags_NoSavedSettings |
+            c.ImGuiWindowFlags_NoResize;
+        _ = c.igBegin("Sound##game-shell", null, flags);
+        defer c.igEnd();
+
+        c.igTextUnformatted("Sound", null);
+        c.igSeparator();
+
+        self.drawVolumeSlider("SFX", "##sfx-volume", &self.sfx_volume);
+        self.drawVolumeSlider("Music", "##music-volume", &self.music_volume);
+        self.drawVolumeSlider("Ambience", "##ambience-volume", &self.ambient_volume);
+
+        c.igSpacing();
+        var music_buf: [96]u8 = undefined;
+        const music_z = std.fmt.bufPrintZ(&music_buf, "Song: {s}{s}", .{ self.currentMusicName(), if (self.music_muted) " (muted)" else "" }) catch return;
+        c.igTextUnformatted(music_z.ptr, null);
+        if (c.igButton("Skip Song", uiV2(-1, 28))) self.nextMusicTrack(true);
+        if (c.igButton(self.musicMuteLabel().ptr, uiV2(-1, 28))) self.toggleMusicMute();
+
+        c.igSeparator();
+        if (c.igButton("Back", uiV2(-1, 30))) self.enterMainMenuShell();
+    }
+
+    fn drawVolumeSlider(self: *AppState, label: [:0]const u8, id: [:0]const u8, value: *f32) void {
+        c.igTextUnformatted(label.ptr, null);
+        c.igSameLine(0, 12);
+        c.igSetNextItemWidth(-1);
+        if (c.igSliderFloat(id.ptr, value, 0, 1, "%.2f", 0)) self.applyAudioLevels();
     }
 
     fn drawChooseMapShell(self: *AppState) void {
@@ -814,7 +864,7 @@ pub const AppState = struct {
         _ = c.igBegin("Choose Map##game-shell", null, flags);
         defer c.igEnd();
 
-        c.igTextUnformatted("Choose Map", null);
+        c.igTextUnformatted("Select Level", null);
         c.igSeparator();
         if (self.map_count == 0) {
             c.igTextUnformatted("No maps found.", null);
@@ -1041,6 +1091,13 @@ pub const AppState = struct {
         self.game_paused = false;
         self.game_shell_screen = .choose_map;
         _ = self.loadShellMap(self.selected_map_index, false);
+        self.audio.playSfx(.panel_open);
+    }
+
+    fn enterSoundShell(self: *AppState) void {
+        self.editor.enabled = false;
+        self.game_paused = false;
+        self.game_shell_screen = .sound;
         self.audio.playSfx(.panel_open);
     }
 
