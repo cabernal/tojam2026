@@ -136,11 +136,29 @@
         let runDependencyTotal = 0;
         let lastPercent = 8;
         let handedOff = false;
+        let handoffScheduled = false;
 
         function handOffToGameLoader() {
+          if (handedOff) return;
           handedOff = true;
           overlay.hidden = true;
           overlay.classList.add("is-done");
+        }
+
+        function scheduleGameLoaderHandoff() {
+          if (handoffScheduled) return;
+          handoffScheduled = true;
+          setProgress(96, "Starting game renderer", "Preparing the in-game loading screen");
+          let frames = 0;
+          const waitForPaint = () => {
+            frames += 1;
+            if (frames >= 4) {
+              handOffToGameLoader();
+            } else {
+              requestAnimationFrame(waitForPaint);
+            }
+          };
+          requestAnimationFrame(waitForPaint);
         }
 
         function setProgress(nextPercent, nextStage, nextDetail) {
@@ -169,10 +187,10 @@
           canvas,
           preRun: [
             () => {
-              handOffToGameLoader();
+              setProgress(92, "Mounting assets", "Preparing files for the game runtime");
             }
           ],
-          postRun: [handOffToGameLoader],
+          postRun: [scheduleGameLoaderHandoff],
           setStatus,
           monitorRunDependencies(left) {
             runDependencyTotal = Math.max(runDependencyTotal, left);
@@ -180,7 +198,7 @@
               const done = runDependencyTotal > 0 ? (runDependencyTotal - left) / runDependencyTotal : 0;
               setProgress(70 + done * 20, "Mounting assets", `${left} loading task${left === 1 ? "" : "s"} remaining`);
             } else {
-              setProgress(92, "Preparing renderer", "Starting game loop");
+              setProgress(94, "Preparing renderer", "Starting game loop");
             }
           },
           printErr(text) {
@@ -190,6 +208,7 @@
 
         window.addEventListener("error", (event) => {
           handedOff = false;
+          handoffScheduled = false;
           overlay.hidden = false;
           overlay.classList.add("is-error");
           setProgress(lastPercent, "Load failed", event.message || "Open the console for details");
