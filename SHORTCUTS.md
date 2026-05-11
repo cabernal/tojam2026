@@ -13,10 +13,11 @@
 
 | Input | Action |
 | --- | --- |
-| `Space` | Advance setup from Player 1 to Player 2 to gameplay; reset from gameplay/game over |
-| `Tab` | Toggle the editor overlay |
+| `Space` | Advance game-mode setup from Player 1 to Player 2 to gameplay |
+| `Escape` | Pause/resume an active battle; paused menu can continue or cancel to the game menu |
+| `Tab` | Toggle the editor overlay in integrated/editor modes |
 
-In `zig build run-game` or web builds made with `-Dapp-mode=game`, editor shortcuts are disabled and gameplay starts immediately.
+In `zig build run-game` or web builds made with `-Dapp-mode=game`, the app starts at the game menu. Editor shortcuts become active in map editor and setup screens.
 
 ## Editor Tools
 

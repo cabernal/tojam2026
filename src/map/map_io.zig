@@ -7,10 +7,11 @@ pub const SaveError = error{
 } || std.fs.File.OpenError || std.fs.File.WriteError || std.fs.Dir.MakeError;
 
 pub fn save(path: []const u8, map: *const map_mod.GameMap) !void {
-    if (std.fs.path.dirname(path)) |dir_path| {
-        try std.fs.cwd().makePath(dir_path);
-    }
-    var file = try std.fs.cwd().createFile(path, .{ .truncate = true });
+    try makeParentPath(path);
+    var file = if (std.fs.path.isAbsolute(path))
+        try std.fs.createFileAbsolute(path, .{ .truncate = true })
+    else
+        try std.fs.cwd().createFile(path, .{ .truncate = true });
     defer file.close();
     var buffer: [8192]u8 = undefined;
     var writer = file.writer(&buffer);
@@ -60,7 +61,7 @@ pub fn save(path: []const u8, map: *const map_mod.GameMap) !void {
 }
 
 pub fn load(allocator: std.mem.Allocator, path: []const u8) !map_mod.GameMap {
-    const bytes = try std.fs.cwd().readFileAlloc(allocator, path, 16 * 1024 * 1024);
+    const bytes = try readFileAllocPath(allocator, path, 16 * 1024 * 1024);
     defer allocator.free(bytes);
     var parsed = try std.json.parseFromSlice(std.json.Value, allocator, bytes, .{});
     defer parsed.deinit();
@@ -124,6 +125,27 @@ pub fn load(allocator: std.mem.Allocator, path: []const u8) !map_mod.GameMap {
     map.next_object_id = @intCast(@max(@as(i64, map.next_object_id), intField(root, "next_object_id", map.next_object_id)));
     map.version += 1;
     return map;
+}
+
+fn makeParentPath(path: []const u8) !void {
+    const dir_path = std.fs.path.dirname(path) orelse return;
+    if (std.fs.path.isAbsolute(dir_path)) {
+        std.fs.makeDirAbsolute(dir_path) catch |err| switch (err) {
+            error.PathAlreadyExists => {},
+            else => return err,
+        };
+    } else {
+        try std.fs.cwd().makePath(dir_path);
+    }
+}
+
+fn readFileAllocPath(allocator: std.mem.Allocator, path: []const u8, max_bytes: usize) ![]u8 {
+    if (std.fs.path.isAbsolute(path)) {
+        var file = try std.fs.openFileAbsolute(path, .{});
+        defer file.close();
+        return try file.readToEndAlloc(allocator, max_bytes);
+    }
+    return try std.fs.cwd().readFileAlloc(allocator, path, max_bytes);
 }
 
 fn intField(obj: std.json.ObjectMap, key: []const u8, default: i64) i64 {

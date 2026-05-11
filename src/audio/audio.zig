@@ -28,6 +28,9 @@ pub const SfxId = enum {
 pub const MusicId = enum {
     simple_bgm_loop,
     into_the_stars,
+    scifi,
+    scifi2,
+    scifitrimmed,
     scifi_city_ambient_loop,
 };
 
@@ -73,6 +76,10 @@ pub const Engine = struct {
     music: [MusicCount]Clip = [_]Clip{.{}} ** MusicCount,
     voices: [MaxVoices]Voice = [_]Voice{.{}} ** MaxVoices,
     music_state: MusicState = .{},
+    ambient_state: MusicState = .{ .track = .scifi_city_ambient_loop, .gain = 0.12, .loop = true },
+    sfx_volume: f32 = 1.0,
+    music_volume: f32 = 1.0,
+    ambient_volume: f32 = 1.0,
     mutex: std.Thread.Mutex = .{},
     initialized: bool = false,
     valid: bool = false,
@@ -143,10 +150,54 @@ pub const Engine = struct {
         };
     }
 
+    pub fn playAmbient(self: *Engine, id: MusicId, gain: f32) void {
+        if (!self.valid) return;
+        if (self.music[indexOf(id)].frames == 0) return;
+        self.mutex.lock();
+        defer self.mutex.unlock();
+        self.ambient_state = .{
+            .active = true,
+            .track = id,
+            .cursor = 0,
+            .gain = gain,
+            .loop = true,
+        };
+    }
+
     pub fn stopMusic(self: *Engine) void {
         self.mutex.lock();
         defer self.mutex.unlock();
         self.music_state.active = false;
+    }
+
+    pub fn stopAmbient(self: *Engine) void {
+        self.mutex.lock();
+        defer self.mutex.unlock();
+        self.ambient_state.active = false;
+    }
+
+    pub fn musicActive(self: *Engine) bool {
+        self.mutex.lock();
+        defer self.mutex.unlock();
+        return self.music_state.active;
+    }
+
+    pub fn setSfxVolume(self: *Engine, volume: f32) void {
+        self.mutex.lock();
+        defer self.mutex.unlock();
+        self.sfx_volume = std.math.clamp(volume, 0, 1);
+    }
+
+    pub fn setMusicVolume(self: *Engine, volume: f32) void {
+        self.mutex.lock();
+        defer self.mutex.unlock();
+        self.music_volume = std.math.clamp(volume, 0, 1);
+    }
+
+    pub fn setAmbientVolume(self: *Engine, volume: f32) void {
+        self.mutex.lock();
+        defer self.mutex.unlock();
+        self.ambient_volume = std.math.clamp(volume, 0, 1);
     }
 
     fn loadAssets(self: *Engine, asset_root: []const u8) !void {
@@ -173,6 +224,9 @@ pub const Engine = struct {
 
         try self.loadMusic(asset_root, .simple_bgm_loop, "audio/music/simple_bgm_loop.wav");
         try self.loadMusic(asset_root, .into_the_stars, "audio/music/into_the_stars.wav");
+        try self.loadMusic(asset_root, .scifi, "audio/music/scifi.wav");
+        try self.loadMusic(asset_root, .scifi2, "audio/music/scifi2.wav");
+        try self.loadMusic(asset_root, .scifitrimmed, "audio/music/scifitrimmed.wav");
         try self.loadMusic(asset_root, .scifi_city_ambient_loop, "audio/ambience/scifi_city_ambient_loop.wav");
     }
 
@@ -189,24 +243,8 @@ pub const Engine = struct {
         self.mutex.lock();
         defer self.mutex.unlock();
 
-        if (self.music_state.active) {
-            const clip = &self.music[indexOf(self.music_state.track)];
-            var frame: usize = 0;
-            while (frame < frames and self.music_state.active) : (frame += 1) {
-                if (self.music_state.cursor >= clip.frames) {
-                    if (self.music_state.loop) {
-                        self.music_state.cursor = 0;
-                    } else {
-                        self.music_state.active = false;
-                        break;
-                    }
-                }
-                for (0..channels) |channel| {
-                    out[frame * channels + channel] += clip.sample(self.music_state.cursor, channel) * self.music_state.gain;
-                }
-                self.music_state.cursor += 1;
-            }
-        }
+        self.mixTrackState(&self.ambient_state, out, frames, channels, self.ambient_volume);
+        self.mixTrackState(&self.music_state, out, frames, channels, self.music_volume);
 
         for (&self.voices) |*voice| {
             if (!voice.active) continue;
@@ -217,7 +255,7 @@ pub const Engine = struct {
                     break;
                 }
                 for (0..channels) |channel| {
-                    out[frame * channels + channel] += clip.sample(voice.cursor, channel) * voice.gain;
+                    out[frame * channels + channel] += clip.sample(voice.cursor, channel) * voice.gain * self.sfx_volume;
                 }
                 voice.cursor += 1;
             }
@@ -225,6 +263,31 @@ pub const Engine = struct {
 
         for (out) |*sample| {
             sample.* = std.math.clamp(sample.*, -1.0, 1.0);
+        }
+    }
+
+    fn mixTrackState(self: *Engine, state: *MusicState, out: []f32, frames: usize, channels: usize, master_gain: f32) void {
+        if (!state.active) return;
+        const clip = &self.music[indexOf(state.track)];
+        if (clip.frames == 0) {
+            state.active = false;
+            return;
+        }
+
+        var frame: usize = 0;
+        while (frame < frames and state.active) : (frame += 1) {
+            if (state.cursor >= clip.frames) {
+                if (state.loop) {
+                    state.cursor = 0;
+                } else {
+                    state.active = false;
+                    break;
+                }
+            }
+            for (0..channels) |channel| {
+                out[frame * channels + channel] += clip.sample(state.cursor, channel) * state.gain * master_gain;
+            }
+            state.cursor += 1;
         }
     }
 };

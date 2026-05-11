@@ -16,6 +16,12 @@ pub const TerrainCell = struct {
     height: i16 = 0,
 };
 
+pub const VoidTerrainId: u8 = 15;
+
+pub fn isVoidTerrain(cell: TerrainCell) bool {
+    return cell.terrain_id == VoidTerrainId and !cell.walkable;
+}
+
 pub const MapObject = struct {
     id: u32 = 0,
     kind: ObjectKind = .infantry,
@@ -29,6 +35,9 @@ pub const MapObject = struct {
     facing_y: i8 = 0,
     asset_id: u16 = 0,
     active: bool = true,
+    recent_damage: f32 = 0,
+    retreat_steps: u8 = 0,
+    idle_steps: u8 = 0,
 };
 
 pub const GameMap = struct {
@@ -55,12 +64,19 @@ pub const GameMap = struct {
         _ = map.addObject(.defense_grid, 4, 18, 0, 0, 0);
         _ = map.addObject(.outpost, 27, 18, 1, 1, 0);
         _ = map.addObject(.defense_grid, 27, 12, 1, 1, 0);
-        _ = map.addObject(.obstacle, 2, 8, 0, 0, 0);
-        _ = map.addObject(.obstacle, 7, 6, 0, 0, 0);
-        _ = map.addObject(.obstacle, 11, 25, 0, 0, 0);
-        _ = map.addObject(.obstacle, 20, 6, 1, 1, 0);
-        _ = map.addObject(.obstacle, 24, 25, 1, 1, 0);
-        _ = map.addObject(.obstacle, 30, 21, 1, 1, 0);
+        _ = map.addObject(.obstacle, 2, 8, 2, 2, 0);
+        _ = map.addObject(.obstacle, 7, 6, 2, 2, 0);
+        _ = map.addObject(.obstacle, 9, 11, 2, 2, 0);
+        _ = map.addObject(.obstacle, 11, 25, 2, 2, 0);
+        _ = map.addObject(.obstacle, 13, 13, 2, 2, 0);
+        _ = map.addObject(.obstacle, 13, 17, 2, 2, 0);
+        _ = map.addObject(.obstacle, 18, 13, 2, 2, 0);
+        _ = map.addObject(.obstacle, 18, 17, 2, 2, 0);
+        _ = map.addObject(.obstacle, 20, 6, 2, 2, 0);
+        _ = map.addObject(.obstacle, 22, 20, 2, 2, 0);
+        _ = map.addObject(.obstacle, 24, 25, 2, 2, 0);
+        _ = map.addObject(.obstacle, 29, 9, 2, 2, 0);
+        _ = map.addObject(.obstacle, 30, 21, 2, 2, 0);
         for (0..9) |i| {
             _ = map.addObject(.infantry, 6, 10 + @as(i32, @intCast(i)), 0, 0, 0);
             _ = map.addObject(.infantry, 25, 10 + @as(i32, @intCast(i)), 1, 1, 1);
@@ -83,7 +99,34 @@ pub const GameMap = struct {
                 };
             }
         }
+        const void_tiles = [_][2]i32{
+            .{ 10, 4 },
+            .{ 11, 4 },
+            .{ 21, 27 },
+            .{ 22, 27 },
+            .{ 6, 23 },
+            .{ 25, 8 },
+            .{ 14, 12 },
+            .{ 17, 19 },
+        };
+        for (void_tiles) |tile| {
+            self.paintVoidTerrain(tile[0], tile[1]);
+        }
         self.version += 1;
+    }
+
+    fn paintVoidTerrain(self: *GameMap, x: i32, y: i32) void {
+        if (!self.inBounds(x, y)) return;
+        const ux: usize = @intCast(x);
+        const uy: usize = @intCast(y);
+        self.terrain[uy][ux] = .{
+            .terrain_id = VoidTerrainId,
+            .asset_id = 0,
+            .walkable = false,
+            .buildable = false,
+            .movement_cost = 1,
+            .height = -1,
+        };
     }
 
     pub fn inBounds(self: *const GameMap, x: i32, y: i32) bool {
@@ -96,19 +139,28 @@ pub const GameMap = struct {
         const uy: usize = @intCast(y);
         const next_cost = @max(1, movement_cost);
         const current = self.terrain[uy][ux];
+        const next_asset_id: u16 = if (terrain_id == VoidTerrainId and !walkable) 0 else asset_id;
+        const next_height: i16 = if (terrain_id == VoidTerrainId and !walkable)
+            -1
+        else if (isVoidTerrain(current))
+            0
+        else
+            current.height;
         if (current.terrain_id == terrain_id and
-            current.asset_id == asset_id and
+            current.asset_id == next_asset_id and
             current.walkable == walkable and
             current.buildable == walkable and
-            current.movement_cost == next_cost)
+            current.movement_cost == next_cost and
+            current.height == next_height)
         {
             return false;
         }
         self.terrain[uy][ux].terrain_id = terrain_id;
-        self.terrain[uy][ux].asset_id = asset_id;
+        self.terrain[uy][ux].asset_id = next_asset_id;
         self.terrain[uy][ux].walkable = walkable;
         self.terrain[uy][ux].buildable = walkable;
         self.terrain[uy][ux].movement_cost = next_cost;
+        self.terrain[uy][ux].height = next_height;
         self.version += 1;
         return true;
     }
@@ -186,6 +238,19 @@ pub const GameMap = struct {
         }
         grid_map.version = self.version;
     }
+
+    pub fn refreshBattleStats(self: *GameMap) void {
+        for (self.objects[0..self.object_count]) |*object| {
+            const stats = defaultStats(object.kind);
+            const pct = if (object.max_hp > 0) std.math.clamp(object.hp / object.max_hp, 0, 1) else 1;
+            object.max_hp = stats.hp;
+            object.hp = if (object.active) stats.hp * pct else 0;
+            object.recent_damage = 0;
+            object.retreat_steps = 0;
+            object.idle_steps = 0;
+        }
+        self.version += 1;
+    }
 };
 
 pub const ObjectStats = struct {
@@ -197,13 +262,13 @@ pub const ObjectStats = struct {
 
 pub fn defaultStats(kind: ObjectKind) ObjectStats {
     return switch (kind) {
-        .citadel => .{ .hp = 900, .range = 0, .damage_per_second = 0, .move_seconds = 999 },
-        .imperator => .{ .hp = 420, .range = 7.0, .damage_per_second = 42, .move_seconds = 0.55 },
-        .infantry => .{ .hp = 90, .range = 1.35, .damage_per_second = 12, .move_seconds = 0.30 },
-        .captain => .{ .hp = 160, .range = 2.2, .damage_per_second = 18, .move_seconds = 0.38 },
-        .artillery => .{ .hp = 120, .range = 4.8, .damage_per_second = 24, .move_seconds = 0.60 },
+        .citadel => .{ .hp = 2600, .range = 2.6, .damage_per_second = -24, .move_seconds = 999 },
+        .imperator => .{ .hp = 1250, .range = 7.0, .damage_per_second = 42, .move_seconds = 0.55 },
+        .infantry => .{ .hp = 170, .range = 1.35, .damage_per_second = 12, .move_seconds = 0.30 },
+        .captain => .{ .hp = 300, .range = 2.2, .damage_per_second = 18, .move_seconds = 0.38 },
+        .artillery => .{ .hp = 230, .range = 4.8, .damage_per_second = 24, .move_seconds = 0.60 },
         .portal => .{ .hp = 260, .range = 0, .damage_per_second = 0, .move_seconds = 999 },
-        .healing_pod => .{ .hp = 220, .range = 1.3, .damage_per_second = -20, .move_seconds = 999 },
+        .healing_pod => .{ .hp = 260, .range = 2.4, .damage_per_second = -30, .move_seconds = 999 },
         .obstacle => .{ .hp = 300, .range = 0, .damage_per_second = 0, .move_seconds = 999 },
         .outpost => .{ .hp = 360, .range = 3.2, .damage_per_second = 20, .move_seconds = 999 },
         .defense_grid => .{ .hp = 280, .range = 3.8, .damage_per_second = 22, .move_seconds = 999 },
@@ -223,4 +288,18 @@ test "painting identical terrain is a no-op" {
     );
     try std.testing.expect(!changed);
     try std.testing.expectEqual(before, game_map.version);
+}
+
+test "painting void terrain creates a floor cutout" {
+    var game_map = GameMap.initDefault();
+    const changed = game_map.paintTerrain(0, 0, VoidTerrainId, 4, false, 3);
+    try std.testing.expect(changed);
+    try std.testing.expect(isVoidTerrain(game_map.terrain[0][0]));
+    try std.testing.expectEqual(@as(u16, 0), game_map.terrain[0][0].asset_id);
+    try std.testing.expectEqual(@as(i16, -1), game_map.terrain[0][0].height);
+
+    const restored = game_map.paintTerrain(0, 0, 1, 2, true, 1);
+    try std.testing.expect(restored);
+    try std.testing.expect(!isVoidTerrain(game_map.terrain[0][0]));
+    try std.testing.expectEqual(@as(i16, 0), game_map.terrain[0][0].height);
 }

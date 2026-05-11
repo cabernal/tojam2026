@@ -1,4 +1,6 @@
 .zig-cache/
 zig-out/
-assets/maps/
+assets/maps/*
+!assets/maps/generated/
+!assets/maps/generated/*.json
 **/.DS_Store

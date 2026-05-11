@@ -5,6 +5,7 @@ const c = @import("../cimgui.zig").c;
 const tools = @import("tools.zig");
 const assets = @import("../assets/asset_loader.zig");
 const sim = @import("../runtime/simulation.zig");
+const map_mod = @import("../map/map.zig");
 
 pub fn draw(app: anytype) void {
     if (!app.editor.enabled) return;
@@ -68,15 +69,35 @@ fn drawInspector(app: anytype) void {
             app.editor.brush_terrain_id +%= 1;
             app.editor.setStatus("Created terrain variant {d}", .{app.editor.brush_terrain_id});
         }
+        if (c.igButton("Void Tile", v2(136, 0))) {
+            app.editor.brush_terrain_id = map_mod.VoidTerrainId;
+            app.editor.brush_asset_id = 0;
+            app.editor.terrain_walkable = false;
+            app.editor.terrain_cost = 1;
+            app.editor.setStatus("Selected void terrain.", .{});
+        }
         if (c.igButton("New Sprite", v2(136, 0))) {
             app.createGeneratedTerrainAsset();
         }
     } else if (app.editor.tool == .object) {
         uiText("Object Type", .{});
         for (tools.ObjectPalette) |kind| {
-            var label: [48]u8 = undefined;
-            const z = std.fmt.bufPrintZ(&label, "{s}", .{tools.objectKindName(kind)}) catch continue;
-            if (c.igButton(z.ptr, v2(136, 0))) {
+            var label: [96]u8 = undefined;
+            const summary = app.objectPlacementSummary(kind);
+            const z = if (summary.limited)
+                std.fmt.bufPrintZ(
+                    &label,
+                    "{s} {d}/{d} | {d} left",
+                    .{ tools.objectKindName(kind), summary.placed, summary.limit, summary.remaining },
+                ) catch continue
+            else
+                std.fmt.bufPrintZ(&label, "{s}", .{tools.objectKindName(kind)}) catch continue;
+            if (summary.full) pushDisabledButtonStyle();
+            if (summary.full) c.igBeginDisabled(true);
+            const clicked = c.igButton(z.ptr, v2(if (summary.limited) 206 else 136, 0));
+            if (summary.full) c.igEndDisabled();
+            if (summary.full) c.igPopStyleColor(3);
+            if (clicked) {
                 app.editor.object_kind = kind;
             }
             if (kind == app.editor.object_kind) {
@@ -206,6 +227,12 @@ fn toolButton(app: anytype, tool: tools.Tool, label: [:0]const u8) void {
     }
 }
 
+fn pushDisabledButtonStyle() void {
+    c.igPushStyleColor_U32(c.ImGuiCol_Button, col32(58, 61, 62, 255));
+    c.igPushStyleColor_U32(c.ImGuiCol_ButtonHovered, col32(58, 61, 62, 255));
+    c.igPushStyleColor_U32(c.ImGuiCol_ButtonActive, col32(58, 61, 62, 255));
+}
+
 fn phaseName(phase: sim.Phase) []const u8 {
     return switch (phase) {
         .setup_player_one => "Setup P1",
@@ -217,7 +244,7 @@ fn phaseName(phase: sim.Phase) []const u8 {
 
 fn phaseButtonLabel(phase: sim.Phase) [:0]const u8 {
     return switch (phase) {
-        .setup_player_one => "P2 Setup",
+        .setup_player_one => "Finish Setup",
         .setup_player_two => "Start",
         .playing => "Pause",
         .game_over => "Reset",

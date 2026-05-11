@@ -28,6 +28,9 @@ const audio_mod = @import("audio/audio.zig");
 
 const TileW: f32 = 64;
 const TileH: f32 = 32;
+const GameTitle = "Imperator's Gambit";
+const EventBlurb = "Created at TOJam 2026: Twenty years, one weekend";
+const BuildVersion = build_options.build_version;
 const MaxSprites = asset_loader.MaxAssets;
 const NoAsset: u16 = std.math.maxInt(u16);
 const MaxLaserBeams = 192;
@@ -38,6 +41,41 @@ const LaserParticleVertices = 12;
 const MaxLaserFxVertices = MaxLaserBeams * LaserBeamVertices + MaxLaserParticles * LaserParticleVertices;
 const LaserBeamLife: f32 = 0.13;
 const LaserEmitterIdleSeconds: f32 = 0.75;
+const StarParallaxLayers = [_]StarLayer{
+    .{ .count = 880, .parallax = 0.010, .zoom_reactivity = 0.030, .drift_x = 8.0, .drift_y = 1.8, .radius_min = 0.46, .radius_range = 0.62, .alpha = 0.36, .tint = .{ 0.62, 0.78, 0.96 } },
+    .{ .count = 720, .parallax = 0.022, .zoom_reactivity = 0.055, .drift_x = 13.0, .drift_y = 3.0, .radius_min = 0.56, .radius_range = 0.84, .alpha = 0.44, .tint = .{ 0.78, 0.84, 0.98 } },
+    .{ .count = 520, .parallax = 0.040, .zoom_reactivity = 0.085, .drift_x = 20.0, .drift_y = 4.7, .radius_min = 0.70, .radius_range = 1.08, .alpha = 0.54, .tint = .{ 0.96, 0.88, 0.68 } },
+    .{ .count = 320, .parallax = 0.066, .zoom_reactivity = 0.115, .drift_x = 29.0, .drift_y = 6.4, .radius_min = 0.92, .radius_range = 1.28, .alpha = 0.50, .tint = .{ 0.72, 0.96, 1.0 } },
+};
+const MusicTrack = struct {
+    id: audio_mod.MusicId,
+    name: []const u8,
+    gain: f32,
+};
+const MusicPlaylist = [_]MusicTrack{
+    .{ .id = .scifi, .name = "Scifi", .gain = 0.34 },
+    .{ .id = .scifi2, .name = "Scifi 2", .gain = 0.58 },
+    .{ .id = .scifitrimmed, .name = "Scifi Trimmed", .gain = 0.54 },
+    .{ .id = .simple_bgm_loop, .name = "Simple BGM Loop", .gain = 0.24 },
+};
+const AmbientGain: f32 = 0.18;
+const ShotSfxGain: f32 = 0.42;
+const HitSfxGain: f32 = 0.22;
+const StaticEditableMaps = [_]struct {
+    name: []const u8,
+    rel_path: []const u8,
+}{
+    .{ .name = "Canyon Divide", .rel_path = "maps/generated/canyon_divide.json" },
+    .{ .name = "Oasis Ring", .rel_path = "maps/generated/oasis_ring.json" },
+    .{ .name = "Ruins Crossfire", .rel_path = "maps/generated/ruins_crossfire.json" },
+    .{ .name = "Open Dunes", .rel_path = "maps/generated/open_dunes.json" },
+    .{ .name = "Maze Warren", .rel_path = "maps/generated/maze_warren.json" },
+    .{ .name = "Island Chain", .rel_path = "maps/generated/island_chain.json" },
+    .{ .name = "Four Lanes", .rel_path = "maps/generated/four_lanes.json" },
+    .{ .name = "Crossfire Plaza", .rel_path = "maps/generated/crossfire_plaza.json" },
+    .{ .name = "Spiral Ruins", .rel_path = "maps/generated/spiral_ruins.json" },
+    .{ .name = "Twin Forts", .rel_path = "maps/generated/twin_forts.json" },
+};
 
 const LoadingPhase = enum {
     intro,
@@ -53,6 +91,85 @@ const AppMode = enum {
     integrated,
     editor,
     game,
+};
+
+const GameShellScreen = enum {
+    disabled,
+    menu,
+    sound,
+    rules,
+    credits,
+    choose_map,
+    map_editor,
+    setup,
+    battle,
+};
+
+const MaxGameMaps = 16;
+
+const GameMapChoice = struct {
+    path: [256]u8 = [_]u8{0} ** 256,
+    path_len: usize = 0,
+    name: [96]u8 = [_]u8{0} ** 96,
+    name_len: usize = 0,
+    protected: bool = false,
+    builtin: bool = false,
+
+    fn set(self: *GameMapChoice, name: []const u8, path: []const u8, protected: bool, is_builtin: bool) void {
+        self.name_len = copyToBuffer(self.name[0..], name);
+        self.path_len = copyToBuffer(self.path[0..], path);
+        self.protected = protected;
+        self.builtin = is_builtin;
+    }
+
+    fn nameSlice(self: *const GameMapChoice) []const u8 {
+        return self.name[0..self.name_len];
+    }
+
+    fn pathSlice(self: *const GameMapChoice) []const u8 {
+        return self.path[0..self.path_len];
+    }
+};
+
+const EntityCounts = struct {
+    citadel: usize = 0,
+    imperator: usize = 0,
+    infantry: usize = 0,
+    captain: usize = 0,
+    artillery: usize = 0,
+    portal: usize = 0,
+    healing_pod: usize = 0,
+    outpost: usize = 0,
+    defense_grid: usize = 0,
+    obstacle: usize = 0,
+
+    fn mobile(self: EntityCounts) usize {
+        return self.infantry + self.captain + self.artillery;
+    }
+
+    fn structures(self: EntityCounts) usize {
+        return self.outpost + self.defense_grid;
+    }
+};
+
+pub const ObjectPlacementSummary = struct {
+    limited: bool = false,
+    placed: usize = 0,
+    limit: usize = 0,
+    remaining: usize = 0,
+    full: bool = false,
+};
+
+const GameToast = struct {
+    active: bool = false,
+    timer: f32 = 0,
+    winner: u8 = 0,
+    message: [160]u8 = [_]u8{0} ** 160,
+    message_len: usize = 0,
+
+    fn text(self: *const GameToast) []const u8 {
+        return self.message[0..self.message_len];
+    }
 };
 
 const LoadingState = struct {
@@ -73,6 +190,18 @@ const LoadingState = struct {
 const Vec2 = struct {
     x: f32,
     y: f32,
+};
+
+const StarLayer = struct {
+    count: usize,
+    parallax: f32,
+    zoom_reactivity: f32,
+    drift_x: f32,
+    drift_y: f32,
+    radius_min: f32,
+    radius_range: f32,
+    alpha: f32,
+    tint: [3]f32,
 };
 
 const Sprite = struct {
@@ -149,6 +278,8 @@ pub const AppState = struct {
     editor: editor_mod.EditorState = .{},
     sprites: [MaxSprites]Sprite = [_]Sprite{.{}} ** MaxSprites,
     sprite_count: usize = 0,
+    tojam_logo_sprite: Sprite = .{},
+    tojam_goat_sprite: Sprite = .{},
     sampler: sg.Sampler = .{},
     alpha_pipeline: sgl.Pipeline = .{},
     pass_action: sg.PassAction = .{},
@@ -169,6 +300,7 @@ pub const AppState = struct {
     keys: [512]bool = [_]bool{false} ** 512,
     camera: Vec2 = .{ .x = 0, .y = 0 },
     zoom: f32 = 1.0,
+    starfield_time: f32 = 0,
     laser_beams: [MaxLaserBeams]LaserBeam = [_]LaserBeam{.{}} ** MaxLaserBeams,
     laser_particles: [MaxLaserParticles]LaserParticle = [_]LaserParticle{.{}} ** MaxLaserParticles,
     laser_emitters: [MaxLaserEmitters]LaserEmitter = [_]LaserEmitter{.{}} ** MaxLaserEmitters,
@@ -180,9 +312,24 @@ pub const AppState = struct {
     laser_particle_active_count: usize = 0,
     laser_fx_vertex_count: usize = 0,
     laser_rng: u32 = 0x6d2b79f5,
+    map_rng: u32 = 0x9e3779b9,
     perf: PerfStats = .{},
     audio: audio_mod.Engine = .{},
     music_started: bool = false,
+    music_track_index: usize = 0,
+    music_muted: bool = false,
+    sfx_volume: f32 = 1.0,
+    music_volume: f32 = 1.0,
+    ambient_volume: f32 = 1.0,
+    game_shell_screen: GameShellScreen = .disabled,
+    rules_show_entities: bool = false,
+    maps: [MaxGameMaps]GameMapChoice = [_]GameMapChoice{.{}} ** MaxGameMaps,
+    map_count: usize = 0,
+    selected_map_index: usize = 0,
+    editing_map_index: usize = 0,
+    last_sim_phase: sim_mod.Phase = .setup_player_one,
+    game_over_toast: GameToast = .{},
+    game_paused: bool = false,
 
     pub fn init(self: *AppState, allocator: std.mem.Allocator) void {
         self.allocator = allocator;
@@ -232,6 +379,8 @@ pub const AppState = struct {
 
     pub fn cleanup(self: *AppState) void {
         if (!self.initialized) return;
+        destroySprite(&self.tojam_logo_sprite);
+        destroySprite(&self.tojam_goat_sprite);
         for (self.sprites[0..self.sprite_count]) |*sprite| destroySprite(sprite);
         if (self.laser_fx_vertex_buffer.id != 0) sg.destroyBuffer(self.laser_fx_vertex_buffer);
         if (self.laser_fx_pipeline.id != 0) sg.destroyPipeline(self.laser_fx_pipeline);
@@ -257,30 +406,31 @@ pub const AppState = struct {
         self.perf.fps = if (dt > 0) 1.0 / dt else 0;
         self.perf.raw_shot_events = 0;
         self.perf.visual_shots = 0;
+        self.updateStarfield(dt);
 
         if (!self.ready() and self.loading.frames_seen > 0 and self.loading.phase != .failed) {
             self.advanceLoading();
         }
         const is_ready = self.ready();
         if (is_ready) {
-            if (!self.music_started) {
-                self.audio.playMusic(.simple_bgm_loop, 0.34, true);
-                self.music_started = true;
-            }
+            self.ensureBackgroundAudio();
+            self.updateMusicCycle();
             const update_start = stime.now();
             self.syncEditorPlayerWithSetup();
             self.updateHoverAt(self.mouse);
             if (!self.painting) self.flushPathingRebuild();
             self.handleKeyboardCamera(dt);
             const sim_start = stime.now();
-            self.game.update(dt);
+            const paused = self.battlePaused();
+            if (!paused) self.game.update(dt);
             const sim_end = stime.now();
             const fx_start = stime.now();
-            self.updateLaserFx(dt);
+            if (!paused) self.updateLaserFx(dt);
             const fx_end = stime.now();
             const shot_start = stime.now();
-            self.consumeShotEvents();
+            if (!paused) self.consumeShotEvents();
             const shot_end = stime.now();
+            self.updateGameShell(dt);
             smoothMs(&self.perf.sim_ms, elapsedMs(sim_start, sim_end));
             smoothMs(&self.perf.fx_update_ms, elapsedMs(fx_start, fx_end));
             smoothMs(&self.perf.shot_ms, elapsedMs(shot_start, shot_end));
@@ -296,7 +446,8 @@ pub const AppState = struct {
             .dpi_scale = sapp.dpiScale(),
         });
         if (is_ready) {
-            imgui_ui.draw(self);
+            if (self.shouldDrawEditorUi()) imgui_ui.draw(self);
+            self.drawGameShellUi();
         } else {
             self.drawLoadingUi();
         }
@@ -393,12 +544,13 @@ pub const AppState = struct {
                 if (ev.key_repeat) return;
                 switch (ev.key_code) {
                     .TAB => {
-                        if (self.allow_editor) {
+                        if (self.editorToggleAllowed()) {
                             self.editor.enabled = !self.editor.enabled;
                             self.audio.playSfx(if (self.editor.enabled) .panel_open else .panel_close);
                         }
                     },
                     .SPACE => self.togglePlaytest(),
+                    .ESCAPE => self.handleEscapeKey(),
                     .S => if (hasCommandModifier(ev.modifiers)) self.saveMap(),
                     .L => if (hasCommandModifier(ev.modifiers)) self.loadMap(),
                     ._1 => {
@@ -445,6 +597,10 @@ pub const AppState = struct {
     }
 
     pub fn saveMap(self: *AppState) void {
+        if (self.game_shell_screen == .map_editor) {
+            self.saveShellMap();
+            return;
+        }
         if (!platform.canPersistMaps()) {
             self.editor.setStatus("Map save is disabled on this platform.", .{});
             return;
@@ -461,6 +617,10 @@ pub const AppState = struct {
     }
 
     pub fn loadMap(self: *AppState) void {
+        if (self.game_shell_screen == .map_editor) {
+            _ = self.loadShellMap(self.editing_map_index, true);
+            return;
+        }
         if (!platform.canPersistMaps()) {
             self.editor.setStatus("Map load is disabled on this platform.", .{});
             return;
@@ -521,12 +681,1047 @@ pub const AppState = struct {
     }
 
     pub fn togglePlaytest(self: *AppState) void {
+        if (self.game_shell_screen != .disabled) {
+            if (self.game_shell_screen == .setup) self.advanceGameSetupAction();
+            return;
+        }
         if (!self.allow_editor) return;
         self.game.simulation.togglePlay();
         self.clearLaserFx();
         self.syncEditorPlayerWithSetup();
         self.audio.playSfx(.click_confirm);
         self.editor.setStatus("Phase: {s}", .{@tagName(self.game.simulation.phase)});
+    }
+
+    fn shouldDrawEditorUi(self: *const AppState) bool {
+        return switch (self.game_shell_screen) {
+            .disabled, .map_editor => self.editor.enabled,
+            else => false,
+        };
+    }
+
+    fn editorToggleAllowed(self: *const AppState) bool {
+        return self.allow_editor and (self.game_shell_screen == .disabled or self.game_shell_screen == .map_editor);
+    }
+
+    fn updateGameShell(self: *AppState, dt: f32) void {
+        if (self.game_over_toast.active) {
+            self.game_over_toast.timer -= dt;
+            if (self.game_over_toast.timer <= 0) self.game_over_toast.active = false;
+        }
+
+        const phase = self.game.simulation.phase;
+        if (self.game_shell_screen == .battle and self.last_sim_phase != .game_over and phase == .game_over) {
+            self.showGameOverToast();
+        }
+        self.last_sim_phase = phase;
+    }
+
+    fn ensureBackgroundAudio(self: *AppState) void {
+        if (self.music_started) return;
+        self.applyAudioLevels();
+        self.music_track_index %= MusicPlaylist.len;
+        if (!self.music_muted) self.playCurrentMusicTrack();
+        self.audio.playAmbient(.scifi_city_ambient_loop, AmbientGain);
+        self.music_started = true;
+    }
+
+    fn updateMusicCycle(self: *AppState) void {
+        if (!self.music_started or self.music_muted or self.audio.musicActive()) return;
+        self.nextMusicTrack(false);
+    }
+
+    fn nextMusicTrack(self: *AppState, announce: bool) void {
+        self.music_track_index = (self.music_track_index + 1) % MusicPlaylist.len;
+        if (!self.music_muted) self.playCurrentMusicTrack();
+        if (announce) {
+            self.audio.playSfx(.click_confirm);
+            self.editor.setStatus("Music: {s}", .{self.currentMusicName()});
+        }
+    }
+
+    fn toggleMusicMute(self: *AppState) void {
+        self.music_muted = !self.music_muted;
+        if (self.music_muted) {
+            self.audio.stopMusic();
+            self.applyAudioLevels();
+            self.editor.setStatus("Music muted. Ambient remains on.", .{});
+        } else {
+            self.applyAudioLevels();
+            self.playCurrentMusicTrack();
+            self.editor.setStatus("Music: {s}", .{self.currentMusicName()});
+        }
+        self.audio.playSfx(.click_confirm);
+    }
+
+    fn playCurrentMusicTrack(self: *AppState) void {
+        const track = MusicPlaylist[self.music_track_index % MusicPlaylist.len];
+        self.audio.playMusic(track.id, track.gain, false);
+    }
+
+    fn currentMusicName(self: *const AppState) []const u8 {
+        return MusicPlaylist[self.music_track_index % MusicPlaylist.len].name;
+    }
+
+    fn musicMuteLabel(self: *const AppState) [:0]const u8 {
+        return if (self.music_muted) "Unmute Music" else "Mute Music";
+    }
+
+    fn applyAudioLevels(self: *AppState) void {
+        self.audio.setSfxVolume(self.sfx_volume);
+        self.audio.setMusicVolume(if (self.music_muted) 0 else self.music_volume);
+        self.audio.setAmbientVolume(self.ambient_volume);
+    }
+
+    fn drawGameShellUi(self: *AppState) void {
+        switch (self.game_shell_screen) {
+            .disabled => {},
+            .menu => self.drawMainMenuShell(),
+            .sound => self.drawSoundShell(),
+            .rules => self.drawRulesShell(),
+            .credits => self.drawCreditsShell(),
+            .choose_map => self.drawChooseMapShell(),
+            .map_editor => self.drawMapEditorShell(),
+            .setup => self.drawSetupShell(),
+            .battle => self.drawBattleShell(),
+        }
+        self.drawGameOverToast();
+    }
+
+    fn drawMainMenuShell(self: *AppState) void {
+        var selected_buf: [160]u8 = undefined;
+        const selected_z = std.fmt.bufPrintZ(&selected_buf, "Selected map: {s}", .{self.selectedMapName()}) catch return;
+
+        const panel_w = @min(420, @max(300, sapp.widthf() - 48));
+        c.igSetNextWindowPos(uiV2(sapp.widthf() * 0.5, sapp.heightf() * 0.5), c.ImGuiCond_Always, uiV2(0.5, 0.5));
+        c.igSetNextWindowSize(uiV2(panel_w, 408), c.ImGuiCond_Always);
+        c.igSetNextWindowBgAlpha(0.94);
+        self.pushShellStyle();
+        defer c.igPopStyleColor(3);
+
+        const flags = c.ImGuiWindowFlags_NoCollapse |
+            c.ImGuiWindowFlags_NoMove |
+            c.ImGuiWindowFlags_NoSavedSettings |
+            c.ImGuiWindowFlags_NoResize;
+        _ = c.igBegin("Start Menu##game-shell", null, flags);
+        defer c.igEnd();
+
+        c.igTextUnformatted(GameTitle, null);
+        var version_buf: [96]u8 = undefined;
+        const version_z = std.fmt.bufPrintZ(&version_buf, "Version: {s}", .{BuildVersion}) catch "Version: unknown";
+        c.igTextUnformatted(version_z.ptr, null);
+        c.igSeparator();
+        c.igTextUnformatted(selected_z.ptr, null);
+        c.igSpacing();
+
+        if (c.igButton("Select Level", uiV2(-1, 30))) self.enterChooseMapShell();
+        if (c.igButton("Level Editor", uiV2(-1, 30))) self.enterMapEditorShell(self.selected_map_index);
+        if (c.igButton("Sound", uiV2(-1, 30))) self.enterSoundShell();
+        if (c.igButton("Rules", uiV2(-1, 30))) self.enterRulesShell();
+        if (c.igButton("Credits", uiV2(-1, 30))) self.enterCreditsShell();
+        c.igSpacing();
+        c.igPushStyleColor_U32(c.ImGuiCol_Button, uiCol32(42, 119, 174, 255));
+        c.igPushStyleColor_U32(c.ImGuiCol_ButtonHovered, uiCol32(54, 143, 204, 255));
+        defer c.igPopStyleColor(2);
+        if (c.igButton("Start Selected Level", uiV2(-1, 34))) self.startSelectedGameSetup();
+        if (c.igButton("Start Random Game", uiV2(-1, 34))) self.startRandomGameSetup();
+        c.igSpacing();
+        c.igSeparator();
+        c.igTextUnformatted(EventBlurb, null);
+    }
+
+    fn drawSoundShell(self: *AppState) void {
+        const panel_w = @min(420, @max(300, sapp.widthf() - 48));
+        c.igSetNextWindowPos(uiV2(sapp.widthf() * 0.5, sapp.heightf() * 0.5), c.ImGuiCond_Always, uiV2(0.5, 0.5));
+        c.igSetNextWindowSize(uiV2(panel_w, 310), c.ImGuiCond_Always);
+        c.igSetNextWindowBgAlpha(0.94);
+        self.pushShellStyle();
+        defer c.igPopStyleColor(3);
+
+        const flags = c.ImGuiWindowFlags_NoCollapse |
+            c.ImGuiWindowFlags_NoMove |
+            c.ImGuiWindowFlags_NoSavedSettings |
+            c.ImGuiWindowFlags_NoResize;
+        _ = c.igBegin("Sound##game-shell", null, flags);
+        defer c.igEnd();
+
+        c.igTextUnformatted("Sound", null);
+        c.igSeparator();
+
+        self.drawVolumeSlider("SFX", "##sfx-volume", &self.sfx_volume);
+        self.drawVolumeSlider("Music", "##music-volume", &self.music_volume);
+        self.drawVolumeSlider("Ambience", "##ambience-volume", &self.ambient_volume);
+
+        c.igSpacing();
+        var music_buf: [96]u8 = undefined;
+        const music_z = std.fmt.bufPrintZ(&music_buf, "Song: {s}{s}", .{ self.currentMusicName(), if (self.music_muted) " (muted)" else "" }) catch return;
+        c.igTextUnformatted(music_z.ptr, null);
+        if (c.igButton("Skip Song", uiV2(-1, 28))) self.nextMusicTrack(true);
+        if (c.igButton(self.musicMuteLabel().ptr, uiV2(-1, 28))) self.toggleMusicMute();
+
+        c.igSeparator();
+        if (c.igButton("Back", uiV2(-1, 30))) self.enterMainMenuShell();
+    }
+
+    fn drawVolumeSlider(self: *AppState, label: [:0]const u8, id: [:0]const u8, value: *f32) void {
+        c.igTextUnformatted(label.ptr, null);
+        c.igSameLine(0, 12);
+        c.igSetNextItemWidth(-1);
+        if (c.igSliderFloat(id.ptr, value, 0, 1, "%.2f", 0)) self.applyAudioLevels();
+    }
+
+    fn drawRulesShell(self: *AppState) void {
+        const panel_w = @min(620, @max(340, sapp.widthf() - 56));
+        c.igSetNextWindowPos(uiV2(sapp.widthf() * 0.5, sapp.heightf() * 0.5), c.ImGuiCond_Always, uiV2(0.5, 0.5));
+        c.igSetNextWindowSize(uiV2(panel_w, 500), c.ImGuiCond_Always);
+        c.igSetNextWindowBgAlpha(0.94);
+        self.pushShellStyle();
+        defer c.igPopStyleColor(3);
+
+        const flags = c.ImGuiWindowFlags_NoCollapse |
+            c.ImGuiWindowFlags_NoMove |
+            c.ImGuiWindowFlags_NoSavedSettings |
+            c.ImGuiWindowFlags_NoResize;
+        _ = c.igBegin("Rules##game-shell", null, flags);
+        defer c.igEnd();
+
+        c.igTextUnformatted("How To Play", null);
+        c.igSeparator();
+
+        if (c.igButton("Rules##rules-tab", uiV2((panel_w - 34) * 0.5, 30))) self.rules_show_entities = false;
+        c.igSameLine(0, 8);
+        if (c.igButton("Entities##rules-tab", uiV2((panel_w - 34) * 0.5, 30))) self.rules_show_entities = true;
+        c.igSeparator();
+
+        c.igPushTextWrapPos(0);
+        defer c.igPopTextWrapPos();
+        if (self.rules_show_entities) {
+            self.drawEntityRules();
+        } else {
+            self.drawGameplayRules();
+        }
+
+        c.igSeparator();
+        if (c.igButton("Back", uiV2(-1, 30))) self.enterMainMenuShell();
+    }
+
+    fn drawGameplayRules(self: *AppState) void {
+        _ = self;
+        c.igTextUnformatted("Goal", null);
+        ruleBullet("Destroy the enemy Imperator. The battle ends immediately when either Imperator falls.");
+        ruleBullet("Citadels anchor the battlefield and pull enemy units across the map, but the Imperator is the win condition.");
+        c.igSpacing();
+
+        c.igTextUnformatted("Setup", null);
+        ruleBullet("Pick a selected level or start a random game from the start menu.");
+        ruleBullet("Player 1 places first, then Player 2 places. Erasing an entity refunds that slot.");
+        ruleBullet("The setup panel shows placed counts and remaining limits directly on the entity buttons.");
+        c.igSpacing();
+
+        c.igTextUnformatted("Battle", null);
+        ruleBullet("When the game starts, mobile units advance toward the opposing Imperator, then the citadel if the Imperator cannot be reached.");
+        ruleBullet("If mobile enemies meet, they stop moving, fight nearby targets, then continue once the contact is cleared.");
+        ruleBullet("Low-health units try to fall back to allied healing pods or citadels, and pressured units briefly retreat.");
+        ruleBullet("Units will peel back to protect an Imperator or citadel that is taking sustained damage.");
+        ruleBullet("If both Imperators are alive and the battle goes quiet with no movement, the game ends in a draw.");
+        ruleBullet("Press Escape during battle to pause, continue, or cancel back to the start menu.");
+        c.igSpacing();
+
+        c.igTextUnformatted("Placement Limits", null);
+        ruleBullet("Each player gets 1 Citadel, 1 Imperator, 14 total mobile units, 2 Portals, 2 Healing Pods, 4 total combat structures, and 12 Obstacles.");
+    }
+
+    fn drawEntityRules(self: *AppState) void {
+        _ = self;
+        c.igTextUnformatted("Core", null);
+        ruleBullet("Citadel: High-health base. Enemy mobile units path toward it, but destroying it does not end the game.");
+        ruleBullet("Imperator: Tough commander with long-range damage. If your Imperator dies, you lose.");
+        c.igSpacing();
+
+        c.igTextUnformatted("Mobile Units", null);
+        ruleBullet("Infantry: Fast, cheap front-line unit with short-range damage.");
+        ruleBullet("Captain: Slower and tougher than infantry, with better range and damage.");
+        ruleBullet("Artillery: Long-range damage dealer. Slower and more fragile than the captain.");
+        c.igSpacing();
+
+        c.igTextUnformatted("Support", null);
+        ruleBullet("Portal: Linked portals teleport mobile units that step onto them to the other portal's nearest open exit.");
+        ruleBullet("Healing Pod: Repairs nearby friendly entities over time. It is targetable by enemies.");
+        c.igSpacing();
+
+        c.igTextUnformatted("Structures And Terrain Control", null);
+        ruleBullet("Outpost: Static defensive structure with solid health and medium range.");
+        ruleBullet("Defense Grid: Static defensive structure with longer range and strong sustained damage.");
+        ruleBullet("Obstacle: Blocks movement and shapes lanes. Obstacles are not combat targets.");
+    }
+
+    fn drawCreditsShell(self: *AppState) void {
+        const panel_w = @min(620, @max(340, sapp.widthf() - 56));
+        c.igSetNextWindowPos(uiV2(sapp.widthf() * 0.5, sapp.heightf() * 0.5), c.ImGuiCond_Always, uiV2(0.5, 0.5));
+        c.igSetNextWindowSize(uiV2(panel_w, 462), c.ImGuiCond_Always);
+        c.igSetNextWindowBgAlpha(0.94);
+        self.pushShellStyle();
+        defer c.igPopStyleColor(3);
+
+        const flags = c.ImGuiWindowFlags_NoCollapse |
+            c.ImGuiWindowFlags_NoMove |
+            c.ImGuiWindowFlags_NoSavedSettings |
+            c.ImGuiWindowFlags_NoResize;
+        _ = c.igBegin("Credits##game-shell", null, flags);
+        defer c.igEnd();
+
+        c.igTextUnformatted("Credits", null);
+        c.igSeparator();
+        c.igPushTextWrapPos(0);
+        defer c.igPopTextWrapPos();
+
+        c.igTextUnformatted("Game", null);
+        ruleBullet("Imperator's Gambit was created at TOJam 2026: Twenty years, one weekend.");
+        c.igSpacing();
+
+        c.igTextUnformatted("Visual Assets", null);
+        ruleBullet("Arid Badlands environment art: tiles, floors, structures, rocks, flora, waterways, and props imported from the Arid Badlands pack under notes/Arid Badlands.");
+        ruleBullet("Starter unit/object sprites: project-specific sprites in assets/sprites/starter, generated for this prototype.");
+        ruleBullet("TOJam logo and goat artwork: TOJam branding assets in assets/tojam.");
+        c.igSpacing();
+
+        c.igTextUnformatted("Audio", null);
+        ruleBullet("Sound effects: Kenney UI Audio, Sci-fi Sounds, Digital Audio, and Impact Sounds packs, licensed CC0.");
+        ruleBullet("Music: Into the Stars by KiluaBoy and Simple BGM Loop by Theforeshadower from OpenGameArt, licensed CC0.");
+        ruleBullet("Ambience: Scifi City - Ambient Loop by TinyWorlds from OpenGameArt, licensed CC0.");
+        ruleBullet("Additional sci-fi music tracks are user-provided runtime music files in assets/audio/music.");
+        c.igSpacing();
+
+        c.igTextUnformatted("Tech", null);
+        ruleBullet("Built with Zig, Sokol, Dear ImGui/cimgui, and stb_image.");
+
+        c.igSeparator();
+        if (c.igButton("Back", uiV2(-1, 30))) self.enterMainMenuShell();
+    }
+
+    fn drawChooseMapShell(self: *AppState) void {
+        c.igSetNextWindowPos(uiV2(sapp.widthf() * 0.5, sapp.heightf() * 0.5), c.ImGuiCond_Always, uiV2(0.5, 0.5));
+        c.igSetNextWindowSize(uiV2(@min(660, @max(360, sapp.widthf() - 56)), 430), c.ImGuiCond_Always);
+        c.igSetNextWindowBgAlpha(0.94);
+        self.pushShellStyle();
+        defer c.igPopStyleColor(3);
+
+        const flags = c.ImGuiWindowFlags_NoCollapse |
+            c.ImGuiWindowFlags_NoMove |
+            c.ImGuiWindowFlags_NoSavedSettings |
+            c.ImGuiWindowFlags_NoResize;
+        _ = c.igBegin("Choose Map##game-shell", null, flags);
+        defer c.igEnd();
+
+        c.igTextUnformatted("Select Level", null);
+        c.igSeparator();
+        if (self.map_count == 0) {
+            c.igTextUnformatted("No maps found.", null);
+        }
+        for (self.maps[0..self.map_count], 0..) |*choice, i| {
+            var label_buf: [192]u8 = undefined;
+            const selected = i == self.selected_map_index;
+            const label_z = std.fmt.bufPrintZ(&label_buf, "{s}{s}", .{ if (selected) "* " else "  ", choice.nameSlice() }) catch continue;
+            c.igTextUnformatted(label_z.ptr, null);
+            c.igSameLine(0, 8);
+            var select_buf: [48]u8 = undefined;
+            const select_z = std.fmt.bufPrintZ(&select_buf, "Select##map-{d}", .{i}) catch continue;
+            if (c.igButton(select_z.ptr, uiV2(78, 0))) {
+                self.selected_map_index = i;
+                _ = self.loadShellMap(i, false);
+                self.enterMainMenuShell();
+            }
+            c.igSameLine(0, 6);
+            var edit_buf: [48]u8 = undefined;
+            const edit_z = std.fmt.bufPrintZ(&edit_buf, "Edit##map-{d}", .{i}) catch continue;
+            if (c.igButton(edit_z.ptr, uiV2(62, 0))) {
+                self.enterMapEditorShell(i);
+            }
+        }
+        c.igSeparator();
+        if (c.igButton("Back", uiV2(96, 0))) self.enterMainMenuShell();
+    }
+
+    fn drawMapEditorShell(self: *AppState) void {
+        c.igSetNextWindowPos(uiV2(170, 56), c.ImGuiCond_Always, uiV2(0, 0));
+        c.igSetNextWindowSize(uiV2(@min(520, @max(320, sapp.widthf() - 540)), 74), c.ImGuiCond_Always);
+        c.igSetNextWindowBgAlpha(0.88);
+        self.pushShellStyle();
+        defer c.igPopStyleColor(3);
+
+        const flags = c.ImGuiWindowFlags_NoCollapse |
+            c.ImGuiWindowFlags_NoMove |
+            c.ImGuiWindowFlags_NoSavedSettings |
+            c.ImGuiWindowFlags_NoResize;
+        _ = c.igBegin("Map Editor##game-shell", null, flags);
+        defer c.igEnd();
+
+        var label_buf: [160]u8 = undefined;
+        const label_z = std.fmt.bufPrintZ(&label_buf, "Editing: {s}", .{self.editingMapName()}) catch return;
+        c.igTextUnformatted(label_z.ptr, null);
+        if (c.igButton("Save", uiV2(92, 0))) self.saveShellMap();
+        c.igSameLine(0, 8);
+        if (c.igButton("Delete", uiV2(92, 0))) self.deleteShellMap();
+        c.igSameLine(0, 8);
+        if (c.igButton("Exit", uiV2(92, 0))) self.enterMainMenuShell();
+    }
+
+    fn drawSetupShell(self: *AppState) void {
+        const active_player = self.game.simulation.activeSetupPlayer() orelse 0;
+        const counts = self.countEntitiesForPlayer(active_player);
+        c.igSetNextWindowPos(uiV2(170, 56), c.ImGuiCond_Always, uiV2(0, 0));
+        c.igSetNextWindowSize(uiV2(@min(620, @max(420, sapp.widthf() - 620)), 188), c.ImGuiCond_Always);
+        c.igSetNextWindowBgAlpha(0.90);
+        self.pushShellStyle();
+        defer c.igPopStyleColor(3);
+
+        const flags = c.ImGuiWindowFlags_NoCollapse |
+            c.ImGuiWindowFlags_NoMove |
+            c.ImGuiWindowFlags_NoSavedSettings |
+            c.ImGuiWindowFlags_NoResize;
+        _ = c.igBegin("Player Setup##game-shell", null, flags);
+
+        c.igPushStyleColor_U32(c.ImGuiCol_Text, playerUiColor(active_player, 255));
+        var player_buf: [96]u8 = undefined;
+        const player_z = std.fmt.bufPrintZ(&player_buf, "Player {d} Setup", .{active_player + 1}) catch "Player Setup";
+        c.igTextUnformatted(player_z.ptr, null);
+        c.igPopStyleColor(1);
+
+        c.igSameLine(0, 18);
+        const action_label: [:0]const u8 = if (self.game.simulation.phase == .setup_player_one) "Finish Setup" else "Start Game";
+        c.igPushStyleColor_U32(c.ImGuiCol_Button, playerUiColor(active_player, 255));
+        c.igPushStyleColor_U32(c.ImGuiCol_ButtonHovered, playerUiColor(active_player, 220));
+        if (c.igButton(action_label.ptr, uiV2(136, 0))) self.advanceGameSetupAction();
+        c.igPopStyleColor(2);
+
+        c.igSameLine(0, 10);
+        const erase_active = self.editor.tool == .erase;
+        if (erase_active) {
+            c.igPushStyleColor_U32(c.ImGuiCol_Button, uiCol32(190, 82, 62, 255));
+            c.igPushStyleColor_U32(c.ImGuiCol_ButtonHovered, uiCol32(216, 99, 76, 255));
+        }
+        if (c.igButton("Erase", uiV2(82, 0))) {
+            self.editor.brush_radius = 0;
+            self.audio.playSfx(.click_confirm);
+            if (erase_active) {
+                self.editor.tool = .object;
+                self.editor.setStatus("Place entities.", .{});
+            } else {
+                self.editor.tool = .erase;
+                self.editor.setStatus("Erase entities to refund their setup slots.", .{});
+            }
+        }
+        if (erase_active) c.igPopStyleColor(2);
+
+        c.igSeparator();
+        self.drawCountLine("Citadel", counts.citadel, 1);
+        c.igSameLine(0, 14);
+        self.drawCountLine("Imperator", counts.imperator, 1);
+        self.drawCountLine("Units", counts.mobile(), 14);
+        c.igSameLine(0, 14);
+        self.drawCountLine("Portals", counts.portal, 2);
+        c.igSameLine(0, 14);
+        self.drawCountLine("Healing", counts.healing_pod, 2);
+        self.drawCountLine("Structures", counts.structures(), 4);
+        c.igSameLine(0, 14);
+        self.drawCountLine("Obstacles", counts.obstacle, 12);
+        var detail_buf: [176]u8 = undefined;
+        const detail_z = std.fmt.bufPrintZ(
+            &detail_buf,
+            "Inf {d}  Cap {d}  Art {d}  Outpost {d}  Defense {d}",
+            .{ counts.infantry, counts.captain, counts.artillery, counts.outpost, counts.defense_grid },
+        ) catch "Entity details unavailable";
+        c.igTextUnformatted(detail_z.ptr, null);
+        c.igEnd();
+
+        self.drawSetupEntitiesShell(active_player);
+    }
+
+    fn drawSetupEntitiesShell(self: *AppState, active_player: u8) void {
+        const panel_w: f32 = @min(500.0, @max(420.0, sapp.widthf() - 48.0));
+        c.igSetNextWindowPos(uiV2(@max(12.0, sapp.widthf() - panel_w - 12.0), 56), c.ImGuiCond_Always, uiV2(0, 0));
+        c.igSetNextWindowSize(uiV2(panel_w, @min(392.0, @max(348.0, sapp.heightf() - 84.0))), c.ImGuiCond_Always);
+        c.igSetNextWindowBgAlpha(0.90);
+        self.pushShellStyle();
+        defer c.igPopStyleColor(3);
+
+        const flags = c.ImGuiWindowFlags_NoCollapse |
+            c.ImGuiWindowFlags_NoMove |
+            c.ImGuiWindowFlags_NoSavedSettings |
+            c.ImGuiWindowFlags_NoResize |
+            c.ImGuiWindowFlags_NoTitleBar;
+        _ = c.igBegin("##entities-game-shell", null, flags);
+        defer c.igEnd();
+
+        c.igPushStyleColor_U32(c.ImGuiCol_Text, playerUiColor(active_player, 255));
+        var title_buf: [64]u8 = undefined;
+        const title_z = std.fmt.bufPrintZ(&title_buf, "Entities - Player {d}", .{active_player + 1}) catch return;
+        c.igTextUnformatted(title_z.ptr, null);
+        c.igPopStyleColor(1);
+        c.igSeparator();
+
+        for (tools.ObjectPalette) |kind| {
+            self.drawSetupEntityRow(kind);
+        }
+
+        c.igSeparator();
+        self.drawInspectorStateSummary(active_player);
+    }
+
+    fn drawBattleShell(self: *AppState) void {
+        if (self.game_paused and self.game.simulation.phase == .playing) {
+            self.drawPauseShell();
+            return;
+        }
+        if (self.game.simulation.phase != .game_over) return;
+        const winner = self.game.simulation.winner orelse 2;
+        var reason_buf: [192]u8 = undefined;
+        const reason_z = self.gameOverReasonZ(&reason_buf);
+
+        c.igSetNextWindowPos(uiV2(sapp.widthf() * 0.5, sapp.heightf() * 0.5), c.ImGuiCond_Always, uiV2(0.5, 0.5));
+        c.igSetNextWindowSize(uiV2(@min(460.0, @max(320.0, sapp.widthf() - 48.0)), 154), c.ImGuiCond_Always);
+        c.igSetNextWindowBgAlpha(0.95);
+        c.igPushStyleColor_U32(c.ImGuiCol_WindowBg, playerPanelColor(winner, 232));
+        c.igPushStyleColor_U32(c.ImGuiCol_Border, playerUiColor(winner, 255));
+        c.igPushStyleColor_U32(c.ImGuiCol_Text, playerUiColor(winner, 255));
+        defer c.igPopStyleColor(3);
+        const flags = c.ImGuiWindowFlags_NoCollapse |
+            c.ImGuiWindowFlags_NoMove |
+            c.ImGuiWindowFlags_NoSavedSettings |
+            c.ImGuiWindowFlags_NoResize |
+            c.ImGuiWindowFlags_NoTitleBar;
+        _ = c.igBegin("##game-over-shell", null, flags);
+        defer c.igEnd();
+        c.igTextUnformatted("Game Over", null);
+        c.igSeparator();
+        c.igTextUnformatted(reason_z.ptr, null);
+        c.igSpacing();
+        c.igPushStyleColor_U32(c.ImGuiCol_Button, playerUiColor(winner, 255));
+        c.igPushStyleColor_U32(c.ImGuiCol_ButtonHovered, playerUiColor(winner, 220));
+        c.igPushStyleColor_U32(c.ImGuiCol_Text, uiCol32(245, 248, 242, 255));
+        if (c.igButton("Back To Menu", uiV2(-1, 30))) self.cancelGameToMenu();
+        c.igPopStyleColor(3);
+    }
+
+    fn drawPauseShell(self: *AppState) void {
+        c.igSetNextWindowPos(uiV2(sapp.widthf() * 0.5, sapp.heightf() * 0.5), c.ImGuiCond_Always, uiV2(0.5, 0.5));
+        c.igSetNextWindowSize(uiV2(@min(360, @max(280, sapp.widthf() - 48)), 156), c.ImGuiCond_Always);
+        c.igSetNextWindowBgAlpha(0.94);
+        self.pushShellStyle();
+        defer c.igPopStyleColor(3);
+        const flags = c.ImGuiWindowFlags_NoCollapse |
+            c.ImGuiWindowFlags_NoMove |
+            c.ImGuiWindowFlags_NoSavedSettings |
+            c.ImGuiWindowFlags_NoResize;
+        _ = c.igBegin("Paused##game-shell", null, flags);
+        defer c.igEnd();
+
+        c.igTextUnformatted("Paused", null);
+        c.igSeparator();
+        if (c.igButton("Continue", uiV2(-1, 30))) self.resumeBattle();
+        if (c.igButton("Cancel Game", uiV2(-1, 30))) self.cancelGameToMenu();
+    }
+
+    fn drawGameOverToast(self: *AppState) void {
+        if (!self.game_over_toast.active) return;
+        if (self.game_shell_screen == .battle and self.game.simulation.phase == .game_over) return;
+        var text_buf: [192]u8 = undefined;
+        const text_z = std.fmt.bufPrintZ(&text_buf, "{s}", .{self.game_over_toast.text()}) catch return;
+
+        c.igSetNextWindowPos(uiV2(sapp.widthf() * 0.5, 24), c.ImGuiCond_Always, uiV2(0.5, 0));
+        c.igSetNextWindowSize(uiV2(@min(460, @max(280, sapp.widthf() - 48)), 64), c.ImGuiCond_Always);
+        c.igSetNextWindowBgAlpha(0.94);
+        c.igPushStyleColor_U32(c.ImGuiCol_WindowBg, uiCol32(13, 16, 15, 238));
+        c.igPushStyleColor_U32(c.ImGuiCol_Border, playerUiColor(self.game_over_toast.winner, 255));
+        c.igPushStyleColor_U32(c.ImGuiCol_Text, playerUiColor(self.game_over_toast.winner, 255));
+        defer c.igPopStyleColor(3);
+        const flags = c.ImGuiWindowFlags_NoDecoration |
+            c.ImGuiWindowFlags_NoMove |
+            c.ImGuiWindowFlags_NoSavedSettings |
+            c.ImGuiWindowFlags_NoNav |
+            c.ImGuiWindowFlags_NoResize;
+        _ = c.igBegin("Winner Toast##game-shell", null, flags);
+        defer c.igEnd();
+        c.igTextUnformatted(text_z.ptr, null);
+    }
+
+    fn drawCountLine(self: *AppState, label: []const u8, placed: usize, limit: usize) void {
+        _ = self;
+        var buf: [80]u8 = undefined;
+        const remaining = if (placed >= limit) @as(usize, 0) else limit - placed;
+        const z = std.fmt.bufPrintZ(&buf, "{s}: {d}/{d} ({d})", .{ label, placed, limit, remaining }) catch return;
+        c.igTextUnformatted(z.ptr, null);
+    }
+
+    fn drawSetupEntityRow(self: *AppState, kind: map_mod.ObjectKind) void {
+        const summary = self.objectPlacementSummary(kind);
+        var label_buf: [96]u8 = undefined;
+        const label_z = std.fmt.bufPrintZ(
+            &label_buf,
+            "{s} {d}/{d} ({d})",
+            .{ tools.objectKindName(kind), summary.placed, summary.limit, summary.remaining },
+        ) catch return;
+        var stats_buf: [96]u8 = undefined;
+        const stats_z = entityStatsZ(kind, &stats_buf);
+
+        const selected = self.editor.tool == .object and self.editor.object_kind == kind;
+        if (selected) {
+            c.igPushStyleColor_U32(c.ImGuiCol_Button, playerUiColor(self.editor.current_player, 255));
+            c.igPushStyleColor_U32(c.ImGuiCol_ButtonHovered, playerUiColor(self.editor.current_player, 220));
+        } else if (summary.full) {
+            c.igPushStyleColor_U32(c.ImGuiCol_Button, uiCol32(54, 58, 58, 255));
+            c.igPushStyleColor_U32(c.ImGuiCol_ButtonHovered, uiCol32(54, 58, 58, 255));
+        }
+        defer {
+            if (selected or summary.full) c.igPopStyleColor(2);
+        }
+
+        if (summary.full) c.igBeginDisabled(true);
+        const clicked = c.igButton(label_z.ptr, uiV2(180, 23));
+        if (summary.full) c.igEndDisabled();
+        if (clicked) {
+            self.editor.tool = .object;
+            self.editor.object_kind = kind;
+            self.editor.brush_asset_id = self.assetForObjectKind(kind);
+            self.audio.playSfx(.click_confirm);
+            self.editor.setStatus("Place {s}.", .{tools.objectKindName(kind)});
+        }
+        c.igSameLine(0, 8);
+        c.igTextUnformatted(stats_z.ptr, null);
+    }
+
+    fn drawInspectorStateSummary(self: *AppState, active_player: u8) void {
+        var buf: [192]u8 = undefined;
+        const active = self.activeObjectCount();
+        const phase = if (self.game.simulation.phase == .setup_player_one) "P1 Setup" else "P2 Setup";
+        const z = std.fmt.bufPrintZ(
+            &buf,
+            "{s}  Player {d}  Objects {d}/{d}",
+            .{ phase, active_player + 1, active, self.game.map.object_count },
+        ) catch return;
+        c.igTextUnformatted(z.ptr, null);
+        c.igPushTextWrapPos(0);
+        c.igTextWrapped("%s", &self.editor.status);
+        c.igPopTextWrapPos();
+    }
+
+    fn activeObjectCount(self: *const AppState) usize {
+        var count: usize = 0;
+        for (self.game.map.objects[0..self.game.map.object_count]) |object| {
+            if (object.active) count += 1;
+        }
+        return count;
+    }
+
+    fn gameOverReasonZ(self: *const AppState, buf: []u8) [:0]const u8 {
+        if (self.game.simulation.winner) |winner| {
+            const loser = if (winner == 0) @as(u8, 1) else @as(u8, 0);
+            return std.fmt.bufPrintZ(
+                buf,
+                "Player {d} wins because Player {d}'s Imperator was destroyed.",
+                .{ winner + 1, loser + 1 },
+            ) catch "Battle finished.";
+        }
+        if (self.game.simulation.outcome == .draw) {
+            return std.fmt.bufPrintZ(buf, "Stalemate. Both Imperators survived, but neither army could keep moving.", .{}) catch "Stalemate.";
+        }
+        return std.fmt.bufPrintZ(buf, "Battle finished.", .{}) catch "Battle finished.";
+    }
+
+    fn pushShellStyle(self: *AppState) void {
+        _ = self;
+        c.igPushStyleColor_U32(c.ImGuiCol_WindowBg, uiCol32(13, 16, 15, 232));
+        c.igPushStyleColor_U32(c.ImGuiCol_Border, uiCol32(70, 79, 70, 255));
+        c.igPushStyleColor_U32(c.ImGuiCol_Button, uiCol32(38, 78, 122, 255));
+    }
+
+    fn battlePaused(self: *const AppState) bool {
+        return self.game_shell_screen == .battle and self.game_paused and self.game.simulation.phase == .playing;
+    }
+
+    fn handleEscapeKey(self: *AppState) void {
+        if (self.game_shell_screen != .battle) return;
+        if (self.game.simulation.phase == .game_over) {
+            self.cancelGameToMenu();
+            return;
+        }
+        if (self.game_paused) {
+            self.resumeBattle();
+        } else {
+            self.pauseBattle();
+        }
+    }
+
+    fn pauseBattle(self: *AppState) void {
+        if (self.game_shell_screen != .battle or self.game.simulation.phase != .playing) return;
+        self.game_paused = true;
+        self.audio.playSfx(.panel_open);
+        self.editor.setStatus("Paused.", .{});
+    }
+
+    fn resumeBattle(self: *AppState) void {
+        if (self.game_shell_screen != .battle) return;
+        self.game_paused = false;
+        self.audio.playSfx(.panel_close);
+        self.editor.setStatus("Battle resumed.", .{});
+    }
+
+    fn cancelGameToMenu(self: *AppState) void {
+        self.game_paused = false;
+        self.painting = false;
+        self.game.simulation.resetSetup();
+        self.last_sim_phase = self.game.simulation.phase;
+        _ = self.loadSelectedMapForShell(false);
+        self.enterMainMenuShell();
+        self.editor.setStatus("Game cancelled.", .{});
+    }
+
+    fn enterChooseMapShell(self: *AppState) void {
+        self.refreshAvailableMaps();
+        self.editor.enabled = false;
+        self.game_paused = false;
+        self.game_shell_screen = .choose_map;
+        _ = self.loadShellMap(self.selected_map_index, false);
+        self.audio.playSfx(.panel_open);
+    }
+
+    fn enterSoundShell(self: *AppState) void {
+        self.editor.enabled = false;
+        self.game_paused = false;
+        self.game_shell_screen = .sound;
+        self.audio.playSfx(.panel_open);
+    }
+
+    fn enterRulesShell(self: *AppState) void {
+        self.editor.enabled = false;
+        self.game_paused = false;
+        self.game_shell_screen = .rules;
+        self.audio.playSfx(.panel_open);
+    }
+
+    fn enterCreditsShell(self: *AppState) void {
+        self.editor.enabled = false;
+        self.game_paused = false;
+        self.game_shell_screen = .credits;
+        self.audio.playSfx(.panel_open);
+    }
+
+    fn enterMapEditorShell(self: *AppState, index: usize) void {
+        if (!self.loadShellMap(index, true)) return;
+        self.editing_map_index = index;
+        self.game_shell_screen = .map_editor;
+        self.game_paused = false;
+        self.editor.enabled = true;
+        self.editor.tool = .terrain;
+        self.game.simulation.resetSetup();
+        self.syncEditorPlayerWithSetup();
+        self.audio.playSfx(.panel_open);
+    }
+
+    fn enterMainMenuShell(self: *AppState) void {
+        self.editor.enabled = false;
+        self.painting = false;
+        self.game_shell_screen = .menu;
+        self.game_paused = false;
+        self.clearLaserFx();
+        self.audio.playSfx(.panel_close);
+    }
+
+    fn startRandomGameSetup(self: *AppState) void {
+        self.refreshAvailableMaps();
+        if (self.map_count > 0) self.selected_map_index = self.randomMapIndex();
+        const map_name = self.selectedMapName();
+        self.startCurrentMapSetup(map_name, true);
+    }
+
+    fn startSelectedGameSetup(self: *AppState) void {
+        self.refreshAvailableMaps();
+        const map_name = self.selectedMapName();
+        self.startCurrentMapSetup(map_name, false);
+    }
+
+    fn startCurrentMapSetup(self: *AppState, map_name: []const u8, random: bool) void {
+        if (!self.loadSelectedMapForShell(true)) return;
+        self.game.simulation.resetSetup();
+        self.last_sim_phase = self.game.simulation.phase;
+        self.game_shell_screen = .setup;
+        self.game_paused = false;
+        self.editor.enabled = true;
+        self.editor.tool = .object;
+        self.editor.show_preview = true;
+        self.editor.current_player = 0;
+        self.syncEditorPlayerWithSetup();
+        self.clearLaserFx();
+        self.audio.playSfx(.click_confirm);
+        if (random) {
+            self.editor.setStatus("Random map: {s}. Player 1 setup. Place entities, then choose Finish Setup.", .{map_name});
+        } else {
+            self.editor.setStatus("Selected map: {s}. Player 1 setup. Place entities, then choose Finish Setup.", .{map_name});
+        }
+    }
+
+    fn randomMapIndex(self: *AppState) usize {
+        if (self.map_count <= 1) return 0;
+        const value = self.nextMapRandom();
+        return @intCast(value % @as(u32, @intCast(self.map_count)));
+    }
+
+    fn nextMapRandom(self: *AppState) u32 {
+        const ticks = stime.now();
+        self.map_rng ^= @as(u32, @truncate(ticks));
+        self.map_rng ^= @as(u32, @truncate(ticks >> 32));
+        self.map_rng = self.map_rng *% 1664525 +% 1013904223;
+        if (self.map_rng == 0) self.map_rng = 0x9e3779b9;
+        return self.map_rng;
+    }
+
+    fn advanceGameSetupAction(self: *AppState) void {
+        switch (self.game.simulation.phase) {
+            .setup_player_one => {
+                self.game.simulation.phase = .setup_player_two;
+                self.syncEditorPlayerWithSetup();
+                self.audio.playSfx(.click_confirm);
+                self.editor.setStatus("Player 2 setup. Place entities, then start the game.", .{});
+            },
+            .setup_player_two => {
+                self.game.simulation.startPlaying();
+                self.last_sim_phase = self.game.simulation.phase;
+                self.game_shell_screen = .battle;
+                self.game_paused = false;
+                self.editor.enabled = false;
+                self.clearLaserFx();
+                self.audio.playSfx(.click_confirm);
+                self.editor.setStatus("Battle started.", .{});
+            },
+            else => {},
+        }
+    }
+
+    fn refreshAvailableMaps(self: *AppState) void {
+        self.map_count = 0;
+        self.addMapChoice("Default Map", "", true, true);
+        self.addStaticEditableMaps();
+        if (comptime !platform.is_web) self.scanNativeMaps();
+        if (self.selected_map_index >= self.map_count) self.selected_map_index = 0;
+        if (self.editing_map_index >= self.map_count) self.editing_map_index = self.selected_map_index;
+    }
+
+    fn addStaticEditableMaps(self: *AppState) void {
+        for (StaticEditableMaps) |entry| {
+            var path_buf: [256]u8 = undefined;
+            const path = self.assetRelativeMapPath(entry.rel_path, &path_buf);
+            self.addMapChoice(entry.name, path, false, false);
+        }
+    }
+
+    fn scanNativeMaps(self: *AppState) void {
+        var maps_root_buf: [std.fs.max_path_bytes]u8 = undefined;
+        const maps_root = std.fmt.bufPrint(&maps_root_buf, "{s}/maps", .{platform.assetRoot()}) catch return;
+        var dir = if (std.fs.path.isAbsolute(maps_root))
+            std.fs.openDirAbsolute(maps_root, .{ .iterate = true }) catch return
+        else
+            std.fs.cwd().openDir(maps_root, .{ .iterate = true }) catch return;
+        defer dir.close();
+        var walker = dir.walk(self.allocator) catch return;
+        defer walker.deinit();
+
+        while (true) {
+            const maybe_entry = walker.next() catch break;
+            const entry = maybe_entry orelse break;
+            if (entry.kind != .file or !std.mem.endsWith(u8, entry.path, ".json")) continue;
+            if (std.mem.eql(u8, entry.path, "default/map.json")) continue;
+            var path_buf: [256]u8 = undefined;
+            const path = std.fmt.bufPrint(&path_buf, "{s}/{s}", .{ maps_root, entry.path }) catch continue;
+            const name = std.fs.path.basename(entry.path);
+            self.addMapChoice(name, path, false, false);
+        }
+    }
+
+    fn addMapChoice(self: *AppState, name: []const u8, path: []const u8, protected: bool, is_builtin: bool) void {
+        if (self.map_count >= self.maps.len) return;
+        for (self.maps[0..self.map_count]) |choice| {
+            if (std.mem.eql(u8, choice.pathSlice(), path)) return;
+        }
+        self.maps[self.map_count].set(name, path, protected, is_builtin);
+        self.map_count += 1;
+    }
+
+    fn assetRelativeMapPath(self: *const AppState, rel_path: []const u8, buffer: []u8) []const u8 {
+        _ = self;
+        if (comptime platform.is_web) return std.fmt.bufPrint(buffer, "assets/{s}", .{rel_path}) catch rel_path;
+        const root = platform.assetRoot();
+        return std.fmt.bufPrint(buffer, "{s}/{s}", .{ root, rel_path }) catch rel_path;
+    }
+
+    fn loadSelectedMapForShell(self: *AppState, announce: bool) bool {
+        return self.loadShellMap(self.selected_map_index, announce);
+    }
+
+    fn loadShellMap(self: *AppState, index: usize, announce: bool) bool {
+        if (index >= self.map_count) return false;
+        const choice = &self.maps[index];
+        if (choice.builtin) {
+            self.game.map = map_mod.GameMap.initDefault();
+            self.afterShellMapLoaded(announce, choice.nameSlice());
+            return true;
+        }
+        const path = choice.pathSlice();
+        const loaded = map_io.load(self.allocator, path) catch |err| {
+            self.editor.setStatus("Map load failed: {s}", .{@errorName(err)});
+            return false;
+        };
+        self.game.map = loaded;
+        self.afterShellMapLoaded(announce, choice.nameSlice());
+        return true;
+    }
+
+    fn afterShellMapLoaded(self: *AppState, announce: bool, name: []const u8) void {
+        self.assignObjectAssets(true);
+        self.game.rebuildPathing() catch {};
+        self.pathing_dirty = false;
+        self.clearLaserFx();
+        if (announce) self.editor.setStatus("Loaded map: {s}", .{name});
+    }
+
+    fn saveShellMap(self: *AppState) void {
+        if (self.editing_map_index >= self.map_count) return;
+        const choice = &self.maps[self.editing_map_index];
+        if (choice.builtin) {
+            self.editor.setStatus("Default Map is built in. Edit a generated map to save changes.", .{});
+            self.audio.playSfx(.invalid_action);
+            return;
+        }
+        const path = choice.pathSlice();
+        map_io.save(path, &self.game.map) catch |err| {
+            self.editor.setStatus("Save failed: {s}", .{@errorName(err)});
+            return;
+        };
+        self.editor.setStatus("Saved map: {s}", .{choice.nameSlice()});
+    }
+
+    fn deleteShellMap(self: *AppState) void {
+        if (self.editing_map_index >= self.map_count) return;
+        if (self.maps[self.editing_map_index].protected) {
+            self.editor.setStatus("The default map cannot be deleted.", .{});
+            self.audio.playSfx(.invalid_action);
+            return;
+        }
+        const path = self.maps[self.editing_map_index].pathSlice();
+        if (std.fs.path.isAbsolute(path)) {
+            std.fs.deleteFileAbsolute(path) catch |err| {
+                self.editor.setStatus("Delete failed: {s}", .{@errorName(err)});
+                return;
+            };
+        } else {
+            std.fs.cwd().deleteFile(path) catch |err| {
+                self.editor.setStatus("Delete failed: {s}", .{@errorName(err)});
+                return;
+            };
+        }
+        var i = self.editing_map_index;
+        while (i + 1 < self.map_count) : (i += 1) {
+            self.maps[i] = self.maps[i + 1];
+        }
+        if (self.map_count > 0) self.map_count -= 1;
+        self.selected_map_index = 0;
+        self.editing_map_index = 0;
+        _ = self.loadSelectedMapForShell(true);
+        self.enterMainMenuShell();
+    }
+
+    fn selectedMapName(self: *const AppState) []const u8 {
+        if (self.map_count == 0 or self.selected_map_index >= self.map_count) return "Default Map";
+        return self.maps[self.selected_map_index].nameSlice();
+    }
+
+    fn editingMapName(self: *const AppState) []const u8 {
+        if (self.map_count == 0 or self.editing_map_index >= self.map_count) return "Default Map";
+        return self.maps[self.editing_map_index].nameSlice();
+    }
+
+    pub fn objectPlacementSummary(self: *const AppState, kind: map_mod.ObjectKind) ObjectPlacementSummary {
+        if (!self.placementLimitsVisible()) return .{};
+        const player = self.game.simulation.placementPlayer(self.editor.current_player);
+        const counts = self.countEntitiesForPlayer(player);
+        var placed: usize = 0;
+        var limit: usize = 0;
+        switch (kind) {
+            .citadel => {
+                placed = counts.citadel;
+                limit = 1;
+            },
+            .imperator => {
+                placed = counts.imperator;
+                limit = 1;
+            },
+            .infantry, .captain, .artillery => {
+                placed = counts.mobile();
+                limit = 14;
+            },
+            .portal => {
+                placed = counts.portal;
+                limit = 2;
+            },
+            .healing_pod => {
+                placed = counts.healing_pod;
+                limit = 2;
+            },
+            .outpost, .defense_grid => {
+                placed = counts.structures();
+                limit = 4;
+            },
+            .obstacle => {
+                placed = counts.obstacle;
+                limit = 12;
+            },
+        }
+        const remaining = if (placed >= limit) @as(usize, 0) else limit - placed;
+        return .{
+            .limited = true,
+            .placed = placed,
+            .limit = limit,
+            .remaining = remaining,
+            .full = remaining == 0,
+        };
+    }
+
+    fn placementLimitsVisible(self: *const AppState) bool {
+        return (self.game_shell_screen == .setup or self.game_shell_screen == .disabled) and self.game.simulation.activeSetupPlayer() != null;
+    }
+
+    fn countEntitiesForPlayer(self: *const AppState, player: u8) EntityCounts {
+        var counts: EntityCounts = .{};
+        for (self.game.map.objects[0..self.game.map.object_count]) |object| {
+            if (!object.active or object.team != player) continue;
+            switch (object.kind) {
+                .citadel => counts.citadel += 1,
+                .imperator => counts.imperator += 1,
+                .infantry => counts.infantry += 1,
+                .captain => counts.captain += 1,
+                .artillery => counts.artillery += 1,
+                .portal => counts.portal += 1,
+                .healing_pod => counts.healing_pod += 1,
+                .outpost => counts.outpost += 1,
+                .defense_grid => counts.defense_grid += 1,
+                .obstacle => counts.obstacle += 1,
+            }
+        }
+        return counts;
+    }
+
+    fn showGameOverToast(self: *AppState) void {
+        const winner = self.game.simulation.winner orelse return;
+        const loser = if (winner == 0) @as(u8, 1) else @as(u8, 0);
+        const message = std.fmt.bufPrint(
+            self.game_over_toast.message[0..],
+            "Player {d} wins: Player {d}'s Imperator was destroyed.",
+            .{ winner + 1, loser + 1 },
+        ) catch return;
+        self.game_over_toast.message_len = message.len;
+        self.game_over_toast.winner = winner;
+        self.game_over_toast.timer = 6.0;
+        self.game_over_toast.active = true;
+        self.audio.playSfx(.click_confirm);
     }
 
     fn ready(self: *const AppState) bool {
@@ -586,14 +1781,17 @@ pub const AppState = struct {
                 self.game.simulation.phase = .setup_player_one;
             },
             .game => {
-                self.allow_editor = false;
+                self.allow_editor = true;
                 self.editor.enabled = false;
-                self.game.simulation.startPlaying();
+                self.game.simulation.resetSetup();
+                self.game_shell_screen = .menu;
             },
         }
+        self.last_sim_phase = self.game.simulation.phase;
     }
 
     fn syncEditorPlayerWithSetup(self: *AppState) void {
+        if (self.game_shell_screen != .disabled and self.game_shell_screen != .setup) return;
         if (self.game.simulation.activeSetupPlayer()) |player| {
             self.editor.current_player = player;
         }
@@ -643,6 +1841,9 @@ pub const AppState = struct {
             .assign_world => {
                 self.loading.progress = 0.94;
                 self.assignStarterAssets();
+                self.loadTojamBrandingSprites();
+                self.refreshAvailableMaps();
+                if (self.game_shell_screen != .disabled) _ = self.loadSelectedMapForShell(false);
                 self.game.rebuildPathing() catch {};
                 self.pathing_dirty = false;
                 self.loading.progress = 1.0;
@@ -782,7 +1983,7 @@ pub const AppState = struct {
         _ = c.igBegin("Loading##startup", null, flags);
         defer c.igEnd();
 
-        c.igTextUnformatted("TOJam 2026 RTS Prototype", null);
+        c.igTextUnformatted(GameTitle, null);
         c.igSpacing();
         c.igTextUnformatted(stage_z.ptr, null);
         c.igProgressBar(std.math.clamp(self.loading.progress, 0, 1), uiV2(-1, 16), percent_z.ptr);
@@ -829,6 +2030,23 @@ pub const AppState = struct {
         self.editor.setStatus("Loaded {d} object sprite definitions ({d} linked).", .{ self.object_sprites.objects.items.len, linked });
     }
 
+    fn loadTojamBrandingSprites(self: *AppState) void {
+        if (!self.tojam_logo_sprite.valid()) {
+            self.tojam_logo_sprite = self.loadBrandSprite("tojam/logo.png") catch .{};
+        }
+        if (!self.tojam_goat_sprite.valid()) {
+            self.tojam_goat_sprite = self.loadBrandSprite("tojam/goat.png") catch .{};
+        }
+    }
+
+    fn loadBrandSprite(self: *AppState, rel_path: []const u8) !Sprite {
+        var path_buf: [1024]u8 = undefined;
+        const path = try std.fmt.bufPrint(&path_buf, "{s}/{s}", .{ platform.assetRoot(), rel_path });
+        const image = try png_loader.loadRgba(self.allocator, path);
+        defer image.deinit();
+        return createSprite(image.width, image.height, image.pixels);
+    }
+
     fn assignStarterAssets(self: *AppState) void {
         const terrain_count = self.countAssets(.terrain);
         const water_id = self.catalog.firstOfKind(.water) orelse self.catalog.firstOfKind(.terrain) orelse NoAsset;
@@ -836,12 +2054,14 @@ pub const AppState = struct {
         for (0..self.game.map.height) |y| {
             for (0..self.game.map.width) |x| {
                 var cell = &self.game.map.terrain[y][x];
-                if (cell.terrain_id == 3) {
+                if (map_mod.isVoidTerrain(cell.*)) {
+                    cell.asset_id = NoAsset;
+                } else if (cell.terrain_id == 3) {
                     cell.asset_id = water_id;
                 } else if (!cell.walkable) {
                     cell.asset_id = if (rock_id != NoAsset) rock_id else self.terrainAsset(cell.terrain_id);
                 } else if (terrain_count > 0) {
-                    cell.asset_id = self.terrainAsset(cell.terrain_id);
+                    cell.asset_id = self.terrainAssetForCell(x, y, cell.terrain_id);
                 } else {
                     cell.asset_id = NoAsset;
                 }
@@ -882,7 +2102,7 @@ pub const AppState = struct {
         return switch (object.kind) {
             .outpost => self.originalBuilding(if (object.team == 0) 0 else 3),
             .defense_grid => self.originalBuilding(if (object.team == 0) 1 else 2),
-            .obstacle => self.originalDoodad(object.id),
+            .obstacle => self.originalBarrierAsset(object.id),
             else => null,
         };
     }
@@ -897,15 +2117,18 @@ pub const AppState = struct {
         return self.catalog.findByPathSuffix(suffixes[index % suffixes.len]);
     }
 
-    fn originalDoodad(self: *const AppState, object_id: u32) ?u16 {
+    fn originalBarrierAsset(self: *const AppState, object_id: u32) ?u16 {
         const suffixes = [_][]const u8{
-            "doodads/arid_badlands/flora/Acacia Style Trees Patch 2z2 B-green.png",
-            "doodads/arid_badlands/flora/Giant Cactus Patch 2x2 A-green.png",
+            "buildings/arid_badlands/Building A1.2 sz2 shadow.png",
+            "buildings/arid_badlands/Building B1.2 sz2 shadow.png",
+            "buildings/arid_badlands/Building E1.2 sz3 shadow.png",
+            "buildings/arid_badlands/Building G1.2 sz1 shadow.png",
+            "doodads/arid_badlands/odds/Desert_terrain_l_Objective-Crashed Aerostatic-sz1-0.1.png",
             "doodads/arid_badlands/odds/Rail Segment 2.2.png",
-            "doodads/arid_badlands/rocks/Dersert Rocks - Size 1A - light.png",
-            "doodads/arid_badlands/rocks/Dersert Rocks - Size 1B - medium.png",
-            "doodads/arid_badlands/rocks/Dersert Rocks - Size 2A - dark.png",
-            "doodads/arid_badlands/rocks/Desert Small Rockpile- Dif terrain C - light.png",
+            "doodads/arid_badlands/flora/Acacia Style Trees Patch 2z2 A-green.png",
+            "doodads/arid_badlands/flora/Giant Cactus Patch 2x2 C-green.png",
+            "doodads/arid_badlands/rocks/Dersert Rocks - Size 3A - medium.png",
+            "doodads/arid_badlands/rocks/Desert Sunken Rocks- Dif terrain C - medium.png",
         };
         const index: usize = @intCast(object_id % suffixes.len);
         return self.catalog.findByPathSuffix(suffixes[index]);
@@ -915,6 +2138,20 @@ pub const AppState = struct {
         const count = self.countAssets(.terrain);
         if (count == 0) return NoAsset;
         return self.catalog.nthOfKind(.terrain, @as(usize, terrain_id) % count) orelse NoAsset;
+    }
+
+    fn terrainAssetForCell(self: *const AppState, x: usize, y: usize, terrain_id: u8) u16 {
+        const count = self.countAssets(.terrain);
+        if (count == 0) return NoAsset;
+        const base_count = @min(count, 4);
+        const base_asset = self.catalog.nthOfKind(.terrain, @as(usize, terrain_id) % base_count) orelse NoAsset;
+        if (count <= base_count) return base_asset;
+
+        const hash = terrainVariantHash(x, y, terrain_id);
+        if (hash % 100 >= 42) return base_asset;
+        const variant_count = count - base_count;
+        const variant_index = base_count + (@as(usize, @intCast(hash / 100)) % variant_count);
+        return self.catalog.nthOfKind(.terrain, variant_index) orelse base_asset;
     }
 
     fn countAssets(self: *const AppState, kind: asset_loader.AssetKind) usize {
@@ -954,6 +2191,7 @@ pub const AppState = struct {
     }
 
     fn drawWorld(self: *AppState) void {
+        self.drawStarParallax();
         if (self.editor.show_terrain) self.drawTerrain();
         if (self.editor.show_pathing) self.drawPathingOverlay();
         if (self.editor.show_sectors) self.drawSectorOverlay();
@@ -961,6 +2199,94 @@ pub const AppState = struct {
         if (self.editor.show_grid) self.drawGrid();
         if (self.editor.show_objects) self.drawObjects();
         self.drawEditorPreviewOverlay();
+        self.drawStartMenuBranding();
+    }
+
+    fn drawStartMenuBranding(self: *AppState) void {
+        switch (self.game_shell_screen) {
+            .menu, .sound, .rules, .credits => {},
+            else => return,
+        }
+
+        const screen_w = sapp.widthf();
+        const screen_h = sapp.heightf();
+        const edge: f32 = 28.0;
+        const t = self.starfield_time;
+
+        if (self.tojam_logo_sprite.valid()) {
+            const logo_w = @min(330.0, @max(140.0, screen_w * 0.22));
+            const logo_h = logo_w * (self.tojam_logo_sprite.height / self.tojam_logo_sprite.width);
+            const drift_x = @sin(t * 0.75) * 5.0;
+            const drift_y = @sin(t * 1.15) * 7.0;
+            const center = Vec2{
+                .x = edge + logo_w * 0.5 + drift_x,
+                .y = edge + logo_h * 0.5 + drift_y,
+            };
+            drawSpriteUpright(self.tojam_logo_sprite, self.sampler, self.alpha_pipeline, center, logo_w, logo_h, 0.92);
+        }
+
+        if (self.tojam_goat_sprite.valid()) {
+            const goat_h = @min(250.0, @max(130.0, screen_h * 0.26));
+            const goat_w = goat_h * (self.tojam_goat_sprite.width / self.tojam_goat_sprite.height);
+            const drift_x = @sin(t * 0.85 + 1.4) * 6.0;
+            const drift_y = @sin(t * 1.25 + 0.7) * 10.0;
+            const center = Vec2{
+                .x = screen_w - edge - goat_w * 0.5 + drift_x,
+                .y = edge + goat_h * 0.5 + drift_y,
+            };
+            drawSpriteUpright(self.tojam_goat_sprite, self.sampler, self.alpha_pipeline, center, goat_w, goat_h, 0.92);
+        }
+    }
+
+    fn drawStarParallax(self: *AppState) void {
+        const screen_w = @max(1, sapp.widthf());
+        const screen_h = @max(1, sapp.heightf());
+        const center = Vec2{ .x = screen_w * 0.5, .y = screen_h * 0.5 };
+        const margin: f32 = 150;
+        const field_w = screen_w + margin * 2;
+        const field_h = screen_h + margin * 2;
+
+        sgl.beginQuads();
+        for (StarParallaxLayers, 0..) |layer, layer_index| {
+            const layer_seed: u32 = 0x91e10da5 +% @as(u32, @intCast(layer_index)) *% 0x45d9f3b;
+            const camera_drift_x = (self.camera.x * layer.parallax + self.camera.y * layer.parallax * 0.18) * self.zoom;
+            const camera_drift_y = (self.camera.y * layer.parallax - self.camera.x * layer.parallax * 0.12) * self.zoom;
+            const zoom_scale = 1.0 + (self.zoom - 1.0) * layer.zoom_reactivity;
+            for (0..layer.count) |i| {
+                const seed = layer_seed +% @as(u32, @intCast(i)) *% 0x9e3779b9;
+                const rx = starHash01(seed ^ 0x68bc21eb);
+                const ry = starHash01(seed ^ 0x02e5be93);
+                const rs = starHash01(seed ^ 0x4211f1d3);
+                const rb = starHash01(seed ^ 0xb5297a4d);
+                const speed = 0.70 + rs * 0.55;
+                const phase = rb * std.math.tau;
+                const twinkle = 0.86 + @sin(self.starfield_time * 0.9 + phase) * 0.08;
+                const shimmer = (0.72 + rb * 0.28) * twinkle;
+                const drift_x = camera_drift_x + self.starfield_time * layer.drift_x * speed;
+                const drift_y = camera_drift_y + self.starfield_time * layer.drift_y * (0.8 + rb * 0.4);
+
+                const wrapped_x = wrapFloat(rx * field_w - margin - drift_x, -margin, screen_w + margin);
+                const wrapped_y = wrapFloat(ry * field_h - margin - drift_y, -margin, screen_h + margin);
+                const x = center.x + (wrapped_x - center.x) * zoom_scale;
+                const y = center.y + (wrapped_y - center.y) * zoom_scale;
+                if (x < -margin or x > screen_w + margin or y < -margin or y > screen_h + margin) continue;
+
+                const size = layer.radius_min + rs * layer.radius_range;
+                const color: [4]f32 = .{
+                    @min(1.0, layer.tint[0] * shimmer),
+                    @min(1.0, layer.tint[1] * shimmer),
+                    @min(1.0, layer.tint[2] * shimmer),
+                    layer.alpha * (0.62 + rs * 0.38),
+                };
+                emitStarDiamond(.{ .x = x, .y = y }, size, color);
+            }
+        }
+        sgl.end();
+    }
+
+    fn updateStarfield(self: *AppState, dt: f32) void {
+        self.starfield_time += dt;
+        if (self.starfield_time > 3600) self.starfield_time -= 3600;
     }
 
     fn drawTerrain(self: *AppState) void {
@@ -971,6 +2297,9 @@ pub const AppState = struct {
                     .x = @as(f32, @floatFromInt(x)) + 0.5,
                     .y = @as(f32, @floatFromInt(y)) + 0.5,
                 });
+                if (map_mod.isVoidTerrain(cell)) {
+                    continue;
+                }
                 const color = render.terrainColor(cell);
                 drawDiamond(center, TileW * self.zoom, TileH * self.zoom, color);
                 if (self.spriteForAsset(cell.asset_id)) |sprite| {
@@ -1011,9 +2340,9 @@ pub const AppState = struct {
             .artillery => .artillery_fire,
             else => .infantry_attack,
         };
-        self.audio.playSfxGain(sfx, 0.58);
+        self.audio.playSfxGain(sfx, ShotSfxGain);
         if (event.target_kind == .citadel or event.target_kind == .outpost or event.target_kind == .defense_grid) {
-            self.audio.playSfxGain(.unit_hit_metal, 0.34);
+            self.audio.playSfxGain(.unit_hit_metal, HitSfxGain);
         }
     }
 
@@ -1332,6 +2661,7 @@ pub const AppState = struct {
     }
 
     fn objectVisibleInPhase(self: *const AppState, object: map_mod.MapObject) bool {
+        if (self.game_shell_screen != .disabled and self.game_shell_screen != .setup) return true;
         const setup_player = self.game.simulation.activeSetupPlayer() orelse return true;
         return object.team == setup_player or object.kind == .obstacle;
     }
@@ -1434,6 +2764,7 @@ pub const AppState = struct {
         sgl.c4f(0.06, 0.06, 0.055, 0.32);
         for (0..self.game.map.height) |y| {
             for (0..self.game.map.width) |x| {
+                if (map_mod.isVoidTerrain(self.game.map.terrain[y][x])) continue;
                 const center = self.worldToScreen(.{
                     .x = @as(f32, @floatFromInt(x)) + 0.5,
                     .y = @as(f32, @floatFromInt(y)) + 0.5,
@@ -1447,7 +2778,8 @@ pub const AppState = struct {
     fn drawPathingOverlay(self: *AppState) void {
         for (0..self.game.map.height) |y| {
             for (0..self.game.map.width) |x| {
-                if (self.game.map.terrain[y][x].walkable) continue;
+                const cell = self.game.map.terrain[y][x];
+                if (cell.walkable or map_mod.isVoidTerrain(cell)) continue;
                 const center = self.worldToScreen(.{
                     .x = @as(f32, @floatFromInt(x)) + 0.5,
                     .y = @as(f32, @floatFromInt(y)) + 0.5,
@@ -1489,7 +2821,7 @@ pub const AppState = struct {
     fn drawEditorPreviewOverlay(self: *AppState) void {
         if (!self.editor.enabled or !self.editor.show_preview) return;
         self.drawBrushPreview();
-        self.drawQuickAssetStrip();
+        if (self.game_shell_screen != .setup) self.drawQuickAssetStrip();
     }
 
     fn drawBrushPreview(self: *AppState) void {
@@ -1523,12 +2855,17 @@ pub const AppState = struct {
 
                 switch (self.editor.tool) {
                     .terrain => {
-                        if (self.spriteForAsset(self.editor.brush_asset_id)) |sprite| {
+                        const preview_void = self.editor.brush_terrain_id == map_mod.VoidTerrainId and !self.editor.terrain_walkable;
+                        if (preview_void) {
+                            drawDiamondOutline(center, TileW * self.zoom, TileH * self.zoom, if (is_center) .{ 0.82, 0.94, 1.0, 0.82 } else .{ 0.70, 0.86, 1.0, 0.48 });
+                        } else if (self.spriteForAsset(self.editor.brush_asset_id)) |sprite| {
                             drawSprite(sprite, self.sampler, self.alpha_pipeline, center, TileW * self.zoom, TileH * self.zoom, if (is_center) 0.48 else 0.30);
                         } else {
                             drawDiamond(center, TileW * self.zoom, TileH * self.zoom, .{ 0.42, 0.70, 0.92, if (is_center) 0.26 else 0.16 });
                         }
-                        drawDiamondOutline(center, TileW * self.zoom, TileH * self.zoom, if (is_center) .{ 1.0, 0.86, 0.32, 0.95 } else .{ 0.85, 0.92, 0.96, 0.62 });
+                        if (!preview_void) {
+                            drawDiamondOutline(center, TileW * self.zoom, TileH * self.zoom, if (is_center) .{ 1.0, 0.86, 0.32, 0.95 } else .{ 0.85, 0.92, 0.96, 0.62 });
+                        }
                     },
                     .erase => {
                         drawDiamond(center, TileW * self.zoom, TileH * self.zoom, .{ 0.95, 0.20, 0.16, if (is_center) 0.20 else 0.12 });
@@ -1643,8 +2980,9 @@ pub const AppState = struct {
             },
             .object => {
                 const asset = self.assetForObjectKind(self.editor.object_kind);
-                const player = self.game.simulation.placementPlayer(self.editor.current_player);
-                if (!self.game.simulation.canPlaceObject(&self.game.map, self.editor.object_kind, player)) {
+                const setup_limited = self.game_shell_screen == .setup or self.game_shell_screen == .disabled;
+                const player = if (setup_limited) self.game.simulation.placementPlayer(self.editor.current_player) else self.editor.current_player;
+                if (setup_limited and !self.game.simulation.canPlaceObject(&self.game.map, self.editor.object_kind, player)) {
                     self.audio.playSfx(.invalid_action);
                     self.editor.setStatus("Setup placement limit reached for Player {d}.", .{player + 1});
                     return;
@@ -1665,6 +3003,12 @@ pub const AppState = struct {
             },
             .erase => {
                 var changed = false;
+                const setup_limited = self.game_shell_screen == .setup or self.game_shell_screen == .disabled;
+                const player = self.game.simulation.placementPlayer(self.editor.current_player);
+                if (setup_limited) {
+                    if (self.removeSetupObjectAtScreen(screen, player)) self.markPathingDirty();
+                    return;
+                }
                 var oy: i32 = -self.editor.brush_radius;
                 while (oy <= self.editor.brush_radius) : (oy += 1) {
                     var ox: i32 = -self.editor.brush_radius;
@@ -1684,6 +3028,61 @@ pub const AppState = struct {
             },
             .select => {},
         }
+    }
+
+    fn removeSetupObjectAtScreen(self: *AppState, screen: Vec2, player: u8) bool {
+        var best_index: ?usize = null;
+        var best_dist: f32 = std.math.floatMax(f32);
+        var i: usize = 0;
+        while (i < self.game.map.object_count) : (i += 1) {
+            const object = self.game.map.objects[i];
+            if (!object.active or object.team != player) continue;
+            const center = self.worldToScreen(.{
+                .x = @as(f32, @floatFromInt(object.x)) + 0.5,
+                .y = @as(f32, @floatFromInt(object.y)) + 0.5,
+            });
+            if (!self.screenHitsObject(object, center, screen)) continue;
+            const dx = screen.x - center.x;
+            const dy = screen.y - center.y;
+            const dist = dx * dx + dy * dy;
+            if (dist < best_dist) {
+                best_dist = dist;
+                best_index = i;
+            }
+        }
+        if (best_index) |index| {
+            self.game.map.objects[index] = self.game.map.objects[self.game.map.object_count - 1];
+            self.game.map.object_count -= 1;
+            self.game.map.version += 1;
+            return true;
+        }
+        return false;
+    }
+
+    fn screenHitsObject(self: *const AppState, object: map_mod.MapObject, center: Vec2, screen: Vec2) bool {
+        if (self.object_sprites.get(object.kind)) |def| {
+            const w = def.draw_width * self.zoom;
+            const h = def.draw_height * self.zoom;
+            const anchor_x = center.x + def.offset_x * self.zoom;
+            const anchor_y = center.y + def.offset_y * self.zoom;
+            const pad = 8.0 * self.zoom;
+            const x0 = anchor_x - w * def.anchor_x - pad;
+            const y0 = anchor_y - h * def.anchor_y - pad;
+            return screen.x >= x0 and screen.x <= x0 + w + pad * 2 and
+                screen.y >= y0 and screen.y <= y0 + h + pad * 2;
+        }
+        if (self.spriteForAsset(object.asset_id)) |sprite| {
+            const size = fallbackObjectDrawSize(object.kind, sprite);
+            const w = size.x * self.zoom;
+            const h = size.y * self.zoom;
+            const x0 = center.x - w * 0.5 - 8.0 * self.zoom;
+            const y0 = center.y - h - 8.0 * self.zoom;
+            return screen.x >= x0 and screen.x <= x0 + w + 16.0 * self.zoom and
+                screen.y >= y0 and screen.y <= y0 + h + 16.0 * self.zoom;
+        }
+        const dx = @abs(screen.x - center.x);
+        const dy = @abs(screen.y - center.y);
+        return dx <= TileW * self.zoom * 0.45 and dy <= TileH * self.zoom * 0.65;
     }
 
     fn pickEditorAt(self: *AppState, screen: Vec2) void {
@@ -1813,7 +3212,7 @@ pub const AppState = struct {
             .citadel, .outpost, .defense_grid => asset.kind == .building,
             .imperator, .infantry, .captain, .artillery => asset.kind == .unit,
             .portal, .healing_pod => asset.kind == .doodad,
-            .obstacle => asset.kind == .doodad or asset.kind == .water,
+            .obstacle => asset.kind == .building or asset.kind == .doodad or asset.kind == .water,
         };
     }
 
@@ -2016,6 +3415,18 @@ fn drawDiamondOutline(center: Vec2, w: f32, h: f32, color: [4]f32) void {
     sgl.end();
 }
 
+fn emitStarDiamond(center: Vec2, radius: f32, color: [4]f32) void {
+    sgl.c4f(color[0], color[1], color[2], color[3]);
+    sgl.v2f(center.x, center.y - radius);
+    sgl.v2f(center.x + radius, center.y);
+    sgl.v2f(center.x, center.y + radius);
+    sgl.v2f(center.x - radius, center.y);
+}
+
+fn ruleBullet(text: [*:0]const u8) void {
+    c.igTextWrapped("- %s", text);
+}
+
 fn drawSprite(sprite: Sprite, sampler: sg.Sampler, pipeline: sgl.Pipeline, center: Vec2, w: f32, h: f32, alpha: f32) void {
     sgl.loadPipeline(pipeline);
     sgl.enableTexture();
@@ -2023,6 +3434,23 @@ fn drawSprite(sprite: Sprite, sampler: sg.Sampler, pipeline: sgl.Pipeline, cente
     sgl.beginQuads();
     sgl.c4f(1, 1, 1, alpha);
     emitTexturedQuadCentered(center, w, h);
+    sgl.end();
+    sgl.disableTexture();
+    sgl.loadDefaultPipeline();
+}
+
+fn drawSpriteUpright(sprite: Sprite, sampler: sg.Sampler, pipeline: sgl.Pipeline, center: Vec2, w: f32, h: f32, alpha: f32) void {
+    sgl.loadPipeline(pipeline);
+    sgl.enableTexture();
+    sgl.texture(sprite.view, sampler);
+    sgl.beginQuads();
+    sgl.c4f(1, 1, 1, alpha);
+    const x0 = center.x - w * 0.5;
+    const y0 = center.y - h * 0.5;
+    sgl.v2fT2f(x0, y0, 0, 1);
+    sgl.v2fT2f(x0 + w, y0, 1, 1);
+    sgl.v2fT2f(x0 + w, y0 + h, 1, 0);
+    sgl.v2fT2f(x0, y0 + h, 0, 0);
     sgl.end();
     sgl.disableTexture();
     sgl.loadDefaultPipeline();
@@ -2144,6 +3572,22 @@ fn drawCross(center: Vec2, w: f32, h: f32, color: [4]f32) void {
     sgl.end();
 }
 
+fn starHash01(seed: u32) f32 {
+    var x = seed;
+    x ^= x >> 16;
+    x *%= 0x7feb352d;
+    x ^= x >> 15;
+    x *%= 0x846ca68b;
+    x ^= x >> 16;
+    return @as(f32, @floatFromInt(x & 0xffff)) / 65535.0;
+}
+
+fn wrapFloat(value: f32, min: f32, max: f32) f32 {
+    const span = max - min;
+    if (!(span > 0)) return min;
+    return value - @floor((value - min) / span) * span;
+}
+
 fn laserColorForTeam(team: u8) [4]f32 {
     return if (team == 0)
         .{ 0.38, 0.86, 1.0, 0.96 }
@@ -2187,6 +3631,53 @@ fn uiCol32(r: u8, g: u8, b: u8, a: u8) c.ImU32 {
         (@as(c.ImU32, g) << 8) |
         (@as(c.ImU32, b) << 16) |
         (@as(c.ImU32, a) << 24);
+}
+
+fn playerUiColor(player: u8, alpha: u8) c.ImU32 {
+    return switch (player) {
+        0 => uiCol32(72, 161, 216, alpha),
+        1 => uiCol32(224, 76, 58, alpha),
+        else => uiCol32(218, 205, 136, alpha),
+    };
+}
+
+fn playerPanelColor(player: u8, alpha: u8) c.ImU32 {
+    return switch (player) {
+        0 => uiCol32(16, 42, 58, alpha),
+        1 => uiCol32(64, 26, 22, alpha),
+        else => uiCol32(36, 34, 22, alpha),
+    };
+}
+
+fn entityStatsZ(kind: map_mod.ObjectKind, buf: []u8) [:0]const u8 {
+    const stats = map_mod.defaultStats(kind);
+    return switch (kind) {
+        .citadel => std.fmt.bufPrintZ(buf, "HP {d:.0}  Heal {d:.0}  Range {d:.1}", .{ stats.hp, -stats.damage_per_second, stats.range }) catch "HP --",
+        .portal => std.fmt.bufPrintZ(buf, "HP {d:.0}  Teleport", .{stats.hp}) catch "HP --",
+        .healing_pod => std.fmt.bufPrintZ(buf, "HP {d:.0}  Heal {d:.0}  Range {d:.1}", .{ stats.hp, -stats.damage_per_second, stats.range }) catch "HP --",
+        .obstacle => std.fmt.bufPrintZ(buf, "Blocks", .{}) catch "Blocks",
+        .outpost, .defense_grid => std.fmt.bufPrintZ(buf, "HP {d:.0}  Dmg {d:.0}  Range {d:.1}", .{ stats.hp, stats.damage_per_second, stats.range }) catch "HP --",
+        .imperator, .infantry, .captain, .artillery => std.fmt.bufPrintZ(
+            buf,
+            "HP {d:.0}  Dmg {d:.0}  Range {d:.1}  Move {d:.2}",
+            .{ stats.hp, stats.damage_per_second, stats.range, stats.move_seconds },
+        ) catch "HP --",
+    };
+}
+
+fn copyToBuffer(buffer: []u8, value: []const u8) usize {
+    if (buffer.len == 0) return 0;
+    const len = @min(buffer.len, value.len);
+    @memcpy(buffer[0..len], value[0..len]);
+    return len;
+}
+
+fn terrainVariantHash(x: usize, y: usize, terrain_id: u8) u32 {
+    var hash: u32 = 2166136261;
+    hash = (hash ^ @as(u32, @intCast(x))) *% 16777619;
+    hash = (hash ^ @as(u32, @intCast(y))) *% 16777619;
+    hash = (hash ^ @as(u32, terrain_id)) *% 16777619;
+    return hash;
 }
 
 fn hasCommandModifier(modifiers: u32) bool {
@@ -2238,7 +3729,7 @@ pub fn appDesc() sapp.Desc {
         .width = 1440,
         .height = 900,
         .sample_count = 1,
-        .window_title = "TOJam 2026 RTS Prototype",
+        .window_title = GameTitle,
         .icon = .{ .sokol_default = true },
         .high_dpi = !is_web,
         .html5 = .{

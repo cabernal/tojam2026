@@ -1,0 +1,8906 @@
+{
+  "schema_version": 1,
+  "width": 32,
+  "height": 32,
+  "terrain": [
+    [
+      {
+        "terrain_id": 0,
+        "asset_id": 0,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 2,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 4,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 0,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 17,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 17,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 0,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 20,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 0,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 2,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 2,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 17,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 0,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 2,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 5,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 4,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 0,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 2,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 2,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 16,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 7,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 2,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 14,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 2,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 6,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 5,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 2,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 4,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 8,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 15,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 5,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      }
+    ],
+    [
+      {
+        "terrain_id": 0,
+        "asset_id": 5,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 8,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 9,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 0,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 2,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 5,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 0,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 19,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 2,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 16,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 4,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 15,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 2,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 17,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 5,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 2,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 0,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 2,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 5,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 0,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 2,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 13,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 0,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 4,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 5,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 2,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 0,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 4,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 20,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 0,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 17,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      }
+    ],
+    [
+      {
+        "terrain_id": 0,
+        "asset_id": 0,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 4,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 0,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 7,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 0,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 5,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 2,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 16,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 20,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 12,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 17,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 5,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 5,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 12,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 18,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 0,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 5,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 19,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 0,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 19,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 0,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 5,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 2,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 11,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 20,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 4,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 5,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 4,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 4,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      }
+    ],
+    [
+      {
+        "terrain_id": 0,
+        "asset_id": 4,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 15,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 8,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 2,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 15,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 4,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 2,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 4,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 0,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 2,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 12,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 4,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 2,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 5,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 16,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 5,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 4,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 15,
+        "asset_id": 0,
+        "walkable": false,
+        "buildable": false,
+        "movement_cost": 1,
+        "height": -1
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 13,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 7,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 5,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 2,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 2,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 0,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 5,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 4,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 5,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 18,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      }
+    ],
+    [
+      {
+        "terrain_id": 0,
+        "asset_id": 8,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 7,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 20,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 0,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 2,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 3,
+        "asset_id": 25,
+        "walkable": false,
+        "buildable": false,
+        "movement_cost": 1,
+        "height": 2
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 11,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 2,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 3,
+        "asset_id": 27,
+        "walkable": false,
+        "buildable": false,
+        "movement_cost": 1,
+        "height": 2
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 5,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 6,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 5,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 15,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 2,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 4,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 12,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 11,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 4,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 15,
+        "asset_id": 0,
+        "walkable": false,
+        "buildable": false,
+        "movement_cost": 1,
+        "height": -1
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 10,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 12,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 12,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 4,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 2,
+        "height": 0
+      },
+      {
+        "terrain_id": 3,
+        "asset_id": 29,
+        "walkable": false,
+        "buildable": false,
+        "movement_cost": 1,
+        "height": 2
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 5,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 9,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 4,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 3,
+        "asset_id": 23,
+        "walkable": false,
+        "buildable": false,
+        "movement_cost": 1,
+        "height": 2
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 19,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 0,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 2,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      }
+    ],
+    [
+      {
+        "terrain_id": 0,
+        "asset_id": 6,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 12,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 7,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 17,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 3,
+        "asset_id": 31,
+        "walkable": false,
+        "buildable": false,
+        "movement_cost": 1,
+        "height": 2
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 12,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 0,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 3,
+        "asset_id": 33,
+        "walkable": false,
+        "buildable": false,
+        "movement_cost": 1,
+        "height": 2
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 5,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 20,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 3,
+        "asset_id": 22,
+        "walkable": false,
+        "buildable": false,
+        "movement_cost": 1,
+        "height": 2
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 4,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 17,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 2,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 2,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 9,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 19,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 0,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 5,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 5,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 16,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 2,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 2,
+        "height": 0
+      },
+      {
+        "terrain_id": 3,
+        "asset_id": 22,
+        "walkable": false,
+        "buildable": false,
+        "movement_cost": 1,
+        "height": 2
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 14,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 14,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 11,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 3,
+        "asset_id": 29,
+        "walkable": false,
+        "buildable": false,
+        "movement_cost": 1,
+        "height": 2
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 17,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 13,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 5,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 2,
+        "height": 0
+      }
+    ],
+    [
+      {
+        "terrain_id": 0,
+        "asset_id": 0,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 2,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 5,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 2,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 2,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 3,
+        "asset_id": 26,
+        "walkable": false,
+        "buildable": false,
+        "movement_cost": 1,
+        "height": 2
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 19,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 3,
+        "asset_id": 28,
+        "walkable": false,
+        "buildable": false,
+        "movement_cost": 1,
+        "height": 2
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 4,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 4,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 2,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 4,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 4,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 17,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 4,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 0,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 2,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 5,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 0,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 2,
+        "height": 0
+      },
+      {
+        "terrain_id": 3,
+        "asset_id": 28,
+        "walkable": false,
+        "buildable": false,
+        "movement_cost": 1,
+        "height": 2
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 5,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 5,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 6,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 3,
+        "asset_id": 22,
+        "walkable": false,
+        "buildable": false,
+        "movement_cost": 1,
+        "height": 2
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 8,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 2,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 4,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 5,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 2,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 4,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      }
+    ],
+    [
+      {
+        "terrain_id": 0,
+        "asset_id": 0,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 2,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 5,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 2,
+        "height": 0
+      },
+      {
+        "terrain_id": 15,
+        "asset_id": 0,
+        "walkable": false,
+        "buildable": false,
+        "movement_cost": 1,
+        "height": -1
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 14,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 3,
+        "asset_id": 32,
+        "walkable": false,
+        "buildable": false,
+        "movement_cost": 1,
+        "height": 2
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 4,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 5,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 3,
+        "asset_id": 21,
+        "walkable": false,
+        "buildable": false,
+        "movement_cost": 1,
+        "height": 2
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 9,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 2,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 2,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 5,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 2,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 20,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 12,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 0,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 2,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 15,
+        "asset_id": 0,
+        "walkable": false,
+        "buildable": false,
+        "movement_cost": 1,
+        "height": -1
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 4,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 4,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 0,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 3,
+        "asset_id": 28,
+        "walkable": false,
+        "buildable": false,
+        "movement_cost": 1,
+        "height": 2
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 4,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 0,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 7,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 2,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 5,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 16,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      }
+    ],
+    [
+      {
+        "terrain_id": 0,
+        "asset_id": 5,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 2,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 2,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 11,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 18,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 3,
+        "asset_id": 25,
+        "walkable": false,
+        "buildable": false,
+        "movement_cost": 1,
+        "height": 2
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 6,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 3,
+        "asset_id": 27,
+        "walkable": false,
+        "buildable": false,
+        "movement_cost": 1,
+        "height": 2
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 0,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 3,
+        "asset_id": 29,
+        "walkable": false,
+        "buildable": false,
+        "movement_cost": 1,
+        "height": 2
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 4,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 0,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 15,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 5,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 9,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 0,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 5,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 2,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 4,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 13,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 18,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 3,
+        "asset_id": 21,
+        "walkable": false,
+        "buildable": false,
+        "movement_cost": 1,
+        "height": 2
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 4,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 5,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 0,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 3,
+        "asset_id": 28,
+        "walkable": false,
+        "buildable": false,
+        "movement_cost": 1,
+        "height": 2
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 5,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 17,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 6,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      }
+    ],
+    [
+      {
+        "terrain_id": 0,
+        "asset_id": 4,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 2,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 4,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 5,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 0,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 18,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 7,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 3,
+        "asset_id": 33,
+        "walkable": false,
+        "buildable": false,
+        "movement_cost": 1,
+        "height": 2
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 2,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 4,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 3,
+        "asset_id": 22,
+        "walkable": false,
+        "buildable": false,
+        "movement_cost": 1,
+        "height": 2
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 12,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 4,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 4,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 14,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 5,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 4,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 15,
+        "asset_id": 0,
+        "walkable": false,
+        "buildable": false,
+        "movement_cost": 1,
+        "height": -1
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 5,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 2,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 16,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 0,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 7,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 3,
+        "asset_id": 27,
+        "walkable": false,
+        "buildable": false,
+        "movement_cost": 1,
+        "height": 2
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 4,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 4,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 17,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 3,
+        "asset_id": 21,
+        "walkable": false,
+        "buildable": false,
+        "movement_cost": 1,
+        "height": 2
+      },
+      {
+        "terrain_id": 15,
+        "asset_id": 0,
+        "walkable": false,
+        "buildable": false,
+        "movement_cost": 1,
+        "height": -1
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 10,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 0,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 2,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      }
+    ],
+    [
+      {
+        "terrain_id": 0,
+        "asset_id": 12,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 19,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 9,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 15,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 2,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 3,
+        "asset_id": 26,
+        "walkable": false,
+        "buildable": false,
+        "movement_cost": 1,
+        "height": 2
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 0,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 4,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 3,
+        "asset_id": 28,
+        "walkable": false,
+        "buildable": false,
+        "movement_cost": 1,
+        "height": 2
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 0,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 12,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 15,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 0,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 2,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 15,
+        "asset_id": 0,
+        "walkable": false,
+        "buildable": false,
+        "movement_cost": 1,
+        "height": -1
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 6,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 13,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 5,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 2,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 0,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 2,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 0,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 3,
+        "asset_id": 33,
+        "walkable": false,
+        "buildable": false,
+        "movement_cost": 1,
+        "height": 2
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 10,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 13,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 4,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 3,
+        "asset_id": 27,
+        "walkable": false,
+        "buildable": false,
+        "movement_cost": 1,
+        "height": 2
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 5,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 2,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 14,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 2,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      }
+    ],
+    [
+      {
+        "terrain_id": 0,
+        "asset_id": 0,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 2,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 4,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 2,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 11,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 2,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 2,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 0,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 6,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 5,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 0,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 4,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 16,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 8,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 5,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 0,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 2,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 20,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 0,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 5,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 0,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 2,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 2,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 10,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 0,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 2,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 16,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 0,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 15,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      }
+    ],
+    [
+      {
+        "terrain_id": 0,
+        "asset_id": 15,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 5,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 4,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 2,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 15,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 5,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 2,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 14,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 5,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 5,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 11,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 4,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 16,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 7,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 5,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 0,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 2,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 15,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 4,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 9,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 7,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 4,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 2,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 11,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 7,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 4,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 14,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 0,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 2,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      }
+    ],
+    [
+      {
+        "terrain_id": 0,
+        "asset_id": 0,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 2,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 4,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 0,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 10,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 2,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 8,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 2,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 19,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 16,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 18,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 11,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 5,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 4,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 2,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 16,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 15,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 4,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 0,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 2,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 15,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 17,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 4,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 2,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 17,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 11,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 15,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 0,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 2,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 4,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 0,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 7,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      }
+    ],
+    [
+      {
+        "terrain_id": 0,
+        "asset_id": 5,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 2,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 15,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 13,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 4,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 2,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 5,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 17,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 4,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 17,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 4,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 15,
+        "asset_id": 0,
+        "walkable": false,
+        "buildable": false,
+        "movement_cost": 1,
+        "height": -1
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 9,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 0,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 5,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 2,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 4,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 10,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 14,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 15,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 4,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 4,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 4,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 2,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 0,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 4,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 0,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 4,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 16,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 4,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 2,
+        "height": 0
+      }
+    ],
+    [
+      {
+        "terrain_id": 1,
+        "asset_id": 16,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 8,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 5,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 15,
+        "asset_id": 0,
+        "walkable": false,
+        "buildable": false,
+        "movement_cost": 1,
+        "height": -1
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 20,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 5,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 18,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 5,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 4,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 20,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 4,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 5,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 20,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 4,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 6,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 15,
+        "asset_id": 0,
+        "walkable": false,
+        "buildable": false,
+        "movement_cost": 1,
+        "height": -1
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 4,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 5,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 5,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 4,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      }
+    ],
+    [
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 7,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 5,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 5,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 4,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 5,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 5,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 12,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 5,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 4,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 5,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 18,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 14,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 15,
+        "asset_id": 0,
+        "walkable": false,
+        "buildable": false,
+        "movement_cost": 1,
+        "height": -1
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 4,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 12,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 4,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 16,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      }
+    ],
+    [
+      {
+        "terrain_id": 0,
+        "asset_id": 0,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 2,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 2,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 9,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 15,
+        "asset_id": 0,
+        "walkable": false,
+        "buildable": false,
+        "movement_cost": 1,
+        "height": -1
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 4,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 4,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 12,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 10,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 5,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 4,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 2,
+        "height": 0
+      },
+      {
+        "terrain_id": 15,
+        "asset_id": 0,
+        "walkable": false,
+        "buildable": false,
+        "movement_cost": 1,
+        "height": -1
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 5,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 16,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 18,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 5,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 0,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 2,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 2,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 5,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 0,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 2,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 4,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 10,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 5,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 5,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 14,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 4,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 2,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 5,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 2,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      }
+    ],
+    [
+      {
+        "terrain_id": 0,
+        "asset_id": 0,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 2,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 4,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 4,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 4,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 2,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 9,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 16,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 19,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 14,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 4,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 2,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 18,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 0,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 4,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 12,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 15,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 4,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 17,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 5,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 2,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 2,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 13,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 2,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 5,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 2,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 5,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 2,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 2,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 20,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 13,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 2,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      }
+    ],
+    [
+      {
+        "terrain_id": 0,
+        "asset_id": 5,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 2,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 4,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 4,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 15,
+        "asset_id": 0,
+        "walkable": false,
+        "buildable": false,
+        "movement_cost": 1,
+        "height": -1
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 0,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 12,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 5,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 2,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 16,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 2,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 4,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 18,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 20,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 15,
+        "asset_id": 0,
+        "walkable": false,
+        "buildable": false,
+        "movement_cost": 1,
+        "height": -1
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 4,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 2,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 16,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 12,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 5,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 5,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 2,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 5,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 7,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 4,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 2,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 5,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 16,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 13,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 5,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 2,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      }
+    ],
+    [
+      {
+        "terrain_id": 0,
+        "asset_id": 0,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 5,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 0,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 8,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 5,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 4,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 2,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 12,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 2,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 0,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 2,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 5,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 0,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 2,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 5,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 11,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 8,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 0,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 5,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 2,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 18,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 2,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 14,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 18,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      }
+    ],
+    [
+      {
+        "terrain_id": 0,
+        "asset_id": 0,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 5,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 18,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 0,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 2,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 4,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 2,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 9,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 5,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 6,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 5,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 0,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 2,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 4,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 7,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 0,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 2,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 18,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 4,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 3,
+        "asset_id": 24,
+        "walkable": false,
+        "buildable": false,
+        "movement_cost": 1,
+        "height": 2
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 5,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 2,
+        "height": 0
+      },
+      {
+        "terrain_id": 3,
+        "asset_id": 26,
+        "walkable": false,
+        "buildable": false,
+        "movement_cost": 1,
+        "height": 2
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 0,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 19,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 12,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 0,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 13,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      }
+    ],
+    [
+      {
+        "terrain_id": 0,
+        "asset_id": 0,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 2,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 4,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 0,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 3,
+        "asset_id": 23,
+        "walkable": false,
+        "buildable": false,
+        "movement_cost": 1,
+        "height": 2
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 5,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 2,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 19,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 2,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 3,
+        "asset_id": 30,
+        "walkable": false,
+        "buildable": false,
+        "movement_cost": 1,
+        "height": 2
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 15,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 17,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 4,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 0,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 4,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 2,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 18,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 5,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 0,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 9,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 3,
+        "asset_id": 30,
+        "walkable": false,
+        "buildable": false,
+        "movement_cost": 1,
+        "height": 2
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 4,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 2,
+        "height": 0
+      },
+      {
+        "terrain_id": 3,
+        "asset_id": 32,
+        "walkable": false,
+        "buildable": false,
+        "movement_cost": 1,
+        "height": 2
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 4,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 6,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 3,
+        "asset_id": 21,
+        "walkable": false,
+        "buildable": false,
+        "movement_cost": 1,
+        "height": 2
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 2,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 4,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 5,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 2,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      }
+    ],
+    [
+      {
+        "terrain_id": 0,
+        "asset_id": 0,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 7,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 6,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 4,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 2,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 2,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 19,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 0,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 3,
+        "asset_id": 23,
+        "walkable": false,
+        "buildable": false,
+        "movement_cost": 1,
+        "height": 2
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 4,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 2,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 5,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 2,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 2,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 12,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 7,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 5,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 18,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 4,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 18,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 2,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 2,
+        "height": 0
+      },
+      {
+        "terrain_id": 3,
+        "asset_id": 25,
+        "walkable": false,
+        "buildable": false,
+        "movement_cost": 1,
+        "height": 2
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 11,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 2,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 3,
+        "asset_id": 27,
+        "walkable": false,
+        "buildable": false,
+        "movement_cost": 1,
+        "height": 2
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 0,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 5,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 12,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 0,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 2,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 2,
+        "height": 0
+      }
+    ],
+    [
+      {
+        "terrain_id": 0,
+        "asset_id": 0,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 10,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 4,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 4,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 2,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 2,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 10,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 3,
+        "asset_id": 29,
+        "walkable": false,
+        "buildable": false,
+        "movement_cost": 1,
+        "height": 2
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 5,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 4,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 4,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 3,
+        "asset_id": 23,
+        "walkable": false,
+        "buildable": false,
+        "movement_cost": 1,
+        "height": 2
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 5,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 0,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 2,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 2,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 14,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 4,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 4,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 2,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 5,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 0,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 2,
+        "height": 0
+      },
+      {
+        "terrain_id": 3,
+        "asset_id": 31,
+        "walkable": false,
+        "buildable": false,
+        "movement_cost": 1,
+        "height": 2
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 5,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 18,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 3,
+        "asset_id": 33,
+        "walkable": false,
+        "buildable": false,
+        "movement_cost": 1,
+        "height": 2
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 8,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 2,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 0,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 2,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 2,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      }
+    ],
+    [
+      {
+        "terrain_id": 0,
+        "asset_id": 5,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 2,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 2,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 0,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 11,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 3,
+        "asset_id": 22,
+        "walkable": false,
+        "buildable": false,
+        "movement_cost": 1,
+        "height": 2
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 0,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 14,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 3,
+        "asset_id": 29,
+        "walkable": false,
+        "buildable": false,
+        "movement_cost": 1,
+        "height": 2
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 20,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 2,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 0,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 18,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 4,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 8,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 14,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 4,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 2,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 2,
+        "height": 0
+      },
+      {
+        "terrain_id": 3,
+        "asset_id": 24,
+        "walkable": false,
+        "buildable": false,
+        "movement_cost": 1,
+        "height": 2
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 5,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 3,
+        "asset_id": 26,
+        "walkable": false,
+        "buildable": false,
+        "movement_cost": 1,
+        "height": 2
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 6,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 3,
+        "asset_id": 28,
+        "walkable": false,
+        "buildable": false,
+        "movement_cost": 1,
+        "height": 2
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 2,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 4,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 2,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 0,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 2,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      }
+    ],
+    [
+      {
+        "terrain_id": 0,
+        "asset_id": 0,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 2,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 2,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 0,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 3,
+        "asset_id": 28,
+        "walkable": false,
+        "buildable": false,
+        "movement_cost": 1,
+        "height": 2
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 12,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 0,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 4,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 3,
+        "asset_id": 22,
+        "walkable": false,
+        "buildable": false,
+        "movement_cost": 1,
+        "height": 2
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 0,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 5,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 2,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 5,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 2,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 4,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 14,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 19,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 5,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 2,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 6,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 6,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 2,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 3,
+        "asset_id": 32,
+        "walkable": false,
+        "buildable": false,
+        "movement_cost": 1,
+        "height": 2
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 0,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 5,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 3,
+        "asset_id": 21,
+        "walkable": false,
+        "buildable": false,
+        "movement_cost": 1,
+        "height": 2
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 0,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 4,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 2,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 11,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 20,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      }
+    ],
+    [
+      {
+        "terrain_id": 0,
+        "asset_id": 4,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 2,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 20,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 12,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 0,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 13,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 5,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 7,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 3,
+        "asset_id": 28,
+        "walkable": false,
+        "buildable": false,
+        "movement_cost": 1,
+        "height": 2
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 4,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 2,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 5,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 4,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 0,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 2,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 5,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 20,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 14,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 14,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 5,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 2,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 5,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 7,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 0,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 3,
+        "asset_id": 25,
+        "walkable": false,
+        "buildable": false,
+        "movement_cost": 1,
+        "height": 2
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 9,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 0,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 3,
+        "asset_id": 27,
+        "walkable": false,
+        "buildable": false,
+        "movement_cost": 1,
+        "height": 2
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 14,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 0,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 2,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 2,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 10,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 19,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      }
+    ],
+    [
+      {
+        "terrain_id": 0,
+        "asset_id": 4,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 5,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 8,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 19,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 4,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 10,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 3,
+        "asset_id": 21,
+        "walkable": false,
+        "buildable": false,
+        "movement_cost": 1,
+        "height": 2
+      },
+      {
+        "terrain_id": 15,
+        "asset_id": 0,
+        "walkable": false,
+        "buildable": false,
+        "movement_cost": 1,
+        "height": -1
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 2,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 0,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 3,
+        "asset_id": 28,
+        "walkable": false,
+        "buildable": false,
+        "movement_cost": 1,
+        "height": 2
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 5,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 11,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 2,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 5,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 19,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 5,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 2,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 0,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 13,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 16,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 0,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 5,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 18,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 15,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 2,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 2,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 6,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 2,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 0,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 16,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      }
+    ],
+    [
+      {
+        "terrain_id": 0,
+        "asset_id": 0,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 2,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 13,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 12,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 8,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 16,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 4,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 2,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 0,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 18,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 0,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 2,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 5,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 4,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 18,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 14,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 0,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 2,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 0,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 5,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 2,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 12,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 15,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 15,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 0,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 2,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      }
+    ],
+    [
+      {
+        "terrain_id": 0,
+        "asset_id": 18,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 5,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 17,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 5,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 2,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 4,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 2,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 4,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 0,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 14,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 4,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 18,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 11,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 10,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 14,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 4,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 0,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 5,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 4,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 0,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 8,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 6,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 5,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 2,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 15,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 5,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 2,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 4,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 13,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      }
+    ],
+    [
+      {
+        "terrain_id": 0,
+        "asset_id": 0,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 5,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 5,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 0,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 7,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 4,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 2,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 19,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 2,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 0,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 12,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 13,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 0,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 2,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 4,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 2,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 14,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 12,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 5,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 0,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 2,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 0,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 13,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 2,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 0,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 2,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 0,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 4,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 1,
+        "asset_id": 1,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 0,
+        "asset_id": 4,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      },
+      {
+        "terrain_id": 2,
+        "asset_id": 2,
+        "walkable": true,
+        "buildable": true,
+        "movement_cost": 1,
+        "height": 0
+      }
+    ]
+  ],
+  "objects": [
+    {
+      "id": 1,
+      "kind": "citadel",
+      "x": 6,
+      "y": 6,
+      "owner": 0,
+      "team": 0,
+      "hp": 900,
+      "max_hp": 900,
+      "facing": [
+        1,
+        0
+      ],
+      "asset_id": 49,
+      "active": true
+    },
+    {
+      "id": 2,
+      "kind": "imperator",
+      "x": 8,
+      "y": 6,
+      "owner": 0,
+      "team": 0,
+      "hp": 420,
+      "max_hp": 420,
+      "facing": [
+        1,
+        0
+      ],
+      "asset_id": 78,
+      "active": true
+    },
+    {
+      "id": 3,
+      "kind": "outpost",
+      "x": 7,
+      "y": 3,
+      "owner": 0,
+      "team": 0,
+      "hp": 360,
+      "max_hp": 360,
+      "facing": [
+        1,
+        0
+      ],
+      "asset_id": 36,
+      "active": true
+    },
+    {
+      "id": 4,
+      "kind": "defense_grid",
+      "x": 7,
+      "y": 9,
+      "owner": 0,
+      "team": 0,
+      "hp": 280,
+      "max_hp": 280,
+      "facing": [
+        1,
+        0
+      ],
+      "asset_id": 40,
+      "active": true
+    },
+    {
+      "id": 5,
+      "kind": "healing_pod",
+      "x": 11,
+      "y": 11,
+      "owner": 0,
+      "team": 0,
+      "hp": 220,
+      "max_hp": 220,
+      "facing": [
+        1,
+        0
+      ],
+      "asset_id": 73,
+      "active": true
+    },
+    {
+      "id": 6,
+      "kind": "portal",
+      "x": 13,
+      "y": 1,
+      "owner": 0,
+      "team": 0,
+      "hp": 260,
+      "max_hp": 260,
+      "facing": [
+        1,
+        0
+      ],
+      "asset_id": 74,
+      "active": true
+    },
+    {
+      "id": 7,
+      "kind": "citadel",
+      "x": 25,
+      "y": 25,
+      "owner": 1,
+      "team": 1,
+      "hp": 900,
+      "max_hp": 900,
+      "facing": [
+        1,
+        0
+      ],
+      "asset_id": 49,
+      "active": true
+    },
+    {
+      "id": 8,
+      "kind": "imperator",
+      "x": 23,
+      "y": 25,
+      "owner": 1,
+      "team": 1,
+      "hp": 420,
+      "max_hp": 420,
+      "facing": [
+        1,
+        0
+      ],
+      "asset_id": 78,
+      "active": true
+    },
+    {
+      "id": 9,
+      "kind": "outpost",
+      "x": 24,
+      "y": 28,
+      "owner": 1,
+      "team": 1,
+      "hp": 360,
+      "max_hp": 360,
+      "facing": [
+        1,
+        0
+      ],
+      "asset_id": 35,
+      "active": true
+    },
+    {
+      "id": 10,
+      "kind": "defense_grid",
+      "x": 24,
+      "y": 22,
+      "owner": 1,
+      "team": 1,
+      "hp": 280,
+      "max_hp": 280,
+      "facing": [
+        1,
+        0
+      ],
+      "asset_id": 45,
+      "active": true
+    },
+    {
+      "id": 11,
+      "kind": "healing_pod",
+      "x": 20,
+      "y": 20,
+      "owner": 1,
+      "team": 1,
+      "hp": 220,
+      "max_hp": 220,
+      "facing": [
+        1,
+        0
+      ],
+      "asset_id": 73,
+      "active": true
+    },
+    {
+      "id": 12,
+      "kind": "portal",
+      "x": 18,
+      "y": 30,
+      "owner": 1,
+      "team": 1,
+      "hp": 260,
+      "max_hp": 260,
+      "facing": [
+        1,
+        0
+      ],
+      "asset_id": 74,
+      "active": true
+    },
+    {
+      "id": 13,
+      "kind": "infantry",
+      "x": 10,
+      "y": 4,
+      "owner": 0,
+      "team": 0,
+      "hp": 90,
+      "max_hp": 90,
+      "facing": [
+        1,
+        0
+      ],
+      "asset_id": 79,
+      "active": true
+    },
+    {
+      "id": 14,
+      "kind": "infantry",
+      "x": 21,
+      "y": 24,
+      "owner": 1,
+      "team": 1,
+      "hp": 90,
+      "max_hp": 90,
+      "facing": [
+        1,
+        0
+      ],
+      "asset_id": 79,
+      "active": true
+    },
+    {
+      "id": 15,
+      "kind": "infantry",
+      "x": 10,
+      "y": 5,
+      "owner": 0,
+      "team": 0,
+      "hp": 90,
+      "max_hp": 90,
+      "facing": [
+        1,
+        0
+      ],
+      "asset_id": 79,
+      "active": true
+    },
+    {
+      "id": 16,
+      "kind": "infantry",
+      "x": 21,
+      "y": 25,
+      "owner": 1,
+      "team": 1,
+      "hp": 90,
+      "max_hp": 90,
+      "facing": [
+        1,
+        0
+      ],
+      "asset_id": 79,
+      "active": true
+    },
+    {
+      "id": 17,
+      "kind": "infantry",
+      "x": 10,
+      "y": 6,
+      "owner": 0,
+      "team": 0,
+      "hp": 90,
+      "max_hp": 90,
+      "facing": [
+        1,
+        0
+      ],
+      "asset_id": 79,
+      "active": true
+    },
+    {
+      "id": 18,
+      "kind": "infantry",
+      "x": 21,
+      "y": 26,
+      "owner": 1,
+      "team": 1,
+      "hp": 90,
+      "max_hp": 90,
+      "facing": [
+        1,
+        0
+      ],
+      "asset_id": 79,
+      "active": true
+    },
+    {
+      "id": 19,
+      "kind": "infantry",
+      "x": 10,
+      "y": 7,
+      "owner": 0,
+      "team": 0,
+      "hp": 90,
+      "max_hp": 90,
+      "facing": [
+        1,
+        0
+      ],
+      "asset_id": 79,
+      "active": true
+    },
+    {
+      "id": 20,
+      "kind": "infantry",
+      "x": 21,
+      "y": 27,
+      "owner": 1,
+      "team": 1,
+      "hp": 90,
+      "max_hp": 90,
+      "facing": [
+        1,
+        0
+      ],
+      "asset_id": 79,
+      "active": true
+    },
+    {
+      "id": 21,
+      "kind": "captain",
+      "x": 11,
+      "y": 5,
+      "owner": 0,
+      "team": 0,
+      "hp": 160,
+      "max_hp": 160,
+      "facing": [
+        1,
+        0
+      ],
+      "asset_id": 77,
+      "active": true
+    },
+    {
+      "id": 22,
+      "kind": "artillery",
+      "x": 11,
+      "y": 8,
+      "owner": 0,
+      "team": 0,
+      "hp": 120,
+      "max_hp": 120,
+      "facing": [
+        1,
+        0
+      ],
+      "asset_id": 76,
+      "active": true
+    },
+    {
+      "id": 23,
+      "kind": "captain",
+      "x": 20,
+      "y": 26,
+      "owner": 1,
+      "team": 1,
+      "hp": 160,
+      "max_hp": 160,
+      "facing": [
+        1,
+        0
+      ],
+      "asset_id": 77,
+      "active": true
+    },
+    {
+      "id": 24,
+      "kind": "artillery",
+      "x": 20,
+      "y": 23,
+      "owner": 1,
+      "team": 1,
+      "hp": 120,
+      "max_hp": 120,
+      "facing": [
+        1,
+        0
+      ],
+      "asset_id": 76,
+      "active": true
+    },
+    {
+      "id": 25,
+      "kind": "obstacle",
+      "x": 14,
+      "y": 14,
+      "owner": 2,
+      "team": 2,
+      "hp": 300,
+      "max_hp": 300,
+      "facing": [
+        1,
+        0
+      ],
+      "asset_id": 34,
+      "active": true
+    },
+    {
+      "id": 26,
+      "kind": "obstacle",
+      "x": 17,
+      "y": 17,
+      "owner": 2,
+      "team": 2,
+      "hp": 300,
+      "max_hp": 300,
+      "facing": [
+        1,
+        0
+      ],
+      "asset_id": 55,
+      "active": true
+    },
+    {
+      "id": 27,
+      "kind": "obstacle",
+      "x": 14,
+      "y": 18,
+      "owner": 2,
+      "team": 2,
+      "hp": 300,
+      "max_hp": 300,
+      "facing": [
+        1,
+        0
+      ],
+      "asset_id": 66,
+      "active": true
+    },
+    {
+      "id": 28,
+      "kind": "obstacle",
+      "x": 18,
+      "y": 14,
+      "owner": 2,
+      "team": 2,
+      "hp": 300,
+      "max_hp": 300,
+      "facing": [
+        1,
+        0
+      ],
+      "asset_id": 43,
+      "active": true
+    },
+    {
+      "id": 29,
+      "kind": "obstacle",
+      "x": 12,
+      "y": 16,
+      "owner": 2,
+      "team": 2,
+      "hp": 300,
+      "max_hp": 300,
+      "facing": [
+        1,
+        0
+      ],
+      "asset_id": 52,
+      "active": true
+    },
+    {
+      "id": 30,
+      "kind": "obstacle",
+      "x": 19,
+      "y": 15,
+      "owner": 2,
+      "team": 2,
+      "hp": 300,
+      "max_hp": 300,
+      "facing": [
+        1,
+        0
+      ],
+      "asset_id": 69,
+      "active": true
+    },
+    {
+      "id": 31,
+      "kind": "obstacle",
+      "x": 10,
+      "y": 9,
+      "owner": 2,
+      "team": 2,
+      "hp": 300,
+      "max_hp": 300,
+      "facing": [
+        1,
+        0
+      ],
+      "asset_id": 35,
+      "active": true
+    },
+    {
+      "id": 32,
+      "kind": "obstacle",
+      "x": 21,
+      "y": 22,
+      "owner": 2,
+      "team": 2,
+      "hp": 300,
+      "max_hp": 300,
+      "facing": [
+        1,
+        0
+      ],
+      "asset_id": 56,
+      "active": true
+    },
+    {
+      "id": 33,
+      "kind": "obstacle",
+      "x": 9,
+      "y": 22,
+      "owner": 2,
+      "team": 2,
+      "hp": 300,
+      "max_hp": 300,
+      "facing": [
+        1,
+        0
+      ],
+      "asset_id": 62,
+      "active": true
+    },
+    {
+      "id": 34,
+      "kind": "obstacle",
+      "x": 22,
+      "y": 9,
+      "owner": 2,
+      "team": 2,
+      "hp": 300,
+      "max_hp": 300,
+      "facing": [
+        1,
+        0
+      ],
+      "asset_id": 42,
+      "active": true
+    },
+    {
+      "id": 35,
+      "kind": "obstacle",
+      "x": 15,
+      "y": 15,
+      "owner": 2,
+      "team": 2,
+      "hp": 300,
+      "max_hp": 300,
+      "facing": [
+        1,
+        0
+      ],
+      "asset_id": 50,
+      "active": true
+    },
+    {
+      "id": 36,
+      "kind": "obstacle",
+      "x": 16,
+      "y": 16,
+      "owner": 2,
+      "team": 2,
+      "hp": 300,
+      "max_hp": 300,
+      "facing": [
+        1,
+        0
+      ],
+      "asset_id": 58,
+      "active": true
+    },
+    {
+      "id": 37,
+      "kind": "obstacle",
+      "x": 12,
+      "y": 17,
+      "owner": 2,
+      "team": 2,
+      "hp": 300,
+      "max_hp": 300,
+      "facing": [
+        1,
+        0
+      ],
+      "asset_id": 41,
+      "active": true
+    },
+    {
+      "id": 38,
+      "kind": "obstacle",
+      "x": 19,
+      "y": 14,
+      "owner": 2,
+      "team": 2,
+      "hp": 300,
+      "max_hp": 300,
+      "facing": [
+        1,
+        0
+      ],
+      "asset_id": 64,
+      "active": true
+    },
+    {
+      "id": 40,
+      "kind": "obstacle",
+      "x": 11,
+      "y": 12,
+      "owner": 2,
+      "team": 2,
+      "hp": 300,
+      "max_hp": 300,
+      "facing": [
+        1,
+        0
+      ],
+      "asset_id": 37,
+      "active": true
+    },
+    {
+      "id": 41,
+      "kind": "obstacle",
+      "x": 20,
+      "y": 19,
+      "owner": 2,
+      "team": 2,
+      "hp": 300,
+      "max_hp": 300,
+      "facing": [
+        1,
+        0
+      ],
+      "asset_id": 53,
+      "active": true
+    }
+  ],
+  "next_object_id": 42
+}

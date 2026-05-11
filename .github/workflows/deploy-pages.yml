@@ -2,7 +2,7 @@ name: Deploy Web to GitHub Pages
 
 on:
   push:
-    branches: ["main"]
+    branches: ["release/tojam2026"]
   workflow_dispatch:
 
 permissions:
@@ -40,7 +40,9 @@ jobs:
           ln -sf "$(command -v python3)" /tmp/emsdk/python/3.13.3_64bit/bin/python3
 
       - name: Build web bundle
-        run: zig build web -Demsdk=/tmp/emsdk -Doptimize=ReleaseFast
+        run: |
+          VERSION="build-${GITHUB_RUN_NUMBER}-${GITHUB_SHA::7}"
+          zig build web -Demsdk=/tmp/emsdk -Doptimize=ReleaseFast -Dapp-mode=game -Dbuild-version="$VERSION"
 
       - name: Prepare Pages output
         run: |
