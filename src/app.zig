@@ -30,6 +30,7 @@ const TileW: f32 = 64;
 const TileH: f32 = 32;
 const GameTitle = "Imperator's Gambit";
 const EventBlurb = "Created at TOJam 2026: Twenty years, one weekend";
+const BuildVersion = build_options.build_version;
 const MaxSprites = asset_loader.MaxAssets;
 const NoAsset: u16 = std.math.maxInt(u16);
 const MaxLaserBeams = 192;
@@ -806,6 +807,9 @@ pub const AppState = struct {
         defer c.igEnd();
 
         c.igTextUnformatted(GameTitle, null);
+        var version_buf: [96]u8 = undefined;
+        const version_z = std.fmt.bufPrintZ(&version_buf, "Version: {s}", .{BuildVersion}) catch "Version: unknown";
+        c.igTextUnformatted(version_z.ptr, null);
         c.igSeparator();
         c.igTextUnformatted(selected_z.ptr, null);
         c.igSpacing();

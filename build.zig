@@ -46,6 +46,11 @@ pub fn build(b: *std.Build) void {
         "app-mode",
         "Startup mode for native and web builds: integrated, editor, or game",
     ) orelse .integrated;
+    const build_version = b.option(
+        []const u8,
+        "build-version",
+        "Version label shown in the start menu",
+    ) orelse "local-dev";
     const emsdk_root_opt = b.option(
         []const u8,
         "emsdk",
@@ -58,7 +63,7 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
     const native_sokol_clib = buildLibSokol(b, "sokol_clib_native", target, optimize, null);
-    const native_module = createAppModule(b, target, optimize, native_sokol_mod, null, app_mode);
+    const native_module = createAppModule(b, target, optimize, native_sokol_mod, null, app_mode, build_version);
     native_module.linkLibrary(native_sokol_clib);
 
     const exe = b.addExecutable(.{
@@ -106,7 +111,7 @@ pub fn build(b: *std.Build) void {
             optimize,
             emsdk_root,
         );
-        const web_module = createAppModule(b, web_target, optimize, web_sokol_mod, emsdk_root, app_mode);
+        const web_module = createAppModule(b, web_target, optimize, web_sokol_mod, emsdk_root, app_mode, build_version);
         web_module.linkLibrary(web_sokol_clib);
 
         const web_lib = b.addLibrary(.{
@@ -136,7 +141,7 @@ fn addNativeRunMode(
     native_sokol_clib: *std.Build.Step.Compile,
     app_mode: AppMode,
 ) void {
-    const module = createAppModule(b, target, optimize, native_sokol_mod, null, app_mode);
+    const module = createAppModule(b, target, optimize, native_sokol_mod, null, app_mode, "local-dev");
     module.linkLibrary(native_sokol_clib);
     const exe = b.addExecutable(.{
         .name = b.fmt("{s}-{s}", .{ APP_NAME, @tagName(app_mode) }),
@@ -154,6 +159,7 @@ fn createAppModule(
     mod_sokol: *std.Build.Module,
     emsdk_root: ?[]const u8,
     app_mode: AppMode,
+    build_version: []const u8,
 ) *std.Build.Module {
     var cpp_flags_buf: [4][]const u8 = undefined;
     var cpp_flags = std.ArrayListUnmanaged([]const u8).initBuffer(&cpp_flags_buf);
@@ -167,6 +173,7 @@ fn createAppModule(
 
     const options = b.addOptions();
     options.addOption([]const u8, "app_mode", @tagName(app_mode));
+    options.addOption([]const u8, "build_version", build_version);
 
     const mod = b.createModule(.{
         .root_source_file = b.path("src/main.zig"),

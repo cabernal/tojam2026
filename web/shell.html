@@ -110,9 +110,67 @@
       .loading-overlay.is-error .loading-stage {
         color: #ff8a72;
       }
+
+      .mobile-overlay {
+        position: fixed;
+        inset: 0;
+        z-index: 30;
+        display: none;
+        place-items: center;
+        padding: 24px;
+        background:
+          linear-gradient(rgba(17, 19, 22, 0.94), rgba(17, 19, 22, 0.96)),
+          repeating-linear-gradient(
+            30deg,
+            rgba(204, 177, 116, 0.08) 0,
+            rgba(204, 177, 116, 0.08) 1px,
+            transparent 1px,
+            transparent 18px
+          );
+      }
+
+      .mobile-overlay.is-visible {
+        display: grid;
+      }
+
+      .mobile-panel {
+        width: min(520px, 100%);
+        border: 1px solid #3b423b;
+        padding: 22px;
+        background: rgba(8, 10, 9, 0.82);
+        box-shadow: 0 18px 60px rgba(0, 0, 0, 0.32);
+      }
+
+      .mobile-title {
+        margin-bottom: 12px;
+        color: #f0d28a;
+        font-size: 20px;
+        font-weight: 700;
+        letter-spacing: 0;
+      }
+
+      .mobile-copy {
+        color: #e8ecdf;
+      }
+
+      .mobile-detail {
+        margin-top: 12px;
+        color: #9ba596;
+      }
+
+      body.is-mobile-blocked canvas {
+        visibility: hidden;
+      }
     </style>
   </head>
   <body>
+    <div id="mobile-unsupported" class="mobile-overlay" role="alert" aria-live="assertive">
+      <div class="mobile-panel">
+        <div class="mobile-title">Imperator's Gambit</div>
+        <div class="mobile-copy">This game does not support mobile yet.</div>
+        <div class="mobile-detail">Please play on a desktop browser with a keyboard, mouse, and a larger window.</div>
+      </div>
+    </div>
     <div id="loading" class="loading-overlay" role="status" aria-live="polite">
       <div class="loading-panel">
         <div class="loading-title">Imperator's Gambit</div>
@@ -133,10 +191,27 @@
         const bar = document.getElementById("loading-bar");
         const percent = document.getElementById("loading-percent");
         const canvas = document.getElementById("canvas");
+        const mobileOverlay = document.getElementById("mobile-unsupported");
         let runDependencyTotal = 0;
         let lastPercent = 8;
         let handedOff = false;
         let handoffScheduled = false;
+
+        function isMobileBrowser() {
+          const ua = navigator.userAgent || "";
+          return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua);
+        }
+
+        function isMobileViewport() {
+          return window.innerWidth < 760 || window.innerHeight < 520;
+        }
+
+        function updateMobileSupportNotice() {
+          const blocked = isMobileBrowser() || isMobileViewport();
+          document.body.classList.toggle("is-mobile-blocked", blocked);
+          mobileOverlay.classList.toggle("is-visible", blocked);
+          mobileOverlay.setAttribute("aria-hidden", blocked ? "false" : "true");
+        }
 
         function handOffToGameLoader() {
           if (handedOff) return;
@@ -214,6 +289,9 @@
           setProgress(lastPercent, "Load failed", event.message || "Open the console for details");
         });
 
+        window.addEventListener("resize", updateMobileSupportNotice);
+        window.addEventListener("orientationchange", updateMobileSupportNotice);
+        updateMobileSupportNotice();
         setProgress(8, "Loading web runtime", "Fetching code and asset bundle");
       })();
     </script>

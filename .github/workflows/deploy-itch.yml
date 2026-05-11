@@ -38,7 +38,9 @@ jobs:
           ln -sf "$(command -v python3)" /tmp/emsdk/python/3.13.3_64bit/bin/python3
 
       - name: Build web bundle
-        run: zig build web -Demsdk=/tmp/emsdk -Doptimize=ReleaseFast -Dapp-mode=game
+        run: |
+          VERSION="build-${GITHUB_RUN_NUMBER}-${GITHUB_SHA::7}"
+          zig build web -Demsdk=/tmp/emsdk -Doptimize=ReleaseFast -Dapp-mode=game -Dbuild-version="$VERSION"
 
       - name: Prepare itch output
         run: cp zig-out/web/tojam2026.html zig-out/web/index.html
