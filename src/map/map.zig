@@ -17,9 +17,23 @@ pub const TerrainCell = struct {
 };
 
 pub const VoidTerrainId: u8 = 15;
+pub const IceTerrainId: u8 = 13;
+pub const LavaTerrainId: u8 = 14;
 
 pub fn isVoidTerrain(cell: TerrainCell) bool {
     return cell.terrain_id == VoidTerrainId and !cell.walkable;
+}
+
+pub fn isIceTerrain(cell: TerrainCell) bool {
+    return cell.terrain_id == IceTerrainId and !cell.walkable;
+}
+
+pub fn isLavaTerrain(cell: TerrainCell) bool {
+    return cell.terrain_id == LavaTerrainId and !cell.walkable;
+}
+
+pub fn isShaderTerrain(cell: TerrainCell) bool {
+    return isIceTerrain(cell) or isLavaTerrain(cell);
 }
 
 pub const MapObject = struct {
@@ -112,6 +126,28 @@ pub const GameMap = struct {
         for (void_tiles) |tile| {
             self.paintVoidTerrain(tile[0], tile[1]);
         }
+        const lava_tiles = [_][2]i32{
+            .{ 15, 12 },
+            .{ 16, 12 },
+            .{ 15, 13 },
+            .{ 16, 18 },
+            .{ 15, 19 },
+            .{ 16, 19 },
+        };
+        for (lava_tiles) |tile| {
+            self.paintShaderTerrain(tile[0], tile[1], LavaTerrainId);
+        }
+        const ice_tiles = [_][2]i32{
+            .{ 3, 6 },
+            .{ 4, 6 },
+            .{ 27, 24 },
+            .{ 28, 24 },
+            .{ 8, 22 },
+            .{ 23, 9 },
+        };
+        for (ice_tiles) |tile| {
+            self.paintShaderTerrain(tile[0], tile[1], IceTerrainId);
+        }
         self.version += 1;
     }
 
@@ -129,6 +165,20 @@ pub const GameMap = struct {
         };
     }
 
+    fn paintShaderTerrain(self: *GameMap, x: i32, y: i32, terrain_id: u8) void {
+        if (!self.inBounds(x, y)) return;
+        const ux: usize = @intCast(x);
+        const uy: usize = @intCast(y);
+        self.terrain[uy][ux] = .{
+            .terrain_id = terrain_id,
+            .asset_id = 0,
+            .walkable = false,
+            .buildable = false,
+            .movement_cost = 1,
+            .height = 0,
+        };
+    }
+
     pub fn inBounds(self: *const GameMap, x: i32, y: i32) bool {
         return x >= 0 and y >= 0 and @as(usize, @intCast(x)) < self.width and @as(usize, @intCast(y)) < self.height;
     }
@@ -139,10 +189,11 @@ pub const GameMap = struct {
         const uy: usize = @intCast(y);
         const next_cost = @max(1, movement_cost);
         const current = self.terrain[uy][ux];
-        const next_asset_id: u16 = if (terrain_id == VoidTerrainId and !walkable) 0 else asset_id;
+        const special_shader_tile = (terrain_id == LavaTerrainId or terrain_id == IceTerrainId) and !walkable;
+        const next_asset_id: u16 = if ((terrain_id == VoidTerrainId and !walkable) or special_shader_tile) 0 else asset_id;
         const next_height: i16 = if (terrain_id == VoidTerrainId and !walkable)
             -1
-        else if (isVoidTerrain(current))
+        else if (isVoidTerrain(current) or special_shader_tile)
             0
         else
             current.height;
@@ -301,5 +352,21 @@ test "painting void terrain creates a floor cutout" {
     const restored = game_map.paintTerrain(0, 0, 1, 2, true, 1);
     try std.testing.expect(restored);
     try std.testing.expect(!isVoidTerrain(game_map.terrain[0][0]));
+    try std.testing.expectEqual(@as(i16, 0), game_map.terrain[0][0].height);
+}
+
+test "painting shader terrain creates unwalkable floor hazards" {
+    var game_map = GameMap.initDefault();
+    const changed = game_map.paintTerrain(0, 0, LavaTerrainId, 4, false, 3);
+    try std.testing.expect(changed);
+    try std.testing.expect(isLavaTerrain(game_map.terrain[0][0]));
+    try std.testing.expect(!game_map.terrain[0][0].walkable);
+    try std.testing.expect(!game_map.terrain[0][0].buildable);
+    try std.testing.expectEqual(@as(u16, 0), game_map.terrain[0][0].asset_id);
+    try std.testing.expectEqual(@as(i16, 0), game_map.terrain[0][0].height);
+
+    const restored = game_map.paintTerrain(0, 0, 1, 2, true, 1);
+    try std.testing.expect(restored);
+    try std.testing.expect(!isShaderTerrain(game_map.terrain[0][0]));
     try std.testing.expectEqual(@as(i16, 0), game_map.terrain[0][0].height);
 }

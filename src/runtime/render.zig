@@ -2,6 +2,8 @@ const map_mod = @import("../map/map.zig");
 
 pub fn terrainColor(cell: map_mod.TerrainCell) [4]f32 {
     if (map_mod.isVoidTerrain(cell)) return .{ 0.03, 0.08, 0.12, 0.10 };
+    if (map_mod.isLavaTerrain(cell)) return .{ 0.82, 0.20, 0.04, 1.0 };
+    if (map_mod.isIceTerrain(cell)) return .{ 0.24, 0.72, 0.92, 1.0 };
     if (!cell.walkable) return .{ 0.25, 0.22, 0.20, 1.0 };
     return switch (cell.terrain_id % 5) {
         0 => .{ 0.55, 0.48, 0.35, 1.0 },
