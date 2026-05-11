@@ -915,9 +915,11 @@ pub const AppState = struct {
         c.igSpacing();
 
         c.igTextUnformatted("Battle", null);
-        ruleBullet("When the game starts, mobile units advance toward the opposing citadel using the available lanes.");
+        ruleBullet("When the game starts, mobile units advance toward the opposing Imperator, then the citadel if the Imperator cannot be reached.");
         ruleBullet("If mobile enemies meet, they stop moving, fight nearby targets, then continue once the contact is cleared.");
-        ruleBullet("Attackers prefer enemy units first, then combat structures, then support buildings.");
+        ruleBullet("Low-health units try to fall back to allied healing pods or citadels, and pressured units briefly retreat.");
+        ruleBullet("Units will peel back to protect an Imperator or citadel that is taking sustained damage.");
+        ruleBullet("If both Imperators are alive and the battle goes quiet with no movement, the game ends in a draw.");
         ruleBullet("Press Escape during battle to pause, continue, or cancel back to the start menu.");
         c.igSpacing();
 
@@ -1168,7 +1170,7 @@ pub const AppState = struct {
             return;
         }
         if (self.game.simulation.phase != .game_over) return;
-        const winner = self.game.simulation.winner orelse 0;
+        const winner = self.game.simulation.winner orelse 2;
         var reason_buf: [192]u8 = undefined;
         const reason_z = self.gameOverReasonZ(&reason_buf);
 
@@ -1315,6 +1317,9 @@ pub const AppState = struct {
                 "Player {d} wins because Player {d}'s Imperator was destroyed.",
                 .{ winner + 1, loser + 1 },
             ) catch "Battle finished.";
+        }
+        if (self.game.simulation.outcome == .draw) {
+            return std.fmt.bufPrintZ(buf, "Stalemate. Both Imperators survived, but neither army could keep moving.", .{}) catch "Stalemate.";
         }
         return std.fmt.bufPrintZ(buf, "Battle finished.", .{}) catch "Battle finished.";
     }
@@ -3625,23 +3630,25 @@ fn uiCol32(r: u8, g: u8, b: u8, a: u8) c.ImU32 {
 }
 
 fn playerUiColor(player: u8, alpha: u8) c.ImU32 {
-    return if (player == 0)
-        uiCol32(72, 161, 216, alpha)
-    else
-        uiCol32(224, 76, 58, alpha);
+    return switch (player) {
+        0 => uiCol32(72, 161, 216, alpha),
+        1 => uiCol32(224, 76, 58, alpha),
+        else => uiCol32(218, 205, 136, alpha),
+    };
 }
 
 fn playerPanelColor(player: u8, alpha: u8) c.ImU32 {
-    return if (player == 0)
-        uiCol32(16, 42, 58, alpha)
-    else
-        uiCol32(64, 26, 22, alpha);
+    return switch (player) {
+        0 => uiCol32(16, 42, 58, alpha),
+        1 => uiCol32(64, 26, 22, alpha),
+        else => uiCol32(36, 34, 22, alpha),
+    };
 }
 
 fn entityStatsZ(kind: map_mod.ObjectKind, buf: []u8) [:0]const u8 {
     const stats = map_mod.defaultStats(kind);
     return switch (kind) {
-        .citadel => std.fmt.bufPrintZ(buf, "HP {d:.0}  Base", .{stats.hp}) catch "HP --",
+        .citadel => std.fmt.bufPrintZ(buf, "HP {d:.0}  Heal {d:.0}  Range {d:.1}", .{ stats.hp, -stats.damage_per_second, stats.range }) catch "HP --",
         .portal => std.fmt.bufPrintZ(buf, "HP {d:.0}  Teleport", .{stats.hp}) catch "HP --",
         .healing_pod => std.fmt.bufPrintZ(buf, "HP {d:.0}  Heal {d:.0}  Range {d:.1}", .{ stats.hp, -stats.damage_per_second, stats.range }) catch "HP --",
         .obstacle => std.fmt.bufPrintZ(buf, "Blocks", .{}) catch "Blocks",

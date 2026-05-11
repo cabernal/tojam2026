@@ -35,6 +35,9 @@ pub const MapObject = struct {
     facing_y: i8 = 0,
     asset_id: u16 = 0,
     active: bool = true,
+    recent_damage: f32 = 0,
+    retreat_steps: u8 = 0,
+    idle_steps: u8 = 0,
 };
 
 pub const GameMap = struct {
@@ -235,6 +238,19 @@ pub const GameMap = struct {
         }
         grid_map.version = self.version;
     }
+
+    pub fn refreshBattleStats(self: *GameMap) void {
+        for (self.objects[0..self.object_count]) |*object| {
+            const stats = defaultStats(object.kind);
+            const pct = if (object.max_hp > 0) std.math.clamp(object.hp / object.max_hp, 0, 1) else 1;
+            object.max_hp = stats.hp;
+            object.hp = if (object.active) stats.hp * pct else 0;
+            object.recent_damage = 0;
+            object.retreat_steps = 0;
+            object.idle_steps = 0;
+        }
+        self.version += 1;
+    }
 };
 
 pub const ObjectStats = struct {
@@ -246,13 +262,13 @@ pub const ObjectStats = struct {
 
 pub fn defaultStats(kind: ObjectKind) ObjectStats {
     return switch (kind) {
-        .citadel => .{ .hp = 900, .range = 0, .damage_per_second = 0, .move_seconds = 999 },
-        .imperator => .{ .hp = 420, .range = 7.0, .damage_per_second = 42, .move_seconds = 0.55 },
-        .infantry => .{ .hp = 90, .range = 1.35, .damage_per_second = 12, .move_seconds = 0.30 },
-        .captain => .{ .hp = 160, .range = 2.2, .damage_per_second = 18, .move_seconds = 0.38 },
-        .artillery => .{ .hp = 120, .range = 4.8, .damage_per_second = 24, .move_seconds = 0.60 },
+        .citadel => .{ .hp = 2600, .range = 2.6, .damage_per_second = -24, .move_seconds = 999 },
+        .imperator => .{ .hp = 1250, .range = 7.0, .damage_per_second = 42, .move_seconds = 0.55 },
+        .infantry => .{ .hp = 170, .range = 1.35, .damage_per_second = 12, .move_seconds = 0.30 },
+        .captain => .{ .hp = 300, .range = 2.2, .damage_per_second = 18, .move_seconds = 0.38 },
+        .artillery => .{ .hp = 230, .range = 4.8, .damage_per_second = 24, .move_seconds = 0.60 },
         .portal => .{ .hp = 260, .range = 0, .damage_per_second = 0, .move_seconds = 999 },
-        .healing_pod => .{ .hp = 220, .range = 1.3, .damage_per_second = -20, .move_seconds = 999 },
+        .healing_pod => .{ .hp = 260, .range = 2.4, .damage_per_second = -30, .move_seconds = 999 },
         .obstacle => .{ .hp = 300, .range = 0, .damage_per_second = 0, .move_seconds = 999 },
         .outpost => .{ .hp = 360, .range = 3.2, .damage_per_second = 20, .move_seconds = 999 },
         .defense_grid => .{ .hp = 280, .range = 3.8, .damage_per_second = 22, .move_seconds = 999 },
