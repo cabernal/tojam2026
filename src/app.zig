@@ -1168,16 +1168,16 @@ pub const AppState = struct {
             return;
         }
         if (self.game.simulation.phase != .game_over) return;
-        const winner = self.game.simulation.winner orelse 0;
+        const winner = self.game.simulation.winner;
         var reason_buf: [192]u8 = undefined;
         const reason_z = self.gameOverReasonZ(&reason_buf);
 
         c.igSetNextWindowPos(uiV2(sapp.widthf() * 0.5, sapp.heightf() * 0.5), c.ImGuiCond_Always, uiV2(0.5, 0.5));
         c.igSetNextWindowSize(uiV2(@min(460.0, @max(320.0, sapp.widthf() - 48.0)), 154), c.ImGuiCond_Always);
         c.igSetNextWindowBgAlpha(0.95);
-        c.igPushStyleColor_U32(c.ImGuiCol_WindowBg, playerPanelColor(winner, 232));
-        c.igPushStyleColor_U32(c.ImGuiCol_Border, playerUiColor(winner, 255));
-        c.igPushStyleColor_U32(c.ImGuiCol_Text, playerUiColor(winner, 255));
+        c.igPushStyleColor_U32(c.ImGuiCol_WindowBg, gameOverPanelColor(winner, 232));
+        c.igPushStyleColor_U32(c.ImGuiCol_Border, gameOverAccentColor(winner, 255));
+        c.igPushStyleColor_U32(c.ImGuiCol_Text, gameOverAccentColor(winner, 255));
         defer c.igPopStyleColor(3);
         const flags = c.ImGuiWindowFlags_NoCollapse |
             c.ImGuiWindowFlags_NoMove |
@@ -1190,8 +1190,8 @@ pub const AppState = struct {
         c.igSeparator();
         c.igTextUnformatted(reason_z.ptr, null);
         c.igSpacing();
-        c.igPushStyleColor_U32(c.ImGuiCol_Button, playerUiColor(winner, 255));
-        c.igPushStyleColor_U32(c.ImGuiCol_ButtonHovered, playerUiColor(winner, 220));
+        c.igPushStyleColor_U32(c.ImGuiCol_Button, gameOverAccentColor(winner, 255));
+        c.igPushStyleColor_U32(c.ImGuiCol_ButtonHovered, gameOverAccentColor(winner, 220));
         c.igPushStyleColor_U32(c.ImGuiCol_Text, uiCol32(245, 248, 242, 255));
         if (c.igButton("Back To Menu", uiV2(-1, 30))) self.cancelGameToMenu();
         c.igPopStyleColor(3);
@@ -1316,7 +1316,7 @@ pub const AppState = struct {
                 .{ winner + 1, loser + 1 },
             ) catch "Battle finished.";
         }
-        return std.fmt.bufPrintZ(buf, "Battle finished.", .{}) catch "Battle finished.";
+        return std.fmt.bufPrintZ(buf, "Stalemate: both Imperators were destroyed.", .{}) catch "Stalemate.";
     }
 
     fn pushShellStyle(self: *AppState) void {
@@ -3636,6 +3636,20 @@ fn playerPanelColor(player: u8, alpha: u8) c.ImU32 {
         uiCol32(16, 42, 58, alpha)
     else
         uiCol32(64, 26, 22, alpha);
+}
+
+fn gameOverAccentColor(winner: ?u8, alpha: u8) c.ImU32 {
+    return if (winner) |player|
+        playerUiColor(player, alpha)
+    else
+        uiCol32(198, 190, 150, alpha);
+}
+
+fn gameOverPanelColor(winner: ?u8, alpha: u8) c.ImU32 {
+    return if (winner) |player|
+        playerPanelColor(player, alpha)
+    else
+        uiCol32(34, 35, 31, alpha);
 }
 
 fn entityStatsZ(kind: map_mod.ObjectKind, buf: []u8) [:0]const u8 {

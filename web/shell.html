@@ -137,6 +137,8 @@
         let lastPercent = 8;
         let handedOff = false;
         let handoffScheduled = false;
+        let packageFiles = [];
+        let packageFilesRequested = false;
 
         function handOffToGameLoader() {
           if (handedOff) return;
@@ -161,6 +163,42 @@
           requestAnimationFrame(waitForPaint);
         }
 
+        function requestPackageFileTable() {
+          if (packageFilesRequested) return;
+          packageFilesRequested = true;
+          fetch("tojam2026.js", { cache: "force-cache" })
+            .then((response) => response.ok ? response.text() : "")
+            .then((text) => {
+              const files = [];
+              const pattern = /"filename":\s*"([^"]+)"\s*,\s*"start":\s*(\d+)\s*,\s*"end":\s*(\d+)/g;
+              let match;
+              while ((match = pattern.exec(text)) !== null) {
+                files.push({
+                  filename: match[1].replace(/^\/assets\//, "assets/"),
+                  start: Number(match[2]),
+                  end: Number(match[3])
+                });
+              }
+              packageFiles = files;
+            })
+            .catch(() => {
+              packageFiles = [];
+            });
+        }
+
+        function fileForBundleByte(loaded) {
+          if (!packageFiles.length) return "";
+          const file = packageFiles.find((entry) => loaded >= entry.start && loaded < entry.end);
+          if (!file) return "";
+          return file.filename;
+        }
+
+        function formatBytes(bytes) {
+          if (bytes >= 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+          if (bytes >= 1024) return `${Math.round(bytes / 1024)} KB`;
+          return `${bytes} B`;
+        }
+
         function setProgress(nextPercent, nextStage, nextDetail) {
           if (handedOff) return;
           const clamped = Math.max(lastPercent, Math.min(100, Math.round(nextPercent)));
@@ -177,7 +215,14 @@
           if (match) {
             const loaded = Number(match[2]);
             const total = Math.max(Number(match[3]), 1);
-            setProgress(18 + (loaded / total) * 52, match[1].trim() || "Downloading", text);
+            requestPackageFileTable();
+            const currentFile = fileForBundleByte(loaded);
+            const fileDetail = currentFile ? `Bundle contains: ${currentFile}` : "Reading packaged game assets";
+            setProgress(
+              18 + (loaded / total) * 52,
+              match[1].trim() || "Downloading asset bundle",
+              `${fileDetail}  ${formatBytes(loaded)} / ${formatBytes(total)}`
+            );
           } else {
             setProgress(lastPercent, text, "Preparing the game");
           }

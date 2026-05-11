@@ -246,8 +246,8 @@ pub const ObjectStats = struct {
 
 pub fn defaultStats(kind: ObjectKind) ObjectStats {
     return switch (kind) {
-        .citadel => .{ .hp = 900, .range = 0, .damage_per_second = 0, .move_seconds = 999 },
-        .imperator => .{ .hp = 420, .range = 7.0, .damage_per_second = 42, .move_seconds = 0.55 },
+        .citadel => .{ .hp = 1800, .range = 0, .damage_per_second = 0, .move_seconds = 999 },
+        .imperator => .{ .hp = 900, .range = 7.0, .damage_per_second = 42, .move_seconds = 0.55 },
         .infantry => .{ .hp = 90, .range = 1.35, .damage_per_second = 12, .move_seconds = 0.30 },
         .captain => .{ .hp = 160, .range = 2.2, .damage_per_second = 18, .move_seconds = 0.38 },
         .artillery => .{ .hp = 120, .range = 4.8, .damage_per_second = 24, .move_seconds = 0.60 },

@@ -173,11 +173,9 @@ pub const Simulation = struct {
         _ = self;
         const profile = path.MovementProfile{ .allow_diagonal_movement = true };
         game_map.rebuildGrid(grid_map);
-        const p0_goal = if (game_map.findObject(.citadel, 0)) |target| approachTile(grid_map, target.*, profile) else null;
-        const p1_goal = if (game_map.findObject(.citadel, 1)) |target| approachTile(grid_map, target.*, profile) else null;
         var i: usize = 0;
         while (i < game_map.object_count) : (i += 1) {
-            var object = &game_map.objects[i];
+            const object = &game_map.objects[i];
             if (!object.active) continue;
             switch (object.kind) {
                 .infantry, .captain, .artillery, .imperator => {},
@@ -186,13 +184,11 @@ pub const Simulation = struct {
             const target_team: u8 = if (object.team == 0) 1 else 0;
             const start = path.TileCoord{ .x = object.x, .y = object.y };
             if (hasAdjacentEnemyContact(game_map, object.*)) continue;
-            const goal = if (target_team == 0) p0_goal orelse continue else p1_goal orelse continue;
+            const goal = movementGoalForUnit(game_map, grid_map, object.*, target_team, profile) orelse continue;
             const field = pathfinder.getFlowField(grid_map, goal, 0, profile) catch {
                 var route = pathfinder.findPath(grid_map, start, goal, profile) catch continue;
                 defer route.deinit();
-                if (route.tiles.len >= 2 and canAdvanceInto(game_map, route.tiles[1], object.*)) {
-                    object.x = route.tiles[1].x;
-                    object.y = route.tiles[1].y;
+                if (route.tiles.len >= 2 and advanceUnitToward(game_map, grid_map, object, route.tiles[1], goal, profile)) {
                     game_map.version += 1;
                 }
                 continue;
@@ -200,9 +196,7 @@ pub const Simulation = struct {
             const direction = field.directionAt(grid_map, start);
             const delta = direction.delta();
             const next = path.TileCoord{ .x = object.x + delta.x, .y = object.y + delta.y };
-            if (direction != .none and grid_map.isWalkableFor(next.x, next.y, profile) and canAdvanceInto(game_map, next, object.*)) {
-                object.x = next.x;
-                object.y = next.y;
+            if (direction != .none and advanceUnitToward(game_map, grid_map, object, next, goal, profile)) {
                 game_map.version += 1;
             }
         }
@@ -246,12 +240,19 @@ pub const Simulation = struct {
     fn checkGameOver(self: *Simulation, game_map: *map_mod.GameMap) bool {
         const p0 = game_map.findObject(.imperator, 0);
         const p1 = game_map.findObject(.imperator, 1);
-        if (p0 == null or !p0.?.active) {
+        const p0_lost = p0 == null or !p0.?.active;
+        const p1_lost = p1 == null or !p1.?.active;
+        if (p0_lost and p1_lost) {
+            self.phase = .game_over;
+            self.winner = null;
+            return true;
+        }
+        if (p0_lost) {
             self.phase = .game_over;
             self.winner = 1;
             return true;
         }
-        if (p1 == null or !p1.?.active) {
+        if (p1_lost) {
             self.phase = .game_over;
             self.winner = 0;
             return true;
@@ -291,6 +292,110 @@ fn canAdvanceInto(game_map: *map_mod.GameMap, coord: path.TileCoord, moving: map
         return false;
     }
     return true;
+}
+
+fn movementGoalForUnit(
+    game_map: *map_mod.GameMap,
+    grid_map: *const path.GridMap,
+    unit: map_mod.MapObject,
+    target_team: u8,
+    profile: path.MovementProfile,
+) ?path.TileCoord {
+    if (unit.kind != .imperator and shouldDefendCitadel(unit)) {
+        if (threatNearCitadel(game_map, unit.team)) |threat| {
+            if (approachTile(grid_map, threat, profile)) |goal| return goal;
+        }
+    }
+    if (game_map.findObject(.citadel, target_team)) |citadel| {
+        if (approachTile(grid_map, citadel.*, profile)) |goal| return goal;
+    }
+    if (game_map.findObject(.imperator, target_team)) |imperator| {
+        if (approachTile(grid_map, imperator.*, profile)) |goal| return goal;
+    }
+    return null;
+}
+
+fn shouldDefendCitadel(unit: map_mod.MapObject) bool {
+    return (unit.id + @as(u32, unit.team)) % 3 == 0;
+}
+
+fn threatNearCitadel(game_map: *map_mod.GameMap, team: u8) ?map_mod.MapObject {
+    const citadel = game_map.findObject(.citadel, team) orelse return null;
+    if (citadel.hp > citadel.max_hp * 0.68) return null;
+    var best: ?map_mod.MapObject = null;
+    var best_dist: f32 = 999999;
+    for (game_map.objects[0..game_map.object_count]) |object| {
+        if (!object.active or object.team == team or !isMobileUnit(object.kind)) continue;
+        const dist = tileDistanceSq(citadel.*, object);
+        if (dist > 72) continue;
+        if (dist < best_dist) {
+            best_dist = dist;
+            best = object;
+        }
+    }
+    return best;
+}
+
+fn advanceUnitToward(
+    game_map: *map_mod.GameMap,
+    grid_map: *const path.GridMap,
+    unit: *map_mod.MapObject,
+    preferred: path.TileCoord,
+    goal: path.TileCoord,
+    profile: path.MovementProfile,
+) bool {
+    if (canStepTo(game_map, grid_map, preferred, unit.*, profile)) {
+        unit.x = preferred.x;
+        unit.y = preferred.y;
+        return true;
+    }
+    const alternate = alternateStepToward(game_map, grid_map, unit.*, goal, profile) orelse return false;
+    unit.x = alternate.x;
+    unit.y = alternate.y;
+    return true;
+}
+
+fn canStepTo(
+    game_map: *map_mod.GameMap,
+    grid_map: *const path.GridMap,
+    coord: path.TileCoord,
+    unit: map_mod.MapObject,
+    profile: path.MovementProfile,
+) bool {
+    return grid_map.isWalkableFor(coord.x, coord.y, profile) and canAdvanceInto(game_map, coord, unit);
+}
+
+fn alternateStepToward(
+    game_map: *map_mod.GameMap,
+    grid_map: *const path.GridMap,
+    unit: map_mod.MapObject,
+    goal: path.TileCoord,
+    profile: path.MovementProfile,
+) ?path.TileCoord {
+    const start = path.TileCoord{ .x = unit.x, .y = unit.y };
+    const current_dist = coordDistanceSq(start, goal);
+    var best: ?path.TileCoord = null;
+    var best_score = current_dist;
+    const dirs = [_]path.Direction{ .north, .south, .west, .east, .north_west, .north_east, .south_west, .south_east };
+    const offset: usize = @intCast(unit.id % dirs.len);
+    for (0..dirs.len) |n| {
+        const dir = dirs[(n + offset) % dirs.len];
+        const delta = dir.delta();
+        const candidate = path.TileCoord{ .x = unit.x + delta.x, .y = unit.y + delta.y };
+        if (!canStepTo(game_map, grid_map, candidate, unit, profile)) continue;
+        const score = coordDistanceSq(candidate, goal);
+        if (score < best_score) {
+            best_score = score;
+            best = candidate;
+        }
+    }
+    return best;
+}
+
+fn coordDistanceSq(a: path.TileCoord, b: path.TileCoord) f32 {
+    const dx: f32 = @floatFromInt(a.x - b.x);
+    const dy: f32 = @floatFromInt(a.y - b.y);
+    return dx * dx + dy * dy;
 }
 
 fn hasAdjacentEnemyContact(game_map: *map_mod.GameMap, object: map_mod.MapObject) bool {
@@ -493,6 +598,39 @@ test "units resume citadel movement after contact enemy is destroyed" {
     try std.testing.expect(attacker.x != 4 or attacker.y != 5);
 }
 
+test "units target imperator after enemy citadel is destroyed" {
+    var grid = try path.GridMap.init(std.testing.allocator, map_mod.MapW, map_mod.MapH);
+    defer grid.deinit();
+    var game_map: map_mod.GameMap = .{};
+    _ = game_map.addObject(.citadel, 1, 5, 0, 0, 0);
+    _ = game_map.addObject(.imperator, 1, 7, 0, 0, 0);
+    _ = game_map.addObject(.citadel, 12, 5, 1, 1, 0);
+    _ = game_map.addObject(.imperator, 12, 7, 1, 1, 0);
+    const unit_id = game_map.addObject(.infantry, 4, 5, 0, 0, 0).?;
+    objectById(&game_map, 3).?.active = false;
+    game_map.rebuildGrid(&grid);
+
+    const goal = movementGoalForUnit(&game_map, &grid, objectById(&game_map, unit_id).?.*, 1, .{ .allow_diagonal_movement = true }) orelse return error.NoGoal;
+    try std.testing.expect(@abs(goal.x - 12) <= 1);
+    try std.testing.expect(@abs(goal.y - 7) <= 1);
+}
+
+test "some units defend damaged citadels" {
+    var grid = try path.GridMap.init(std.testing.allocator, map_mod.MapW, map_mod.MapH);
+    defer grid.deinit();
+    var game_map: map_mod.GameMap = .{};
+    const citadel_id = game_map.addObject(.citadel, 5, 5, 0, 0, 0).?;
+    _ = game_map.addObject(.infantry, 7, 5, 1, 1, 0);
+    const defender_id = game_map.addObject(.captain, 2, 5, 0, 0, 0).?;
+    const citadel = objectById(&game_map, citadel_id).?;
+    citadel.hp = citadel.max_hp * 0.4;
+    game_map.rebuildGrid(&grid);
+
+    const goal = movementGoalForUnit(&game_map, &grid, objectById(&game_map, defender_id).?.*, 1, .{ .allow_diagonal_movement = true }) orelse return error.NoGoal;
+    try std.testing.expect(@abs(goal.x - 7) <= 1);
+    try std.testing.expect(@abs(goal.y - 5) <= 1);
+}
+
 test "healing pods restore nearby allied units" {
     var game_map = map_mod.GameMap.initDefault();
     var sim: Simulation = .{};
@@ -509,6 +647,17 @@ test "healing pods restore nearby allied units" {
         }
     }
     try std.testing.expect(healed);
+}
+
+test "simultaneous imperator loss is a stalemate" {
+    var game_map = map_mod.GameMap.initDefault();
+    var sim: Simulation = .{ .phase = .playing };
+    game_map.findObject(.imperator, 0).?.active = false;
+    game_map.findObject(.imperator, 1).?.active = false;
+
+    try std.testing.expect(sim.checkGameOver(&game_map));
+    try std.testing.expectEqual(Phase.game_over, sim.phase);
+    try std.testing.expectEqual(@as(?u8, null), sim.winner);
 }
 
 test "portals move units to linked portal exits" {

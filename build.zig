@@ -371,6 +371,7 @@ fn makeWebAssetBundle(b: *std.Build) std.Build.LazyPath {
 
     while (walker.next() catch @panic("failed to walk assets directory")) |entry| {
         if (entry.kind != .file) continue;
+        if (isWebBundleExcludedAssetPath(entry.path)) continue;
         const is_png = endsWithIgnoreCase(entry.basename, ".png");
         if (is_png and !isRuntimeAssetPath(entry.path) and !isBrandingAssetPath(entry.path)) {
             paths.append(b.allocator, b.dupe(entry.path)) catch @panic("OOM");
@@ -435,4 +436,8 @@ fn isBrandingAssetPath(path: []const u8) bool {
 
 fn isRawBackgroundSheetPath(path: []const u8) bool {
     return std.mem.startsWith(u8, path, "tilesets/arid_badlands/backgrounds/") and endsWithIgnoreCase(path, ".png");
+}
+
+fn isWebBundleExcludedAssetPath(path: []const u8) bool {
+    return endsWithIgnoreCase(path, ".DS_Store") or endsWithIgnoreCase(path, ".ogg");
 }
