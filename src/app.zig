@@ -2196,7 +2196,7 @@ pub const AppState = struct {
         if (self.editor.show_pathing) self.drawPathingOverlay();
         if (self.editor.show_sectors) self.drawSectorOverlay();
         if (self.editor.show_portals) self.drawPortalOverlay();
-        if (self.editor.show_grid) self.drawGrid();
+        if (self.shouldDrawEditorGrid()) self.drawGrid();
         if (self.editor.show_objects) self.drawObjects();
         self.drawEditorPreviewOverlay();
         self.drawStartMenuBranding();
@@ -2287,6 +2287,10 @@ pub const AppState = struct {
     fn updateStarfield(self: *AppState, dt: f32) void {
         self.starfield_time += dt;
         if (self.starfield_time > 3600) self.starfield_time -= 3600;
+    }
+
+    fn shouldDrawEditorGrid(self: *const AppState) bool {
+        return self.editor.show_grid and self.game_shell_screen == .map_editor;
     }
 
     fn drawTerrain(self: *AppState) void {
