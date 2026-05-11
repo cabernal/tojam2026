@@ -41,6 +41,7 @@ const LaserParticleVertices = 12;
 const MaxLaserFxVertices = MaxLaserBeams * LaserBeamVertices + MaxLaserParticles * LaserParticleVertices;
 const LaserBeamLife: f32 = 0.13;
 const LaserEmitterIdleSeconds: f32 = 0.75;
+const CrtFilterIntensity: f32 = 0.82;
 const StarParallaxLayers = [_]StarLayer{
     .{ .count = 880, .parallax = 0.010, .zoom_reactivity = 0.030, .drift_x = 8.0, .drift_y = 1.8, .radius_min = 0.46, .radius_range = 0.62, .alpha = 0.36, .tint = .{ 0.62, 0.78, 0.96 } },
     .{ .count = 720, .parallax = 0.022, .zoom_reactivity = 0.055, .drift_x = 13.0, .drift_y = 3.0, .radius_min = 0.56, .radius_range = 0.84, .alpha = 0.44, .tint = .{ 0.78, 0.84, 0.98 } },
@@ -247,6 +248,16 @@ const LaserFxVertex = extern struct {
     color: [4]f32 = .{ 1, 1, 1, 1 },
 };
 
+const ScreenFxVertex = extern struct {
+    position: [2]f32 = .{ 0, 0 },
+    uv: [2]f32 = .{ 0, 0 },
+};
+
+const ScreenFxUniforms = extern struct {
+    resolution_time_intensity: [4]f32 = .{ 0, 0, 0, 0 },
+    tuning: [4]f32 = .{ 0, 0, 0, 0 },
+};
+
 pub const PerfStats = struct {
     frame_ms: f32 = 0,
     fps: f32 = 0,
@@ -286,6 +297,10 @@ pub const AppState = struct {
     laser_fx_shader: sg.Shader = .{},
     laser_fx_pipeline: sg.Pipeline = .{},
     laser_fx_vertex_buffer: sg.Buffer = .{},
+    screen_fx_shader: sg.Shader = .{},
+    screen_fx_pipeline: sg.Pipeline = .{},
+    screen_fx_vertex_buffer: sg.Buffer = .{},
+    crt_filter_enabled: bool = false,
     initialized: bool = false,
     allow_editor: bool = true,
     loading: LoadingState = .{},
@@ -373,6 +388,7 @@ pub const AppState = struct {
             .wrap_v = .CLAMP_TO_EDGE,
         });
         self.initLaserFxPipeline();
+        self.initScreenFxPipeline();
 
         self.initialized = true;
     }
@@ -385,6 +401,9 @@ pub const AppState = struct {
         if (self.laser_fx_vertex_buffer.id != 0) sg.destroyBuffer(self.laser_fx_vertex_buffer);
         if (self.laser_fx_pipeline.id != 0) sg.destroyPipeline(self.laser_fx_pipeline);
         if (self.laser_fx_shader.id != 0) sg.destroyShader(self.laser_fx_shader);
+        if (self.screen_fx_vertex_buffer.id != 0) sg.destroyBuffer(self.screen_fx_vertex_buffer);
+        if (self.screen_fx_pipeline.id != 0) sg.destroyPipeline(self.screen_fx_pipeline);
+        if (self.screen_fx_shader.id != 0) sg.destroyShader(self.screen_fx_shader);
         if (self.sampler.id != 0) sg.destroySampler(self.sampler);
         if (self.alpha_pipeline.id != 0) sgl.destroyPipeline(self.alpha_pipeline);
         self.object_sprites.deinit();
@@ -481,6 +500,7 @@ pub const AppState = struct {
         simgui.render();
         const imgui_render_end = stime.now();
         smoothMs(&self.perf.imgui_render_ms, elapsedMs(imgui_render_start, imgui_render_end));
+        self.drawScreenFxOverlay();
         const submit_start = stime.now();
         sg.endPass();
         sg.commit();
@@ -833,7 +853,7 @@ pub const AppState = struct {
     fn drawSoundShell(self: *AppState) void {
         const panel_w = @min(420, @max(300, sapp.widthf() - 48));
         c.igSetNextWindowPos(uiV2(sapp.widthf() * 0.5, sapp.heightf() * 0.5), c.ImGuiCond_Always, uiV2(0.5, 0.5));
-        c.igSetNextWindowSize(uiV2(panel_w, 310), c.ImGuiCond_Always);
+        c.igSetNextWindowSize(uiV2(panel_w, 350), c.ImGuiCond_Always);
         c.igSetNextWindowBgAlpha(0.94);
         self.pushShellStyle();
         defer c.igPopStyleColor(3);
@@ -858,6 +878,10 @@ pub const AppState = struct {
         c.igTextUnformatted(music_z.ptr, null);
         if (c.igButton("Skip Song", uiV2(-1, 28))) self.nextMusicTrack(true);
         if (c.igButton(self.musicMuteLabel().ptr, uiV2(-1, 28))) self.toggleMusicMute();
+
+        c.igSeparator();
+        c.igTextUnformatted("Visuals", null);
+        _ = c.igCheckbox("CRT / scanline filter", &self.crt_filter_enabled);
 
         c.igSeparator();
         if (c.igButton("Back", uiV2(-1, 30))) self.enterMainMenuShell();
@@ -1766,6 +1790,61 @@ pub const AppState = struct {
             .size = @sizeOf(LaserFxVertex) * MaxLaserFxVertices,
             .label = "laser-fx-vertices",
         });
+    }
+
+    fn initScreenFxPipeline(self: *AppState) void {
+        self.screen_fx_shader = sg.makeShader(screenFxShaderDesc());
+
+        var pipeline_desc: sg.PipelineDesc = .{};
+        pipeline_desc.shader = self.screen_fx_shader;
+        pipeline_desc.layout.buffers[0].stride = @sizeOf(ScreenFxVertex);
+        pipeline_desc.layout.attrs[0].format = .FLOAT2;
+        pipeline_desc.layout.attrs[0].offset = @offsetOf(ScreenFxVertex, "position");
+        pipeline_desc.layout.attrs[1].format = .FLOAT2;
+        pipeline_desc.layout.attrs[1].offset = @offsetOf(ScreenFxVertex, "uv");
+        pipeline_desc.color_count = 1;
+        pipeline_desc.colors[0].blend.enabled = true;
+        pipeline_desc.colors[0].blend.src_factor_rgb = .SRC_ALPHA;
+        pipeline_desc.colors[0].blend.dst_factor_rgb = .ONE_MINUS_SRC_ALPHA;
+        pipeline_desc.colors[0].blend.src_factor_alpha = .ONE;
+        pipeline_desc.colors[0].blend.dst_factor_alpha = .ONE_MINUS_SRC_ALPHA;
+        pipeline_desc.primitive_type = .TRIANGLES;
+        pipeline_desc.label = "screen-fx-pipeline";
+        self.screen_fx_pipeline = sg.makePipeline(pipeline_desc);
+
+        const vertices = [_]ScreenFxVertex{
+            .{ .position = .{ -1, -1 }, .uv = .{ 0, 1 } },
+            .{ .position = .{ 1, -1 }, .uv = .{ 1, 1 } },
+            .{ .position = .{ 1, 1 }, .uv = .{ 1, 0 } },
+            .{ .position = .{ -1, -1 }, .uv = .{ 0, 1 } },
+            .{ .position = .{ 1, 1 }, .uv = .{ 1, 0 } },
+            .{ .position = .{ -1, 1 }, .uv = .{ 0, 0 } },
+        };
+        self.screen_fx_vertex_buffer = sg.makeBuffer(.{
+            .usage = .{ .vertex_buffer = true, .immutable = true },
+            .data = sg.asRange(&vertices),
+            .label = "screen-fx-vertices",
+        });
+    }
+
+    fn drawScreenFxOverlay(self: *AppState) void {
+        if (!self.crt_filter_enabled) return;
+        if (self.screen_fx_pipeline.id == 0 or self.screen_fx_vertex_buffer.id == 0) return;
+        var bindings: sg.Bindings = .{};
+        bindings.vertex_buffers[0] = self.screen_fx_vertex_buffer;
+        const uniforms = ScreenFxUniforms{
+            .resolution_time_intensity = .{
+                @max(1, sapp.widthf()),
+                @max(1, sapp.heightf()),
+                @floatCast(stime.sec(stime.now())),
+                CrtFilterIntensity,
+            },
+            .tuning = .{ 0.18, 0.08, 0.20, 0.14 },
+        };
+        sg.applyPipeline(self.screen_fx_pipeline);
+        sg.applyBindings(bindings);
+        sg.applyUniforms(0, sg.asRange(&uniforms));
+        sg.draw(0, 6, 1);
     }
 
     fn configureStartupMode(self: *AppState) void {
@@ -3267,6 +3346,49 @@ fn destroySprite(sprite: *Sprite) void {
     sprite.* = .{};
 }
 
+fn screenFxShaderDesc() sg.ShaderDesc {
+    var desc: sg.ShaderDesc = .{};
+    desc.vertex_func.source = screenFxVertexShaderSource();
+    desc.fragment_func.source = screenFxFragmentShaderSource();
+    if (usesMetalBackend()) {
+        desc.vertex_func.entry = "vs_main";
+        desc.fragment_func.entry = "fs_main";
+    }
+    desc.attrs[0] = .{ .base_type = .FLOAT, .glsl_name = "position", .hlsl_sem_name = "POSITION" };
+    desc.attrs[1] = .{ .base_type = .FLOAT, .glsl_name = "uv0", .hlsl_sem_name = "TEXCOORD" };
+    desc.uniform_blocks[0] = .{
+        .stage = .FRAGMENT,
+        .size = @sizeOf(ScreenFxUniforms),
+        .msl_buffer_n = 0,
+        .glsl_uniforms = blk: {
+            var uniforms = [_]sg.GlslShaderUniform{.{}} ** 16;
+            uniforms[0] = .{ .type = .FLOAT4, .glsl_name = "resolution_time_intensity" };
+            uniforms[1] = .{ .type = .FLOAT4, .glsl_name = "tuning" };
+            break :blk uniforms;
+        },
+    };
+    desc.label = "screen-fx-shader";
+    return desc;
+}
+
+fn screenFxVertexShaderSource() [*c]const u8 {
+    return if (usesMetalBackend())
+        MetalScreenFxVs.ptr
+    else if (builtin.target.os.tag == .emscripten)
+        GlesScreenFxVs.ptr
+    else
+        GlCoreScreenFxVs.ptr;
+}
+
+fn screenFxFragmentShaderSource() [*c]const u8 {
+    return if (usesMetalBackend())
+        MetalScreenFxFs.ptr
+    else if (builtin.target.os.tag == .emscripten)
+        GlesScreenFxFs.ptr
+    else
+        GlCoreScreenFxFs.ptr;
+}
+
 fn laserFxShaderDesc() sg.ShaderDesc {
     var desc: sg.ShaderDesc = .{};
     desc.vertex_func.source = laserFxVertexShaderSource();
@@ -3302,6 +3424,151 @@ fn laserFxFragmentShaderSource() [*c]const u8 {
 fn usesMetalBackend() bool {
     return builtin.target.os.tag.isDarwin();
 }
+
+const MetalScreenFxVs =
+    \\#include <metal_stdlib>
+    \\using namespace metal;
+    \\
+    \\struct VsIn {
+    \\    float2 position [[attribute(0)]];
+    \\    float2 uv0 [[attribute(1)]];
+    \\};
+    \\
+    \\struct VsOut {
+    \\    float4 position [[position]];
+    \\    float2 uv0;
+    \\};
+    \\
+    \\vertex VsOut vs_main(VsIn in [[stage_in]]) {
+    \\    VsOut out;
+    \\    out.position = float4(in.position, 0.0, 1.0);
+    \\    out.uv0 = in.uv0;
+    \\    return out;
+    \\}
+;
+
+const MetalScreenFxFs =
+    \\#include <metal_stdlib>
+    \\using namespace metal;
+    \\
+    \\struct FsIn {
+    \\    float4 position [[position]];
+    \\    float2 uv0;
+    \\};
+    \\
+    \\struct Uniforms {
+    \\    float4 resolution_time_intensity;
+    \\    float4 tuning;
+    \\};
+    \\
+    \\static float bayer4(float2 p) {
+    \\    int x = int(fmod(p.x, 4.0));
+    \\    int y = int(fmod(p.y, 4.0));
+    \\    int idx = y * 4 + x;
+    \\    const float values[16] = { 0.0, 8.0, 2.0, 10.0, 12.0, 4.0, 14.0, 6.0, 3.0, 11.0, 1.0, 9.0, 15.0, 7.0, 13.0, 5.0 };
+    \\    return values[idx] / 16.0;
+    \\}
+    \\
+    \\fragment float4 fs_main(FsIn in [[stage_in]], constant Uniforms& u [[buffer(0)]]) {
+    \\    float2 resolution = max(u.resolution_time_intensity.xy, float2(1.0));
+    \\    float time = u.resolution_time_intensity.z;
+    \\    float strength = u.resolution_time_intensity.w;
+    \\    float2 frag = in.uv0 * resolution;
+    \\    float scan = 0.5 + 0.5 * sin((frag.y + time * 10.0) * 3.14159265);
+    \\    float2 centered = in.uv0 * 2.0 - 1.0;
+    \\    float vignette = smoothstep(0.55, 1.35, dot(centered, centered));
+    \\    float dither = step(0.72, bayer4(floor(frag * 0.5)));
+    \\    float mask = fmod(floor(frag.x), 3.0);
+    \\    float3 phosphor = mask < 1.0 ? float3(0.55, 0.10, 0.10) : (mask < 2.0 ? float3(0.10, 0.42, 0.14) : float3(0.10, 0.20, 0.62));
+    \\    float alpha = strength * (u.tuning.x * (1.0 - scan) + u.tuning.y * dither + u.tuning.z * vignette);
+    \\    alpha = clamp(alpha, 0.0, 0.34);
+    \\    return float4(phosphor * 0.42, alpha + strength * u.tuning.w * 0.05);
+    \\}
+;
+
+const GlesScreenFxVs =
+    \\#version 300 es
+    \\precision mediump float;
+    \\layout(location=0) in vec2 position;
+    \\layout(location=1) in vec2 uv0;
+    \\out vec2 v_uv0;
+    \\void main() {
+    \\    gl_Position = vec4(position, 0.0, 1.0);
+    \\    v_uv0 = uv0;
+    \\}
+;
+
+const GlesScreenFxFs =
+    \\#version 300 es
+    \\precision mediump float;
+    \\in vec2 v_uv0;
+    \\out vec4 frag_color;
+    \\uniform vec4 resolution_time_intensity;
+    \\uniform vec4 tuning;
+    \\float bayer4(vec2 p) {
+    \\    int x = int(mod(p.x, 4.0));
+    \\    int y = int(mod(p.y, 4.0));
+    \\    int idx = y * 4 + x;
+    \\    float values[16] = float[16](0.0, 8.0, 2.0, 10.0, 12.0, 4.0, 14.0, 6.0, 3.0, 11.0, 1.0, 9.0, 15.0, 7.0, 13.0, 5.0);
+    \\    return values[idx] / 16.0;
+    \\}
+    \\void main() {
+    \\    vec2 resolution = max(resolution_time_intensity.xy, vec2(1.0));
+    \\    float time = resolution_time_intensity.z;
+    \\    float strength = resolution_time_intensity.w;
+    \\    vec2 frag = v_uv0 * resolution;
+    \\    float scan = 0.5 + 0.5 * sin((frag.y + time * 10.0) * 3.14159265);
+    \\    vec2 centered = v_uv0 * 2.0 - 1.0;
+    \\    float vignette = smoothstep(0.55, 1.35, dot(centered, centered));
+    \\    float dither = step(0.72, bayer4(floor(frag * 0.5)));
+    \\    float mask = mod(floor(frag.x), 3.0);
+    \\    vec3 phosphor = mask < 1.0 ? vec3(0.55, 0.10, 0.10) : (mask < 2.0 ? vec3(0.10, 0.42, 0.14) : vec3(0.10, 0.20, 0.62));
+    \\    float alpha = strength * (tuning.x * (1.0 - scan) + tuning.y * dither + tuning.z * vignette);
+    \\    alpha = clamp(alpha, 0.0, 0.34);
+    \\    frag_color = vec4(phosphor * 0.42, alpha + strength * tuning.w * 0.05);
+    \\}
+;
+
+const GlCoreScreenFxVs =
+    \\#version 330
+    \\layout(location=0) in vec2 position;
+    \\layout(location=1) in vec2 uv0;
+    \\out vec2 v_uv0;
+    \\void main() {
+    \\    gl_Position = vec4(position, 0.0, 1.0);
+    \\    v_uv0 = uv0;
+    \\}
+;
+
+const GlCoreScreenFxFs =
+    \\#version 330
+    \\in vec2 v_uv0;
+    \\out vec4 frag_color;
+    \\uniform vec4 resolution_time_intensity;
+    \\uniform vec4 tuning;
+    \\float bayer4(vec2 p) {
+    \\    int x = int(mod(p.x, 4.0));
+    \\    int y = int(mod(p.y, 4.0));
+    \\    int idx = y * 4 + x;
+    \\    float values[16] = float[16](0.0, 8.0, 2.0, 10.0, 12.0, 4.0, 14.0, 6.0, 3.0, 11.0, 1.0, 9.0, 15.0, 7.0, 13.0, 5.0);
+    \\    return values[idx] / 16.0;
+    \\}
+    \\void main() {
+    \\    vec2 resolution = max(resolution_time_intensity.xy, vec2(1.0));
+    \\    float time = resolution_time_intensity.z;
+    \\    float strength = resolution_time_intensity.w;
+    \\    vec2 frag = v_uv0 * resolution;
+    \\    float scan = 0.5 + 0.5 * sin((frag.y + time * 10.0) * 3.14159265);
+    \\    vec2 centered = v_uv0 * 2.0 - 1.0;
+    \\    float vignette = smoothstep(0.55, 1.35, dot(centered, centered));
+    \\    float dither = step(0.72, bayer4(floor(frag * 0.5)));
+    \\    float mask = mod(floor(frag.x), 3.0);
+    \\    vec3 phosphor = mask < 1.0 ? vec3(0.55, 0.10, 0.10) : (mask < 2.0 ? vec3(0.10, 0.42, 0.14) : vec3(0.10, 0.20, 0.62));
+    \\    float alpha = strength * (tuning.x * (1.0 - scan) + tuning.y * dither + tuning.z * vignette);
+    \\    alpha = clamp(alpha, 0.0, 0.34);
+    \\    frag_color = vec4(phosphor * 0.42, alpha + strength * tuning.w * 0.05);
+    \\}
+;
 
 const MetalLaserFxVs =
     \\#include <metal_stdlib>
