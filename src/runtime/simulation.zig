@@ -7,7 +7,16 @@ const LowHealthPct: f32 = 0.45;
 const GuardDamagePct: f32 = 0.05;
 const RetreatDamagePct: f32 = 0.14;
 const DrawSeconds: f32 = 18.0;
+const ObjectiveGuardRadiusSq: f32 = 25.0;
+const ObjectiveThreatRadiusSq: f32 = 81.0;
+const ObjectiveGuardMin: usize = 1;
 pub const MaxShotEvents = 96;
+pub const SetupCoreObjectiveLimit: usize = 1;
+pub const SetupMobileUnitLimit: usize = 14;
+pub const SetupPortalLimit: usize = 2;
+pub const SetupHealingPodLimit: usize = 2;
+pub const SetupCombatStructureLimit: usize = 4;
+pub const SetupObstacleLimit: usize = 12;
 
 pub const Phase = enum {
     setup_player_one,
@@ -34,6 +43,17 @@ pub const ShotEvent = struct {
     end_y: f32 = 0,
     damage: f32 = 0,
 };
+
+pub fn setupPlacementLimit(kind: map_mod.ObjectKind) usize {
+    return switch (kind) {
+        .citadel, .imperator => SetupCoreObjectiveLimit,
+        .infantry, .captain, .artillery => SetupMobileUnitLimit,
+        .portal => SetupPortalLimit,
+        .healing_pod => SetupHealingPodLimit,
+        .outpost, .defense_grid => SetupCombatStructureLimit,
+        .obstacle => SetupObstacleLimit,
+    };
+}
 
 pub const Simulation = struct {
     phase: Phase = .setup_player_one,
@@ -101,11 +121,12 @@ pub const Simulation = struct {
             }
         }
         return switch (kind) {
-            .citadel, .imperator => matching < 1,
-            .infantry, .captain, .artillery => mobile_units < 14,
-            .portal, .healing_pod => matching < 2,
-            .outpost, .defense_grid => static_structures < 4,
-            .obstacle => matching < 12,
+            .citadel, .imperator => matching < SetupCoreObjectiveLimit,
+            .infantry, .captain, .artillery => mobile_units < SetupMobileUnitLimit,
+            .portal => matching < SetupPortalLimit,
+            .healing_pod => matching < SetupHealingPodLimit,
+            .outpost, .defense_grid => static_structures < SetupCombatStructureLimit,
+            .obstacle => matching < SetupObstacleLimit,
         };
     }
 
@@ -286,7 +307,8 @@ pub const Simulation = struct {
             if (heal_per_second <= 0) continue;
             const range_sq = stats.range * stats.range;
             for (game_map.objects[0..game_map.object_count]) |*target| {
-                if (!target.active or target.team != healer.team or target.id == healer.id) continue;
+                if (!target.active or target.team != healer.team) continue;
+                if (target.id == healer.id and healer.kind != .citadel) continue;
                 if (target.hp >= target.max_hp) continue;
                 const dx: f32 = @floatFromInt(healer.x - target.x);
                 const dy: f32 = @floatFromInt(healer.y - target.y);
@@ -313,15 +335,21 @@ pub const Simulation = struct {
     }
 
     fn checkGameOver(self: *Simulation, game_map: *map_mod.GameMap) bool {
-        const p0 = game_map.findObject(.imperator, 0);
-        const p1 = game_map.findObject(.imperator, 1);
-        if (p0 == null or !p0.?.active) {
+        const p0_lost = teamLostVitalObjective(game_map, 0);
+        const p1_lost = teamLostVitalObjective(game_map, 1);
+        if (p0_lost and p1_lost) {
+            self.phase = .game_over;
+            self.winner = null;
+            self.outcome = .draw;
+            return true;
+        }
+        if (p0_lost) {
             self.phase = .game_over;
             self.winner = 1;
             self.outcome = .victory;
             return true;
         }
-        if (p1 == null or !p1.?.active) {
+        if (p1_lost) {
             self.phase = .game_over;
             self.winner = 0;
             self.outcome = .victory;
@@ -331,17 +359,22 @@ pub const Simulation = struct {
     }
 };
 
+fn teamLostVitalObjective(game_map: *map_mod.GameMap, team: u8) bool {
+    return game_map.findObject(.imperator, team) == null or game_map.findObject(.citadel, team) == null;
+}
+
 fn chooseUnitGoal(
     game_map: *map_mod.GameMap,
     grid_map: *const path.GridMap,
     object: map_mod.MapObject,
     profile: path.MovementProfile,
 ) ?path.TileCoord {
+    if (objectiveGuardGoal(game_map, grid_map, object, profile)) |goal| return goal;
+    if (threatenedObjective(game_map, grid_map, object.team, .imperator, profile)) |goal| return goal;
+    if (threatenedObjective(game_map, grid_map, object.team, .citadel, profile)) |goal| return goal;
     if (object.hp <= object.max_hp * LowHealthPct) {
         if (nearestFriendlyHealerGoal(game_map, grid_map, object, profile)) |goal| return goal;
     }
-    if (threatenedObjective(game_map, grid_map, object.team, .imperator, profile)) |goal| return goal;
-    if (threatenedObjective(game_map, grid_map, object.team, .citadel, profile)) |goal| return goal;
     const enemy_team: u8 = if (object.team == 0) 1 else 0;
     if (game_map.findObject(.imperator, enemy_team)) |target| {
         if (approachTile(grid_map, target.*, profile)) |goal| return goal;
@@ -350,6 +383,64 @@ fn chooseUnitGoal(
         if (approachTile(grid_map, target.*, profile)) |goal| return goal;
     }
     return null;
+}
+
+fn objectiveGuardGoal(
+    game_map: *map_mod.GameMap,
+    grid_map: *const path.GridMap,
+    object: map_mod.MapObject,
+    profile: path.MovementProfile,
+) ?path.TileCoord {
+    if (!isMobileUnit(object.kind) or object.kind == .imperator) return null;
+    if (currentGuardGoal(game_map, object, .imperator)) |goal| return goal;
+    if (currentGuardGoal(game_map, object, .citadel)) |goal| return goal;
+    if (unguardedObjectiveGoal(game_map, grid_map, object, .imperator, profile)) |goal| return goal;
+    if (unguardedObjectiveGoal(game_map, grid_map, object, .citadel, profile)) |goal| return goal;
+    return null;
+}
+
+fn currentGuardGoal(game_map: *map_mod.GameMap, object: map_mod.MapObject, objective_kind: map_mod.ObjectKind) ?path.TileCoord {
+    const objective = game_map.findObject(objective_kind, object.team) orelse return null;
+    if (!objectiveNeedsGuard(game_map, objective.*)) return null;
+    if (tileDistanceSq(object, objective.*) > ObjectiveGuardRadiusSq) return null;
+    if (countObjectiveGuards(game_map, objective.*, object.id) >= ObjectiveGuardMin) return null;
+    return .{ .x = object.x, .y = object.y };
+}
+
+fn unguardedObjectiveGoal(
+    game_map: *map_mod.GameMap,
+    grid_map: *const path.GridMap,
+    object: map_mod.MapObject,
+    objective_kind: map_mod.ObjectKind,
+    profile: path.MovementProfile,
+) ?path.TileCoord {
+    const objective = game_map.findObject(objective_kind, object.team) orelse return null;
+    if (!objectiveNeedsGuard(game_map, objective.*)) return null;
+    if (countObjectiveGuards(game_map, objective.*, object.id) >= ObjectiveGuardMin) return null;
+    if (tileDistanceSq(object, objective.*) <= ObjectiveGuardRadiusSq) {
+        return .{ .x = object.x, .y = object.y };
+    }
+    return approachTile(grid_map, objective.*, profile);
+}
+
+fn objectiveNeedsGuard(game_map: *map_mod.GameMap, objective: map_mod.MapObject) bool {
+    if (objective.recent_damage >= objective.max_hp * GuardDamagePct) return true;
+    if (objective.hp <= objective.max_hp * 0.82) return true;
+    for (game_map.objects[0..game_map.object_count]) |object| {
+        if (!object.active or object.team == objective.team or !isTargetable(object.kind)) continue;
+        if (tileDistanceSq(object, objective) <= ObjectiveThreatRadiusSq) return true;
+    }
+    return false;
+}
+
+fn countObjectiveGuards(game_map: *map_mod.GameMap, objective: map_mod.MapObject, moving_id: u32) usize {
+    var count: usize = 0;
+    for (game_map.objects[0..game_map.object_count]) |object| {
+        if (!object.active or object.id == moving_id) continue;
+        if (object.team != objective.team or object.kind == .imperator or !isMobileUnit(object.kind)) continue;
+        if (tileDistanceSq(object, objective) <= ObjectiveGuardRadiusSq) count += 1;
+    }
+    return count;
 }
 
 fn nearestFriendlyHealerGoal(
@@ -699,6 +790,56 @@ test "combat prioritizes imperator before citadel" {
     try std.testing.expect(imperator.hp < imperator.max_hp);
 }
 
+test "destroying either vital objective ends the game" {
+    var game_map: map_mod.GameMap = .{};
+    const p0_citadel_id = game_map.addObject(.citadel, 1, 5, 0, 0, 0).?;
+    _ = game_map.addObject(.imperator, 1, 7, 0, 0, 0);
+    _ = game_map.addObject(.citadel, 12, 5, 1, 1, 0);
+    _ = game_map.addObject(.imperator, 12, 7, 1, 1, 0);
+    objectById(&game_map, p0_citadel_id).?.active = false;
+
+    var sim: Simulation = .{ .phase = .playing };
+    try std.testing.expect(sim.checkGameOver(&game_map));
+    try std.testing.expectEqual(Phase.game_over, sim.phase);
+    try std.testing.expectEqual(Outcome.victory, sim.outcome);
+    try std.testing.expectEqual(@as(?u8, 1), sim.winner);
+}
+
+test "simultaneous vital objective loss is a draw" {
+    var game_map: map_mod.GameMap = .{};
+    const p0_citadel_id = game_map.addObject(.citadel, 1, 5, 0, 0, 0).?;
+    _ = game_map.addObject(.imperator, 1, 7, 0, 0, 0);
+    _ = game_map.addObject(.citadel, 12, 5, 1, 1, 0);
+    const p1_imperator_id = game_map.addObject(.imperator, 12, 7, 1, 1, 0).?;
+    objectById(&game_map, p0_citadel_id).?.active = false;
+    objectById(&game_map, p1_imperator_id).?.active = false;
+
+    var sim: Simulation = .{ .phase = .playing };
+    try std.testing.expect(sim.checkGameOver(&game_map));
+    try std.testing.expectEqual(Phase.game_over, sim.phase);
+    try std.testing.expectEqual(Outcome.draw, sim.outcome);
+    try std.testing.expect(sim.winner == null);
+}
+
+test "setup mobile unit allotment is symmetric" {
+    var game_map: map_mod.GameMap = .{};
+    var sim: Simulation = .{ .phase = .setup_player_one };
+    var i: usize = 0;
+    while (i < SetupMobileUnitLimit) : (i += 1) {
+        _ = game_map.addObject(.infantry, @as(i32, @intCast(i)) + 1, 1, 0, 0, 0);
+    }
+    try std.testing.expect(!sim.canPlaceObject(&game_map, .captain, 0));
+    try std.testing.expect(!sim.canPlaceObject(&game_map, .infantry, 1));
+
+    sim.phase = .setup_player_two;
+    try std.testing.expect(sim.canPlaceObject(&game_map, .captain, 1));
+    i = 0;
+    while (i < SetupMobileUnitLimit) : (i += 1) {
+        _ = game_map.addObject(.artillery, @as(i32, @intCast(i)) + 1, 3, 1, 1, 1);
+    }
+    try std.testing.expect(!sim.canPlaceObject(&game_map, .infantry, 1));
+}
+
 test "low health units move toward friendly healing" {
     var grid = try path.GridMap.init(std.testing.allocator, map_mod.MapW, map_mod.MapH);
     defer grid.deinit();
@@ -722,6 +863,63 @@ test "low health units move toward friendly healing" {
     const after = objectById(&game_map, unit_id).?;
     const after_dist = @abs(after.x - 3) + @abs(after.y - 5);
     try std.testing.expect(after_dist < before_dist);
+}
+
+test "guards leave quiet citadels to join the attack" {
+    var grid = try path.GridMap.init(std.testing.allocator, map_mod.MapW, map_mod.MapH);
+    defer grid.deinit();
+    var game_map: map_mod.GameMap = .{};
+    _ = game_map.addObject(.citadel, 4, 5, 0, 0, 0);
+    _ = game_map.addObject(.imperator, 12, 5, 0, 0, 0);
+    _ = game_map.addObject(.citadel, 20, 5, 1, 1, 0);
+    _ = game_map.addObject(.imperator, 22, 5, 1, 1, 0);
+    const guard_id = game_map.addObject(.infantry, 5, 5, 0, 0, 0).?;
+    game_map.rebuildGrid(&grid);
+
+    const guard = objectById(&game_map, guard_id).?.*;
+    const goal = chooseUnitGoal(&game_map, &grid, guard, .{ .allow_diagonal_movement = true }) orelse return error.NoGoal;
+    try std.testing.expect(goal.x != guard.x or goal.y != guard.y);
+    try std.testing.expect(@abs(goal.x - 22) <= 1);
+    try std.testing.expect(@abs(goal.y - 5) <= 1);
+}
+
+test "guards stay only when enemies threaten the citadel" {
+    var grid = try path.GridMap.init(std.testing.allocator, map_mod.MapW, map_mod.MapH);
+    defer grid.deinit();
+    var game_map: map_mod.GameMap = .{};
+    _ = game_map.addObject(.citadel, 4, 5, 0, 0, 0);
+    _ = game_map.addObject(.imperator, 12, 5, 0, 0, 0);
+    _ = game_map.addObject(.citadel, 20, 5, 1, 1, 0);
+    _ = game_map.addObject(.imperator, 22, 5, 1, 1, 0);
+    const guard_id = game_map.addObject(.infantry, 5, 5, 0, 0, 0).?;
+    _ = game_map.addObject(.infantry, 8, 5, 1, 1, 1);
+    game_map.rebuildGrid(&grid);
+
+    const guard = objectById(&game_map, guard_id).?.*;
+    const goal = chooseUnitGoal(&game_map, &grid, guard, .{ .allow_diagonal_movement = true }) orelse return error.NoGoal;
+    try std.testing.expectEqual(guard.x, goal.x);
+    try std.testing.expectEqual(guard.y, goal.y);
+}
+
+test "damaged citadels call free units toward nearby threats" {
+    var grid = try path.GridMap.init(std.testing.allocator, map_mod.MapW, map_mod.MapH);
+    defer grid.deinit();
+    var game_map: map_mod.GameMap = .{};
+    const citadel_id = game_map.addObject(.citadel, 4, 5, 0, 0, 0).?;
+    _ = game_map.addObject(.imperator, 12, 5, 0, 0, 0);
+    _ = game_map.addObject(.citadel, 20, 5, 1, 1, 0);
+    _ = game_map.addObject(.imperator, 22, 5, 1, 1, 0);
+    _ = game_map.addObject(.infantry, 5, 5, 0, 0, 0);
+    _ = game_map.addObject(.captain, 11, 5, 0, 0, 0);
+    const defender_id = game_map.addObject(.artillery, 9, 8, 0, 0, 0).?;
+    _ = game_map.addObject(.infantry, 6, 5, 1, 1, 1);
+    objectById(&game_map, citadel_id).?.recent_damage = objectById(&game_map, citadel_id).?.max_hp * 0.1;
+    game_map.rebuildGrid(&grid);
+
+    const defender = objectById(&game_map, defender_id).?.*;
+    const goal = chooseUnitGoal(&game_map, &grid, defender, .{ .allow_diagonal_movement = true }) orelse return error.NoGoal;
+    try std.testing.expect(@abs(goal.x - 6) <= 1);
+    try std.testing.expect(@abs(goal.y - 5) <= 1);
 }
 
 test "quiet battle with both imperators alive becomes a draw" {
@@ -788,6 +986,21 @@ test "healing pods restore nearby allied units" {
     try std.testing.expect(healed);
 }
 
+test "citadels regenerate themselves" {
+    var game_map: map_mod.GameMap = .{};
+    const citadel_id = game_map.addObject(.citadel, 5, 5, 0, 0, 0).?;
+    const citadel = objectById(&game_map, citadel_id).?;
+    citadel.hp = citadel.max_hp - 100;
+    const before = citadel.hp;
+
+    var sim: Simulation = .{};
+    sim.resolveHealing(&game_map, 1.0);
+
+    const healed = objectById(&game_map, citadel_id).?;
+    try std.testing.expect(healed.hp > before);
+    try std.testing.expect(healed.hp <= healed.max_hp);
+}
+
 test "portals move units to linked portal exits" {
     var grid = try path.GridMap.init(std.testing.allocator, map_mod.MapW, map_mod.MapH);
     defer grid.deinit();
@@ -802,6 +1015,24 @@ test "portals move units to linked portal exits" {
     try std.testing.expect(game_map.objects[18].x != before_x or game_map.objects[18].y != before_y);
     try std.testing.expect(@abs(game_map.objects[18].x - 20) <= 3);
     try std.testing.expect(@abs(game_map.objects[18].y - 21) <= 3);
+}
+
+test "same-team linked portals move mobile units" {
+    var grid = try path.GridMap.init(std.testing.allocator, map_mod.MapW, map_mod.MapH);
+    defer grid.deinit();
+    var game_map: map_mod.GameMap = .{};
+    _ = game_map.addObject(.portal, 3, 3, 0, 0, 0);
+    _ = game_map.addObject(.portal, 12, 12, 0, 0, 0);
+    const unit_id = game_map.addObject(.captain, 3, 3, 0, 0, 0).?;
+    game_map.rebuildGrid(&grid);
+
+    var sim: Simulation = .{};
+    sim.resolvePortals(&game_map, &grid);
+
+    const unit = objectById(&game_map, unit_id).?;
+    try std.testing.expect(unit.x != 3 or unit.y != 3);
+    try std.testing.expect(@abs(unit.x - 12) <= 3);
+    try std.testing.expect(@abs(unit.y - 12) <= 3);
 }
 
 fn objectById(game_map: *map_mod.GameMap, id: u32) ?*map_mod.MapObject {

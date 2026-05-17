@@ -19,6 +19,7 @@ pub const TerrainCell = struct {
 pub const VoidTerrainId: u8 = 15;
 pub const IceTerrainId: u8 = 13;
 pub const LavaTerrainId: u8 = 14;
+const HealthScale: f32 = 1.5;
 
 pub fn isVoidTerrain(cell: TerrainCell) bool {
     return cell.terrain_id == VoidTerrainId and !cell.walkable;
@@ -313,17 +314,27 @@ pub const ObjectStats = struct {
 
 pub fn defaultStats(kind: ObjectKind) ObjectStats {
     return switch (kind) {
-        .citadel => .{ .hp = 2600, .range = 2.6, .damage_per_second = -24, .move_seconds = 999 },
-        .imperator => .{ .hp = 1250, .range = 7.0, .damage_per_second = 42, .move_seconds = 0.55 },
-        .infantry => .{ .hp = 170, .range = 1.35, .damage_per_second = 12, .move_seconds = 0.30 },
-        .captain => .{ .hp = 300, .range = 2.2, .damage_per_second = 18, .move_seconds = 0.38 },
-        .artillery => .{ .hp = 230, .range = 4.8, .damage_per_second = 24, .move_seconds = 0.60 },
-        .portal => .{ .hp = 260, .range = 0, .damage_per_second = 0, .move_seconds = 999 },
-        .healing_pod => .{ .hp = 260, .range = 2.4, .damage_per_second = -30, .move_seconds = 999 },
-        .obstacle => .{ .hp = 300, .range = 0, .damage_per_second = 0, .move_seconds = 999 },
-        .outpost => .{ .hp = 360, .range = 3.2, .damage_per_second = 20, .move_seconds = 999 },
-        .defense_grid => .{ .hp = 280, .range = 3.8, .damage_per_second = 22, .move_seconds = 999 },
+        .citadel => .{ .hp = scaledHp(2600), .range = 2.6, .damage_per_second = -24, .move_seconds = 999 },
+        .imperator => .{ .hp = scaledHp(1250), .range = 7.0, .damage_per_second = 42, .move_seconds = 0.55 },
+        .infantry => .{ .hp = scaledHp(170), .range = 1.35, .damage_per_second = 12, .move_seconds = 0.30 },
+        .captain => .{ .hp = scaledHp(300), .range = 2.2, .damage_per_second = 18, .move_seconds = 0.38 },
+        .artillery => .{ .hp = scaledHp(230), .range = 4.8, .damage_per_second = 24, .move_seconds = 0.60 },
+        .portal => .{ .hp = scaledHp(260), .range = 0, .damage_per_second = 0, .move_seconds = 999 },
+        .healing_pod => .{ .hp = scaledHp(260), .range = 2.4, .damage_per_second = -30, .move_seconds = 999 },
+        .obstacle => .{ .hp = scaledHp(300), .range = 0, .damage_per_second = 0, .move_seconds = 999 },
+        .outpost => .{ .hp = scaledHp(360), .range = 3.2, .damage_per_second = 20, .move_seconds = 999 },
+        .defense_grid => .{ .hp = scaledHp(280), .range = 3.8, .damage_per_second = 22, .move_seconds = 999 },
     };
+}
+
+fn scaledHp(base: f32) f32 {
+    return base * HealthScale;
+}
+
+test "default object health is scaled up for longer battles" {
+    try std.testing.expectApproxEqAbs(@as(f32, 3900), defaultStats(.citadel).hp, 0.001);
+    try std.testing.expectApproxEqAbs(@as(f32, 1875), defaultStats(.imperator).hp, 0.001);
+    try std.testing.expectApproxEqAbs(@as(f32, 255), defaultStats(.infantry).hp, 0.001);
 }
 
 test "painting identical terrain is a no-op" {

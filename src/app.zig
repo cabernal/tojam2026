@@ -927,13 +927,13 @@ pub const AppState = struct {
     fn drawGameplayRules(self: *AppState) void {
         _ = self;
         c.igTextUnformatted("Goal", null);
-        ruleBullet("Destroy the enemy Imperator. The battle ends immediately when either Imperator falls.");
-        ruleBullet("Citadels anchor the battlefield and pull enemy units across the map, but the Imperator is the win condition.");
+        ruleBullet("Destroy the enemy Imperator or Citadel. The battle ends immediately when either vital objective falls.");
+        ruleBullet("Citadels anchor the battlefield, regenerate health, and must be defended alongside the Imperator.");
         c.igSpacing();
 
         c.igTextUnformatted("Setup", null);
         ruleBullet("Pick a selected level or start a random game from the start menu.");
-        ruleBullet("Player 1 places first, then Player 2 places. Erasing an entity refunds that slot.");
+        ruleBullet("Player 1 places first, then Player 2 places. Both players get the same placement allotment, and erasing an entity refunds that slot.");
         ruleBullet("The setup panel shows placed counts and remaining limits directly on the entity buttons.");
         c.igSpacing();
 
@@ -953,7 +953,7 @@ pub const AppState = struct {
     fn drawEntityRules(self: *AppState) void {
         _ = self;
         c.igTextUnformatted("Core", null);
-        ruleBullet("Citadel: High-health base. Enemy mobile units path toward it, but destroying it does not end the game.");
+        ruleBullet("Citadel: High-health base that regenerates itself and nearby allies. If your Citadel dies, you lose.");
         ruleBullet("Imperator: Tough commander with long-range damage. If your Imperator dies, you lose.");
         c.igSpacing();
 
@@ -1133,17 +1133,17 @@ pub const AppState = struct {
         if (erase_active) c.igPopStyleColor(2);
 
         c.igSeparator();
-        self.drawCountLine("Citadel", counts.citadel, 1);
+        self.drawCountLine("Citadel", counts.citadel, sim_mod.SetupCoreObjectiveLimit);
         c.igSameLine(0, 14);
-        self.drawCountLine("Imperator", counts.imperator, 1);
-        self.drawCountLine("Units", counts.mobile(), 14);
+        self.drawCountLine("Imperator", counts.imperator, sim_mod.SetupCoreObjectiveLimit);
+        self.drawCountLine("Units", counts.mobile(), sim_mod.SetupMobileUnitLimit);
         c.igSameLine(0, 14);
-        self.drawCountLine("Portals", counts.portal, 2);
+        self.drawCountLine("Portals", counts.portal, sim_mod.SetupPortalLimit);
         c.igSameLine(0, 14);
-        self.drawCountLine("Healing", counts.healing_pod, 2);
-        self.drawCountLine("Structures", counts.structures(), 4);
+        self.drawCountLine("Healing", counts.healing_pod, sim_mod.SetupHealingPodLimit);
+        self.drawCountLine("Structures", counts.structures(), sim_mod.SetupCombatStructureLimit);
         c.igSameLine(0, 14);
-        self.drawCountLine("Obstacles", counts.obstacle, 12);
+        self.drawCountLine("Obstacles", counts.obstacle, sim_mod.SetupObstacleLimit);
         var detail_buf: [176]u8 = undefined;
         const detail_z = std.fmt.bufPrintZ(
             &detail_buf,
@@ -1335,16 +1335,40 @@ pub const AppState = struct {
     fn gameOverReasonZ(self: *const AppState, buf: []u8) [:0]const u8 {
         if (self.game.simulation.winner) |winner| {
             const loser = if (winner == 0) @as(u8, 1) else @as(u8, 0);
+            const objective = self.teamLostObjectiveLabel(loser);
             return std.fmt.bufPrintZ(
                 buf,
-                "Player {d} wins because Player {d}'s Imperator was destroyed.",
-                .{ winner + 1, loser + 1 },
+                "Player {d} wins because Player {d} lost their {s}.",
+                .{ winner + 1, loser + 1, objective },
             ) catch "Battle finished.";
         }
         if (self.game.simulation.outcome == .draw) {
+            if (self.teamLostAnyObjective(0) and self.teamLostAnyObjective(1)) {
+                return std.fmt.bufPrintZ(buf, "Stalemate. Both players lost a Citadel or Imperator.", .{}) catch "Stalemate.";
+            }
             return std.fmt.bufPrintZ(buf, "Stalemate. Both Imperators survived, but neither army could keep moving.", .{}) catch "Stalemate.";
         }
         return std.fmt.bufPrintZ(buf, "Battle finished.", .{}) catch "Battle finished.";
+    }
+
+    fn teamLostObjectiveLabel(self: *const AppState, team: u8) []const u8 {
+        const citadel_lost = !self.activeObjectiveExists(.citadel, team);
+        const imperator_lost = !self.activeObjectiveExists(.imperator, team);
+        if (citadel_lost and imperator_lost) return "Citadel and Imperator";
+        if (citadel_lost) return "Citadel";
+        if (imperator_lost) return "Imperator";
+        return "vital objective";
+    }
+
+    fn teamLostAnyObjective(self: *const AppState, team: u8) bool {
+        return !self.activeObjectiveExists(.citadel, team) or !self.activeObjectiveExists(.imperator, team);
+    }
+
+    fn activeObjectiveExists(self: *const AppState, kind: map_mod.ObjectKind, team: u8) bool {
+        for (self.game.map.objects[0..self.game.map.object_count]) |object| {
+            if (object.active and object.kind == kind and object.team == team) return true;
+        }
+        return false;
     }
 
     fn pushShellStyle(self: *AppState) void {
@@ -1667,31 +1691,31 @@ pub const AppState = struct {
         switch (kind) {
             .citadel => {
                 placed = counts.citadel;
-                limit = 1;
+                limit = sim_mod.setupPlacementLimit(kind);
             },
             .imperator => {
                 placed = counts.imperator;
-                limit = 1;
+                limit = sim_mod.setupPlacementLimit(kind);
             },
             .infantry, .captain, .artillery => {
                 placed = counts.mobile();
-                limit = 14;
+                limit = sim_mod.setupPlacementLimit(kind);
             },
             .portal => {
                 placed = counts.portal;
-                limit = 2;
+                limit = sim_mod.setupPlacementLimit(kind);
             },
             .healing_pod => {
                 placed = counts.healing_pod;
-                limit = 2;
+                limit = sim_mod.setupPlacementLimit(kind);
             },
             .outpost, .defense_grid => {
                 placed = counts.structures();
-                limit = 4;
+                limit = sim_mod.setupPlacementLimit(kind);
             },
             .obstacle => {
                 placed = counts.obstacle;
-                limit = 12;
+                limit = sim_mod.setupPlacementLimit(kind);
             },
         }
         const remaining = if (placed >= limit) @as(usize, 0) else limit - placed;
@@ -1731,10 +1755,11 @@ pub const AppState = struct {
     fn showGameOverToast(self: *AppState) void {
         const winner = self.game.simulation.winner orelse return;
         const loser = if (winner == 0) @as(u8, 1) else @as(u8, 0);
+        const objective = self.teamLostObjectiveLabel(loser);
         const message = std.fmt.bufPrint(
             self.game_over_toast.message[0..],
-            "Player {d} wins: Player {d}'s Imperator was destroyed.",
-            .{ winner + 1, loser + 1 },
+            "Player {d} wins: Player {d} lost their {s}.",
+            .{ winner + 1, loser + 1, objective },
         ) catch return;
         self.game_over_toast.message_len = message.len;
         self.game_over_toast.winner = winner;
@@ -2252,7 +2277,10 @@ pub const AppState = struct {
         if (self.editor.show_sectors) self.drawSectorOverlay();
         if (self.editor.show_portals) self.drawPortalOverlay();
         if (self.shouldDrawEditorGrid()) self.drawGrid();
-        if (self.editor.show_objects) self.drawObjects();
+        if (self.editor.show_objects) {
+            self.drawObjects();
+            self.drawObjectStackBadges();
+        }
         self.drawEditorPreviewOverlay();
         self.drawStartMenuBranding();
     }
@@ -2424,6 +2452,59 @@ pub const AppState = struct {
                 self.drawObjectMarker(object, center);
             }
             if (self.editor.show_health) self.drawHealthBar(object, center);
+        }
+    }
+
+    fn drawObjectStackBadges(self: *AppState) void {
+        for (self.game.map.objects[0..self.game.map.object_count], 0..) |object, i| {
+            if (!object.active or !self.objectVisibleInPhase(object)) continue;
+            if (self.hasEarlierVisibleObjectOnTile(i, object.x, object.y)) continue;
+            const count = self.visibleObjectCountOnTile(object.x, object.y);
+            if (count <= 1) continue;
+            const center = self.worldToScreen(.{
+                .x = @as(f32, @floatFromInt(object.x)) + 0.5,
+                .y = @as(f32, @floatFromInt(object.y)) + 0.5,
+            });
+            self.drawStackBadge(center, count);
+        }
+    }
+
+    fn visibleObjectCountOnTile(self: *const AppState, x: i32, y: i32) usize {
+        var count: usize = 0;
+        for (self.game.map.objects[0..self.game.map.object_count]) |object| {
+            if (!object.active or object.x != x or object.y != y) continue;
+            if (!self.objectVisibleInPhase(object)) continue;
+            count += 1;
+        }
+        return count;
+    }
+
+    fn hasEarlierVisibleObjectOnTile(self: *const AppState, object_index: usize, x: i32, y: i32) bool {
+        for (self.game.map.objects[0..object_index]) |object| {
+            if (!object.active or object.x != x or object.y != y) continue;
+            if (self.objectVisibleInPhase(object)) return true;
+        }
+        return false;
+    }
+
+    fn drawStackBadge(self: *const AppState, tile_center: Vec2, count: usize) void {
+        const clamped = @min(count, 99);
+        const has_two_digits = clamped >= 10;
+        const badge_w: f32 = if (has_two_digits) 30 else 22;
+        const badge_h: f32 = 20;
+        const pos = Vec2{
+            .x = tile_center.x + TileW * self.zoom * 0.20,
+            .y = tile_center.y - TileH * self.zoom * 0.72,
+        };
+        drawRect(.{ .x = pos.x - badge_w * 0.5, .y = pos.y - badge_h * 0.5 }, badge_w, badge_h, .{ 0.02, 0.035, 0.04, 0.92 });
+        drawRectOutline(.{ .x = pos.x - badge_w * 0.5, .y = pos.y - badge_h * 0.5 }, badge_w, badge_h, .{ 0.35, 0.88, 1.0, 0.96 });
+        drawRect(.{ .x = pos.x - badge_w * 0.5 + 2, .y = pos.y - badge_h * 0.5 + 2 }, badge_w - 4, 3, .{ 0.20, 0.68, 0.94, 0.36 });
+
+        if (has_two_digits) {
+            drawSevenSegmentDigit(.{ .x = pos.x - 6.0, .y = pos.y + 0.5 }, @intCast(clamped / 10), 1.35, .{ 0.92, 0.98, 1.0, 1.0 });
+            drawSevenSegmentDigit(.{ .x = pos.x + 6.0, .y = pos.y + 0.5 }, @intCast(clamped % 10), 1.35, .{ 0.92, 0.98, 1.0, 1.0 });
+        } else {
+            drawSevenSegmentDigit(.{ .x = pos.x, .y = pos.y + 0.5 }, @intCast(clamped), 1.55, .{ 0.92, 0.98, 1.0, 1.0 });
         }
     }
 
@@ -2766,7 +2847,7 @@ pub const AppState = struct {
     fn objectVisibleInPhase(self: *const AppState, object: map_mod.MapObject) bool {
         if (self.game_shell_screen != .disabled and self.game_shell_screen != .setup) return true;
         const setup_player = self.game.simulation.activeSetupPlayer() orelse return true;
-        return object.team == setup_player or object.kind == .obstacle;
+        return object.team == setup_player or object.kind == .citadel or object.kind == .obstacle;
     }
 
     fn tryDrawObjectSprite(self: *AppState, object: map_mod.MapObject, center: Vec2) bool {
@@ -3884,6 +3965,39 @@ fn drawRectOutline(pos: Vec2, w: f32, h: f32, color: [4]f32) void {
     sgl.v2f(pos.x, pos.y + h);
     sgl.v2f(pos.x, pos.y);
     sgl.end();
+}
+
+fn drawSevenSegmentDigit(center: Vec2, digit: u8, scale: f32, color: [4]f32) void {
+    const mask = sevenSegmentMask(digit);
+    const width = 6.0 * scale;
+    const height = 10.0 * scale;
+    const thick = @max(1.0, 1.25 * scale);
+    const x0 = center.x - width * 0.5;
+    const y0 = center.y - height * 0.5;
+    const half_h = height * 0.5;
+    if ((mask & 0b0000001) != 0) drawRect(.{ .x = x0 + thick, .y = y0 }, width - thick * 2.0, thick, color);
+    if ((mask & 0b0000010) != 0) drawRect(.{ .x = x0 + width - thick, .y = y0 + thick }, thick, half_h - thick, color);
+    if ((mask & 0b0000100) != 0) drawRect(.{ .x = x0 + width - thick, .y = y0 + half_h }, thick, half_h - thick, color);
+    if ((mask & 0b0001000) != 0) drawRect(.{ .x = x0 + thick, .y = y0 + height - thick }, width - thick * 2.0, thick, color);
+    if ((mask & 0b0010000) != 0) drawRect(.{ .x = x0, .y = y0 + half_h }, thick, half_h - thick, color);
+    if ((mask & 0b0100000) != 0) drawRect(.{ .x = x0, .y = y0 + thick }, thick, half_h - thick, color);
+    if ((mask & 0b1000000) != 0) drawRect(.{ .x = x0 + thick, .y = y0 + half_h - thick * 0.5 }, width - thick * 2.0, thick, color);
+}
+
+fn sevenSegmentMask(digit: u8) u8 {
+    return switch (digit) {
+        0 => 0b0111111,
+        1 => 0b0000110,
+        2 => 0b1011011,
+        3 => 0b1001111,
+        4 => 0b1100110,
+        5 => 0b1101101,
+        6 => 0b1111101,
+        7 => 0b0000111,
+        8 => 0b1111111,
+        9 => 0b1101111,
+        else => 0,
+    };
 }
 
 fn drawCross(center: Vec2, w: f32, h: f32, color: [4]f32) void {
