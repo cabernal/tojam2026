@@ -12,9 +12,9 @@ const ObjectiveThreatRadiusSq: f32 = 81.0;
 const ObjectiveGuardMin: usize = 1;
 pub const MaxShotEvents = 96;
 pub const SetupCoreObjectiveLimit: usize = 1;
-pub const SetupMobileUnitLimit: usize = 14;
-pub const SetupPortalLimit: usize = 2;
-pub const SetupHealingPodLimit: usize = 2;
+pub const SetupMobileUnitLimit: usize = 30;
+pub const SetupPortalLimit: usize = 4;
+pub const SetupHealingPodLimit: usize = 4;
 pub const SetupCombatStructureLimit: usize = 4;
 pub const SetupObstacleLimit: usize = 12;
 
