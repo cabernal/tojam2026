@@ -76,6 +76,20 @@ fn drawInspector(app: anytype) void {
             app.editor.terrain_cost = 1;
             app.editor.setStatus("Selected void terrain.", .{});
         }
+        if (c.igButton("Lava Tile", v2(136, 0))) {
+            app.editor.brush_terrain_id = map_mod.LavaTerrainId;
+            app.editor.brush_asset_id = 0;
+            app.editor.terrain_walkable = false;
+            app.editor.terrain_cost = 1;
+            app.editor.setStatus("Selected lava terrain.", .{});
+        }
+        if (c.igButton("Ice Tile", v2(136, 0))) {
+            app.editor.brush_terrain_id = map_mod.IceTerrainId;
+            app.editor.brush_asset_id = 0;
+            app.editor.terrain_walkable = false;
+            app.editor.terrain_cost = 1;
+            app.editor.setStatus("Selected ice terrain.", .{});
+        }
         if (c.igButton("New Sprite", v2(136, 0))) {
             app.createGeneratedTerrainAsset();
         }
@@ -265,6 +279,8 @@ fn drawHoverProperties(app: anytype) void {
     const cell = app.game.map.terrain[uy][ux];
     uiText("Tile: {d}, {d}", .{ x, y });
     uiText("Terrain ID: {d}", .{cell.terrain_id});
+    if (map_mod.isLavaTerrain(cell)) uiText("Terrain: Lava / magma", .{});
+    if (map_mod.isIceTerrain(cell)) uiText("Terrain: Ice", .{});
     uiText("Asset ID: {d}", .{cell.asset_id});
     if (app.catalog.get(cell.asset_id)) |asset| {
         uiText("Asset: {s}", .{trimName(asset.name)});

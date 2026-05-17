@@ -30,6 +30,7 @@ const TileW: f32 = 64;
 const TileH: f32 = 32;
 const GameTitle = "Imperator's Gambit";
 const EventBlurb = "Created at TOJam 2026: Twenty years, one weekend";
+const BuildVersion = build_options.build_version;
 const MaxSprites = asset_loader.MaxAssets;
 const NoAsset: u16 = std.math.maxInt(u16);
 const MaxLaserBeams = 192;
@@ -38,6 +39,7 @@ const MaxLaserEmitters = map_mod.MaxObjects;
 const LaserBeamVertices = 12;
 const LaserParticleVertices = 12;
 const MaxLaserFxVertices = MaxLaserBeams * LaserBeamVertices + MaxLaserParticles * LaserParticleVertices;
+const MaxShaderTileVertices = map_mod.MapW * map_mod.MapH * 6;
 const LaserBeamLife: f32 = 0.13;
 const LaserEmitterIdleSeconds: f32 = 0.75;
 const StarParallaxLayers = [_]StarLayer{
@@ -246,6 +248,14 @@ const LaserFxVertex = extern struct {
     color: [4]f32 = .{ 1, 1, 1, 1 },
 };
 
+const ShaderTileVertex = extern struct {
+    position: [2]f32 = .{ 0, 0 },
+    uv: [2]f32 = .{ 0, 0 },
+    kind: f32 = 0,
+    seed: f32 = 0,
+    time: f32 = 0,
+};
+
 pub const PerfStats = struct {
     frame_ms: f32 = 0,
     fps: f32 = 0,
@@ -285,6 +295,9 @@ pub const AppState = struct {
     laser_fx_shader: sg.Shader = .{},
     laser_fx_pipeline: sg.Pipeline = .{},
     laser_fx_vertex_buffer: sg.Buffer = .{},
+    shader_tile_shader: sg.Shader = .{},
+    shader_tile_pipeline: sg.Pipeline = .{},
+    shader_tile_vertex_buffer: sg.Buffer = .{},
     initialized: bool = false,
     allow_editor: bool = true,
     loading: LoadingState = .{},
@@ -304,12 +317,14 @@ pub const AppState = struct {
     laser_particles: [MaxLaserParticles]LaserParticle = [_]LaserParticle{.{}} ** MaxLaserParticles,
     laser_emitters: [MaxLaserEmitters]LaserEmitter = [_]LaserEmitter{.{}} ** MaxLaserEmitters,
     laser_fx_vertices: [MaxLaserFxVertices]LaserFxVertex = undefined,
+    shader_tile_vertices: [MaxShaderTileVertices]ShaderTileVertex = undefined,
     laser_beam_cursor: usize = 0,
     laser_particle_cursor: usize = 0,
     laser_emitter_cursor: usize = 0,
     laser_beam_active_count: usize = 0,
     laser_particle_active_count: usize = 0,
     laser_fx_vertex_count: usize = 0,
+    shader_tile_vertex_count: usize = 0,
     laser_rng: u32 = 0x6d2b79f5,
     map_rng: u32 = 0x9e3779b9,
     perf: PerfStats = .{},
@@ -372,6 +387,7 @@ pub const AppState = struct {
             .wrap_v = .CLAMP_TO_EDGE,
         });
         self.initLaserFxPipeline();
+        self.initShaderTilePipeline();
 
         self.initialized = true;
     }
@@ -381,6 +397,9 @@ pub const AppState = struct {
         destroySprite(&self.tojam_logo_sprite);
         destroySprite(&self.tojam_goat_sprite);
         for (self.sprites[0..self.sprite_count]) |*sprite| destroySprite(sprite);
+        if (self.shader_tile_vertex_buffer.id != 0) sg.destroyBuffer(self.shader_tile_vertex_buffer);
+        if (self.shader_tile_pipeline.id != 0) sg.destroyPipeline(self.shader_tile_pipeline);
+        if (self.shader_tile_shader.id != 0) sg.destroyShader(self.shader_tile_shader);
         if (self.laser_fx_vertex_buffer.id != 0) sg.destroyBuffer(self.laser_fx_vertex_buffer);
         if (self.laser_fx_pipeline.id != 0) sg.destroyPipeline(self.laser_fx_pipeline);
         if (self.laser_fx_shader.id != 0) sg.destroyShader(self.laser_fx_shader);
@@ -473,6 +492,7 @@ pub const AppState = struct {
         const sgl_end = stime.now();
         smoothMs(&self.perf.sgl_ms, elapsedMs(sgl_start, sgl_end));
         const laser_start = stime.now();
+        if (is_ready) self.drawShaderTiles();
         if (is_ready) self.drawLaserFx();
         const laser_end = stime.now();
         smoothMs(&self.perf.laser_draw_ms, elapsedMs(laser_start, laser_end));
@@ -806,6 +826,9 @@ pub const AppState = struct {
         defer c.igEnd();
 
         c.igTextUnformatted(GameTitle, null);
+        var version_buf: [96]u8 = undefined;
+        const version_z = std.fmt.bufPrintZ(&version_buf, "Version: {s}", .{BuildVersion}) catch "Version: unknown";
+        c.igTextUnformatted(version_z.ptr, null);
         c.igSeparator();
         c.igTextUnformatted(selected_z.ptr, null);
         c.igSpacing();
@@ -915,9 +938,11 @@ pub const AppState = struct {
         c.igSpacing();
 
         c.igTextUnformatted("Battle", null);
-        ruleBullet("When the game starts, mobile units advance toward the opposing citadel using the available lanes.");
+        ruleBullet("When the game starts, mobile units advance toward the opposing Imperator, then the citadel if the Imperator cannot be reached.");
         ruleBullet("If mobile enemies meet, they stop moving, fight nearby targets, then continue once the contact is cleared.");
-        ruleBullet("Attackers prefer enemy units first, then combat structures, then support buildings.");
+        ruleBullet("Low-health units try to fall back to allied healing pods or citadels, and pressured units briefly retreat.");
+        ruleBullet("Units will peel back to protect an Imperator or citadel that is taking sustained damage.");
+        ruleBullet("If both Imperators are alive and the battle goes quiet with no movement, the game ends in a draw.");
         ruleBullet("Press Escape during battle to pause, continue, or cancel back to the start menu.");
         c.igSpacing();
 
@@ -1316,7 +1341,20 @@ pub const AppState = struct {
                 .{ winner + 1, loser + 1 },
             ) catch "Battle finished.";
         }
-        return std.fmt.bufPrintZ(buf, "Stalemate: both Imperators were destroyed.", .{}) catch "Stalemate.";
+        var p0_lost = true;
+        var p1_lost = true;
+        for (self.game.map.objects[0..self.game.map.object_count]) |object| {
+            if (object.kind != .imperator) continue;
+            if (object.team == 0) p0_lost = !object.active;
+            if (object.team == 1) p1_lost = !object.active;
+        }
+        if (p0_lost and p1_lost) {
+            return std.fmt.bufPrintZ(buf, "Stalemate: both Imperators were destroyed.", .{}) catch "Stalemate.";
+        }
+        if (self.game.simulation.outcome == .draw) {
+            return std.fmt.bufPrintZ(buf, "Stalemate. Both Imperators survived, but neither army could keep moving.", .{}) catch "Stalemate.";
+        }
+        return std.fmt.bufPrintZ(buf, "Battle finished.", .{}) catch "Battle finished.";
     }
 
     fn pushShellStyle(self: *AppState) void {
@@ -1759,6 +1797,42 @@ pub const AppState = struct {
         });
     }
 
+    fn initShaderTilePipeline(self: *AppState) void {
+        self.shader_tile_shader = sg.makeShader(shaderTileShaderDesc());
+
+        var pipeline_desc: sg.PipelineDesc = .{};
+        pipeline_desc.shader = self.shader_tile_shader;
+        pipeline_desc.layout.buffers[0].stride = @sizeOf(ShaderTileVertex);
+        pipeline_desc.layout.attrs[0].format = .FLOAT2;
+        pipeline_desc.layout.attrs[0].offset = @offsetOf(ShaderTileVertex, "position");
+        pipeline_desc.layout.attrs[1].format = .FLOAT2;
+        pipeline_desc.layout.attrs[1].offset = @offsetOf(ShaderTileVertex, "uv");
+        pipeline_desc.layout.attrs[2].format = .FLOAT;
+        pipeline_desc.layout.attrs[2].offset = @offsetOf(ShaderTileVertex, "kind");
+        pipeline_desc.layout.attrs[3].format = .FLOAT;
+        pipeline_desc.layout.attrs[3].offset = @offsetOf(ShaderTileVertex, "seed");
+        pipeline_desc.layout.attrs[4].format = .FLOAT;
+        pipeline_desc.layout.attrs[4].offset = @offsetOf(ShaderTileVertex, "time");
+        pipeline_desc.color_count = 1;
+        pipeline_desc.colors[0].blend.enabled = true;
+        pipeline_desc.colors[0].blend.src_factor_rgb = .SRC_ALPHA;
+        pipeline_desc.colors[0].blend.dst_factor_rgb = .ONE_MINUS_SRC_ALPHA;
+        pipeline_desc.colors[0].blend.src_factor_alpha = .ONE;
+        pipeline_desc.colors[0].blend.dst_factor_alpha = .ONE_MINUS_SRC_ALPHA;
+        pipeline_desc.primitive_type = .TRIANGLES;
+        pipeline_desc.label = "shader-tile-pipeline";
+        self.shader_tile_pipeline = sg.makePipeline(pipeline_desc);
+
+        self.shader_tile_vertex_buffer = sg.makeBuffer(.{
+            .usage = .{
+                .vertex_buffer = true,
+                .stream_update = true,
+            },
+            .size = @sizeOf(ShaderTileVertex) * MaxShaderTileVertices,
+            .label = "shader-tile-vertices",
+        });
+    }
+
     fn configureStartupMode(self: *AppState) void {
         switch (appMode()) {
             .integrated => {
@@ -2045,7 +2119,7 @@ pub const AppState = struct {
         for (0..self.game.map.height) |y| {
             for (0..self.game.map.width) |x| {
                 var cell = &self.game.map.terrain[y][x];
-                if (map_mod.isVoidTerrain(cell.*)) {
+                if (map_mod.isVoidTerrain(cell.*) or map_mod.isShaderTerrain(cell.*)) {
                     cell.asset_id = NoAsset;
                 } else if (cell.terrain_id == 3) {
                     cell.asset_id = water_id;
@@ -2187,7 +2261,7 @@ pub const AppState = struct {
         if (self.editor.show_pathing) self.drawPathingOverlay();
         if (self.editor.show_sectors) self.drawSectorOverlay();
         if (self.editor.show_portals) self.drawPortalOverlay();
-        if (self.editor.show_grid) self.drawGrid();
+        if (self.shouldDrawEditorGrid()) self.drawGrid();
         if (self.editor.show_objects) self.drawObjects();
         self.drawEditorPreviewOverlay();
         self.drawStartMenuBranding();
@@ -2280,7 +2354,12 @@ pub const AppState = struct {
         if (self.starfield_time > 3600) self.starfield_time -= 3600;
     }
 
+    fn shouldDrawEditorGrid(self: *const AppState) bool {
+        return self.editor.show_grid and self.game_shell_screen == .map_editor;
+    }
+
     fn drawTerrain(self: *AppState) void {
+        self.shader_tile_vertex_count = 0;
         for (0..self.game.map.height) |y| {
             for (0..self.game.map.width) |x| {
                 const cell = self.game.map.terrain[y][x];
@@ -2291,6 +2370,10 @@ pub const AppState = struct {
                 if (map_mod.isVoidTerrain(cell)) {
                     continue;
                 }
+                if (map_mod.isShaderTerrain(cell)) {
+                    self.appendShaderTile(center, TileW * self.zoom, TileH * self.zoom, cell.terrain_id, x, y);
+                    continue;
+                }
                 const color = render.terrainColor(cell);
                 drawDiamond(center, TileW * self.zoom, TileH * self.zoom, color);
                 if (self.spriteForAsset(cell.asset_id)) |sprite| {
@@ -2298,6 +2381,45 @@ pub const AppState = struct {
                 }
             }
         }
+    }
+
+    fn appendShaderTile(self: *AppState, center: Vec2, w: f32, h: f32, terrain_id: u8, x: usize, y: usize) void {
+        if (self.shader_tile_vertex_count + 6 > self.shader_tile_vertices.len) return;
+        const kind: f32 = if (terrain_id == map_mod.LavaTerrainId) 1.0 else 2.0;
+        const seed: f32 = @floatFromInt((x *% 37 + y *% 131) % 997);
+        const top = Vec2{ .x = center.x, .y = center.y - h * 0.5 };
+        const right = Vec2{ .x = center.x + w * 0.5, .y = center.y };
+        const bottom = Vec2{ .x = center.x, .y = center.y + h * 0.5 };
+        const left = Vec2{ .x = center.x - w * 0.5, .y = center.y };
+        self.emitShaderTileVertex(top, .{ .x = 0.5, .y = 0.0 }, kind, seed);
+        self.emitShaderTileVertex(right, .{ .x = 1.0, .y = 0.5 }, kind, seed);
+        self.emitShaderTileVertex(bottom, .{ .x = 0.5, .y = 1.0 }, kind, seed);
+        self.emitShaderTileVertex(top, .{ .x = 0.5, .y = 0.0 }, kind, seed);
+        self.emitShaderTileVertex(bottom, .{ .x = 0.5, .y = 1.0 }, kind, seed);
+        self.emitShaderTileVertex(left, .{ .x = 0.0, .y = 0.5 }, kind, seed);
+    }
+
+    fn emitShaderTileVertex(self: *AppState, pos: Vec2, uv: Vec2, kind: f32, seed: f32) void {
+        if (self.shader_tile_vertex_count >= self.shader_tile_vertices.len) return;
+        self.shader_tile_vertices[self.shader_tile_vertex_count] = .{
+            .position = self.screenToClip(pos),
+            .uv = .{ uv.x, uv.y },
+            .kind = kind,
+            .seed = seed,
+            .time = self.starfield_time,
+        };
+        self.shader_tile_vertex_count += 1;
+    }
+
+    fn drawShaderTiles(self: *AppState) void {
+        if (self.shader_tile_pipeline.id == 0 or self.shader_tile_vertex_buffer.id == 0) return;
+        if (self.shader_tile_vertex_count == 0) return;
+        sg.updateBuffer(self.shader_tile_vertex_buffer, sg.asRange(self.shader_tile_vertices[0..self.shader_tile_vertex_count]));
+        var bindings: sg.Bindings = .{};
+        bindings.vertex_buffers[0] = self.shader_tile_vertex_buffer;
+        sg.applyPipeline(self.shader_tile_pipeline);
+        sg.applyBindings(bindings);
+        sg.draw(0, @intCast(self.shader_tile_vertex_count), 1);
     }
 
     fn drawObjects(self: *AppState) void {
@@ -2847,8 +2969,14 @@ pub const AppState = struct {
                 switch (self.editor.tool) {
                     .terrain => {
                         const preview_void = self.editor.brush_terrain_id == map_mod.VoidTerrainId and !self.editor.terrain_walkable;
+                        const preview_lava = self.editor.brush_terrain_id == map_mod.LavaTerrainId and !self.editor.terrain_walkable;
+                        const preview_ice = self.editor.brush_terrain_id == map_mod.IceTerrainId and !self.editor.terrain_walkable;
                         if (preview_void) {
                             drawDiamondOutline(center, TileW * self.zoom, TileH * self.zoom, if (is_center) .{ 0.82, 0.94, 1.0, 0.82 } else .{ 0.70, 0.86, 1.0, 0.48 });
+                        } else if (preview_lava) {
+                            drawDiamond(center, TileW * self.zoom, TileH * self.zoom, .{ 1.0, 0.24, 0.04, if (is_center) 0.38 else 0.22 });
+                        } else if (preview_ice) {
+                            drawDiamond(center, TileW * self.zoom, TileH * self.zoom, .{ 0.40, 0.86, 1.0, if (is_center) 0.34 else 0.20 });
                         } else if (self.spriteForAsset(self.editor.brush_asset_id)) |sprite| {
                             drawSprite(sprite, self.sampler, self.alpha_pipeline, center, TileW * self.zoom, TileH * self.zoom, if (is_center) 0.48 else 0.30);
                         } else {
@@ -3290,6 +3418,41 @@ fn laserFxFragmentShaderSource() [*c]const u8 {
         GlCoreLaserFxFs.ptr;
 }
 
+fn shaderTileShaderDesc() sg.ShaderDesc {
+    var desc: sg.ShaderDesc = .{};
+    desc.vertex_func.source = shaderTileVertexShaderSource();
+    desc.fragment_func.source = shaderTileFragmentShaderSource();
+    if (usesMetalBackend()) {
+        desc.vertex_func.entry = "vs_main";
+        desc.fragment_func.entry = "fs_main";
+    }
+    desc.attrs[0] = .{ .base_type = .FLOAT, .glsl_name = "position", .hlsl_sem_name = "POSITION" };
+    desc.attrs[1] = .{ .base_type = .FLOAT, .glsl_name = "uv0", .hlsl_sem_name = "TEXCOORD", .hlsl_sem_index = 0 };
+    desc.attrs[2] = .{ .base_type = .FLOAT, .glsl_name = "kind0", .hlsl_sem_name = "TEXCOORD", .hlsl_sem_index = 1 };
+    desc.attrs[3] = .{ .base_type = .FLOAT, .glsl_name = "seed0", .hlsl_sem_name = "TEXCOORD", .hlsl_sem_index = 2 };
+    desc.attrs[4] = .{ .base_type = .FLOAT, .glsl_name = "time0", .hlsl_sem_name = "TEXCOORD", .hlsl_sem_index = 3 };
+    desc.label = "shader-tile-shader";
+    return desc;
+}
+
+fn shaderTileVertexShaderSource() [*c]const u8 {
+    return if (usesMetalBackend())
+        MetalShaderTileVs.ptr
+    else if (builtin.target.os.tag == .emscripten)
+        GlesShaderTileVs.ptr
+    else
+        GlCoreShaderTileVs.ptr;
+}
+
+fn shaderTileFragmentShaderSource() [*c]const u8 {
+    return if (usesMetalBackend())
+        MetalShaderTileFs.ptr
+    else if (builtin.target.os.tag == .emscripten)
+        GlesShaderTileFs.ptr
+    else
+        GlCoreShaderTileFs.ptr;
+}
+
 fn usesMetalBackend() bool {
     return builtin.target.os.tag.isDarwin();
 }
@@ -3369,6 +3532,186 @@ const GlCoreLaserFxFs =
     \\out vec4 frag_color;
     \\void main() {
     \\    frag_color = v_color0;
+    \\}
+;
+
+const MetalShaderTileVs =
+    \\#include <metal_stdlib>
+    \\using namespace metal;
+    \\
+    \\struct VsIn {
+    \\    float2 position [[attribute(0)]];
+    \\    float2 uv0 [[attribute(1)]];
+    \\    float kind0 [[attribute(2)]];
+    \\    float seed0 [[attribute(3)]];
+    \\    float time0 [[attribute(4)]];
+    \\};
+    \\
+    \\struct VsOut {
+    \\    float4 position [[position]];
+    \\    float2 uv0;
+    \\    float kind0;
+    \\    float seed0;
+    \\    float time0;
+    \\};
+    \\
+    \\vertex VsOut vs_main(VsIn in [[stage_in]]) {
+    \\    VsOut out;
+    \\    out.position = float4(in.position, 0.0, 1.0);
+    \\    out.uv0 = in.uv0;
+    \\    out.kind0 = in.kind0;
+    \\    out.seed0 = in.seed0;
+    \\    out.time0 = in.time0;
+    \\    return out;
+    \\}
+;
+
+const MetalShaderTileFs =
+    \\#include <metal_stdlib>
+    \\using namespace metal;
+    \\
+    \\struct FsIn {
+    \\    float4 position [[position]];
+    \\    float2 uv0;
+    \\    float kind0;
+    \\    float seed0;
+    \\    float time0;
+    \\};
+    \\
+    \\static float hash21(float2 p) {
+    \\    return fract(sin(dot(p, float2(127.1, 311.7))) * 43758.5453);
+    \\}
+    \\
+    \\fragment float4 fs_main(FsIn in [[stage_in]]) {
+    \\    float2 uv = in.uv0;
+    \\    float t = in.time0;
+    \\    float seed = in.seed0 * 0.013;
+    \\    float edge = smoothstep(0.54, 0.40, abs(uv.x - 0.5) + abs(uv.y - 0.5));
+    \\    float grain = hash21(floor((uv + seed) * 18.0));
+    \\    if (in.kind0 < 1.5) {
+    \\        float flow = sin((uv.x * 11.0 - uv.y * 7.0) + t * 2.4 + seed) * 0.5 + 0.5;
+    \\        float ember = pow(max(0.0, flow * 0.72 + grain * 0.45), 2.0);
+    \\        float cracks = smoothstep(0.72, 0.98, sin((uv.x + uv.y) * 32.0 + t * 1.7 + seed) * 0.5 + 0.5);
+    \\        float pulse = 0.78 + sin(t * 3.1 + seed * 9.0) * 0.18;
+    \\        float3 base = mix(float3(0.18, 0.035, 0.015), float3(1.0, 0.28, 0.035), ember * pulse);
+    \\        base += float3(1.0, 0.72, 0.20) * cracks * 0.22;
+    \\        return float4(base * edge, edge);
+    \\    }
+    \\    float sheen = smoothstep(0.70, 0.98, sin((uv.x - uv.y) * 24.0 + t * 1.15 + seed) * 0.5 + 0.5);
+    \\    float glint = pow(max(0.0, sin((uv.x * 21.0 + uv.y * 15.0) - t * 3.3 + seed)), 8.0);
+    \\    float3 ice = mix(float3(0.05, 0.22, 0.34), float3(0.60, 0.92, 1.0), 0.34 + sheen * 0.30 + grain * 0.10);
+    \\    ice += float3(0.82, 0.98, 1.0) * glint * 0.50;
+    \\    return float4(ice * edge, edge * 0.94);
+    \\}
+;
+
+const GlesShaderTileVs =
+    \\#version 300 es
+    \\precision mediump float;
+    \\layout(location=0) in vec2 position;
+    \\layout(location=1) in vec2 uv0;
+    \\layout(location=2) in float kind0;
+    \\layout(location=3) in float seed0;
+    \\layout(location=4) in float time0;
+    \\out vec2 v_uv0;
+    \\out float v_kind0;
+    \\out float v_seed0;
+    \\out float v_time0;
+    \\void main() {
+    \\    gl_Position = vec4(position, 0.0, 1.0);
+    \\    v_uv0 = uv0;
+    \\    v_kind0 = kind0;
+    \\    v_seed0 = seed0;
+    \\    v_time0 = time0;
+    \\}
+;
+
+const GlesShaderTileFs =
+    \\#version 300 es
+    \\precision mediump float;
+    \\in vec2 v_uv0;
+    \\in float v_kind0;
+    \\in float v_seed0;
+    \\in float v_time0;
+    \\out vec4 frag_color;
+    \\float hash21(vec2 p) {
+    \\    return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
+    \\}
+    \\void main() {
+    \\    vec2 uv = v_uv0;
+    \\    float t = v_time0;
+    \\    float seed = v_seed0 * 0.013;
+    \\    float edge = smoothstep(0.54, 0.40, abs(uv.x - 0.5) + abs(uv.y - 0.5));
+    \\    float grain = hash21(floor((uv + seed) * 18.0));
+    \\    if (v_kind0 < 1.5) {
+    \\        float flow = sin((uv.x * 11.0 - uv.y * 7.0) + t * 2.4 + seed) * 0.5 + 0.5;
+    \\        float ember = pow(max(0.0, flow * 0.72 + grain * 0.45), 2.0);
+    \\        float cracks = smoothstep(0.72, 0.98, sin((uv.x + uv.y) * 32.0 + t * 1.7 + seed) * 0.5 + 0.5);
+    \\        float pulse = 0.78 + sin(t * 3.1 + seed * 9.0) * 0.18;
+    \\        vec3 base = mix(vec3(0.18, 0.035, 0.015), vec3(1.0, 0.28, 0.035), ember * pulse);
+    \\        base += vec3(1.0, 0.72, 0.20) * cracks * 0.22;
+    \\        frag_color = vec4(base * edge, edge);
+    \\        return;
+    \\    }
+    \\    float sheen = smoothstep(0.70, 0.98, sin((uv.x - uv.y) * 24.0 + t * 1.15 + seed) * 0.5 + 0.5);
+    \\    float glint = pow(max(0.0, sin((uv.x * 21.0 + uv.y * 15.0) - t * 3.3 + seed)), 8.0);
+    \\    vec3 ice = mix(vec3(0.05, 0.22, 0.34), vec3(0.60, 0.92, 1.0), 0.34 + sheen * 0.30 + grain * 0.10);
+    \\    ice += vec3(0.82, 0.98, 1.0) * glint * 0.50;
+    \\    frag_color = vec4(ice * edge, edge * 0.94);
+    \\}
+;
+
+const GlCoreShaderTileVs =
+    \\#version 330
+    \\layout(location=0) in vec2 position;
+    \\layout(location=1) in vec2 uv0;
+    \\layout(location=2) in float kind0;
+    \\layout(location=3) in float seed0;
+    \\layout(location=4) in float time0;
+    \\out vec2 v_uv0;
+    \\out float v_kind0;
+    \\out float v_seed0;
+    \\out float v_time0;
+    \\void main() {
+    \\    gl_Position = vec4(position, 0.0, 1.0);
+    \\    v_uv0 = uv0;
+    \\    v_kind0 = kind0;
+    \\    v_seed0 = seed0;
+    \\    v_time0 = time0;
+    \\}
+;
+
+const GlCoreShaderTileFs =
+    \\#version 330
+    \\in vec2 v_uv0;
+    \\in float v_kind0;
+    \\in float v_seed0;
+    \\in float v_time0;
+    \\out vec4 frag_color;
+    \\float hash21(vec2 p) {
+    \\    return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
+    \\}
+    \\void main() {
+    \\    vec2 uv = v_uv0;
+    \\    float t = v_time0;
+    \\    float seed = v_seed0 * 0.013;
+    \\    float edge = smoothstep(0.54, 0.40, abs(uv.x - 0.5) + abs(uv.y - 0.5));
+    \\    float grain = hash21(floor((uv + seed) * 18.0));
+    \\    if (v_kind0 < 1.5) {
+    \\        float flow = sin((uv.x * 11.0 - uv.y * 7.0) + t * 2.4 + seed) * 0.5 + 0.5;
+    \\        float ember = pow(max(0.0, flow * 0.72 + grain * 0.45), 2.0);
+    \\        float cracks = smoothstep(0.72, 0.98, sin((uv.x + uv.y) * 32.0 + t * 1.7 + seed) * 0.5 + 0.5);
+    \\        float pulse = 0.78 + sin(t * 3.1 + seed * 9.0) * 0.18;
+    \\        vec3 base = mix(vec3(0.18, 0.035, 0.015), vec3(1.0, 0.28, 0.035), ember * pulse);
+    \\        base += vec3(1.0, 0.72, 0.20) * cracks * 0.22;
+    \\        frag_color = vec4(base * edge, edge);
+    \\        return;
+    \\    }
+    \\    float sheen = smoothstep(0.70, 0.98, sin((uv.x - uv.y) * 24.0 + t * 1.15 + seed) * 0.5 + 0.5);
+    \\    float glint = pow(max(0.0, sin((uv.x * 21.0 + uv.y * 15.0) - t * 3.3 + seed)), 8.0);
+    \\    vec3 ice = mix(vec3(0.05, 0.22, 0.34), vec3(0.60, 0.92, 1.0), 0.34 + sheen * 0.30 + grain * 0.10);
+    \\    ice += vec3(0.82, 0.98, 1.0) * glint * 0.50;
+    \\    frag_color = vec4(ice * edge, edge * 0.94);
     \\}
 ;
 
@@ -3625,17 +3968,19 @@ fn uiCol32(r: u8, g: u8, b: u8, a: u8) c.ImU32 {
 }
 
 fn playerUiColor(player: u8, alpha: u8) c.ImU32 {
-    return if (player == 0)
-        uiCol32(72, 161, 216, alpha)
-    else
-        uiCol32(224, 76, 58, alpha);
+    return switch (player) {
+        0 => uiCol32(72, 161, 216, alpha),
+        1 => uiCol32(224, 76, 58, alpha),
+        else => uiCol32(218, 205, 136, alpha),
+    };
 }
 
 fn playerPanelColor(player: u8, alpha: u8) c.ImU32 {
-    return if (player == 0)
-        uiCol32(16, 42, 58, alpha)
-    else
-        uiCol32(64, 26, 22, alpha);
+    return switch (player) {
+        0 => uiCol32(16, 42, 58, alpha),
+        1 => uiCol32(64, 26, 22, alpha),
+        else => uiCol32(36, 34, 22, alpha),
+    };
 }
 
 fn gameOverAccentColor(winner: ?u8, alpha: u8) c.ImU32 {
@@ -3655,7 +4000,7 @@ fn gameOverPanelColor(winner: ?u8, alpha: u8) c.ImU32 {
 fn entityStatsZ(kind: map_mod.ObjectKind, buf: []u8) [:0]const u8 {
     const stats = map_mod.defaultStats(kind);
     return switch (kind) {
-        .citadel => std.fmt.bufPrintZ(buf, "HP {d:.0}  Base", .{stats.hp}) catch "HP --",
+        .citadel => std.fmt.bufPrintZ(buf, "HP {d:.0}  Heal {d:.0}  Range {d:.1}", .{ stats.hp, -stats.damage_per_second, stats.range }) catch "HP --",
         .portal => std.fmt.bufPrintZ(buf, "HP {d:.0}  Teleport", .{stats.hp}) catch "HP --",
         .healing_pod => std.fmt.bufPrintZ(buf, "HP {d:.0}  Heal {d:.0}  Range {d:.1}", .{ stats.hp, -stats.damage_per_second, stats.range }) catch "HP --",
         .obstacle => std.fmt.bufPrintZ(buf, "Blocks", .{}) catch "Blocks",

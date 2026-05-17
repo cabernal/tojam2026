@@ -17,9 +17,23 @@ pub const TerrainCell = struct {
 };
 
 pub const VoidTerrainId: u8 = 15;
+pub const IceTerrainId: u8 = 13;
+pub const LavaTerrainId: u8 = 14;
 
 pub fn isVoidTerrain(cell: TerrainCell) bool {
     return cell.terrain_id == VoidTerrainId and !cell.walkable;
+}
+
+pub fn isIceTerrain(cell: TerrainCell) bool {
+    return cell.terrain_id == IceTerrainId and !cell.walkable;
+}
+
+pub fn isLavaTerrain(cell: TerrainCell) bool {
+    return cell.terrain_id == LavaTerrainId and !cell.walkable;
+}
+
+pub fn isShaderTerrain(cell: TerrainCell) bool {
+    return isIceTerrain(cell) or isLavaTerrain(cell);
 }
 
 pub const MapObject = struct {
@@ -35,6 +49,9 @@ pub const MapObject = struct {
     facing_y: i8 = 0,
     asset_id: u16 = 0,
     active: bool = true,
+    recent_damage: f32 = 0,
+    retreat_steps: u8 = 0,
+    idle_steps: u8 = 0,
 };
 
 pub const GameMap = struct {
@@ -109,6 +126,28 @@ pub const GameMap = struct {
         for (void_tiles) |tile| {
             self.paintVoidTerrain(tile[0], tile[1]);
         }
+        const lava_tiles = [_][2]i32{
+            .{ 15, 12 },
+            .{ 16, 12 },
+            .{ 15, 13 },
+            .{ 16, 18 },
+            .{ 15, 19 },
+            .{ 16, 19 },
+        };
+        for (lava_tiles) |tile| {
+            self.paintShaderTerrain(tile[0], tile[1], LavaTerrainId);
+        }
+        const ice_tiles = [_][2]i32{
+            .{ 3, 6 },
+            .{ 4, 6 },
+            .{ 27, 24 },
+            .{ 28, 24 },
+            .{ 8, 22 },
+            .{ 23, 9 },
+        };
+        for (ice_tiles) |tile| {
+            self.paintShaderTerrain(tile[0], tile[1], IceTerrainId);
+        }
         self.version += 1;
     }
 
@@ -126,6 +165,20 @@ pub const GameMap = struct {
         };
     }
 
+    fn paintShaderTerrain(self: *GameMap, x: i32, y: i32, terrain_id: u8) void {
+        if (!self.inBounds(x, y)) return;
+        const ux: usize = @intCast(x);
+        const uy: usize = @intCast(y);
+        self.terrain[uy][ux] = .{
+            .terrain_id = terrain_id,
+            .asset_id = 0,
+            .walkable = false,
+            .buildable = false,
+            .movement_cost = 1,
+            .height = 0,
+        };
+    }
+
     pub fn inBounds(self: *const GameMap, x: i32, y: i32) bool {
         return x >= 0 and y >= 0 and @as(usize, @intCast(x)) < self.width and @as(usize, @intCast(y)) < self.height;
     }
@@ -136,10 +189,11 @@ pub const GameMap = struct {
         const uy: usize = @intCast(y);
         const next_cost = @max(1, movement_cost);
         const current = self.terrain[uy][ux];
-        const next_asset_id: u16 = if (terrain_id == VoidTerrainId and !walkable) 0 else asset_id;
+        const special_shader_tile = (terrain_id == LavaTerrainId or terrain_id == IceTerrainId) and !walkable;
+        const next_asset_id: u16 = if ((terrain_id == VoidTerrainId and !walkable) or special_shader_tile) 0 else asset_id;
         const next_height: i16 = if (terrain_id == VoidTerrainId and !walkable)
             -1
-        else if (isVoidTerrain(current))
+        else if (isVoidTerrain(current) or special_shader_tile)
             0
         else
             current.height;
@@ -235,6 +289,19 @@ pub const GameMap = struct {
         }
         grid_map.version = self.version;
     }
+
+    pub fn refreshBattleStats(self: *GameMap) void {
+        for (self.objects[0..self.object_count]) |*object| {
+            const stats = defaultStats(object.kind);
+            const pct = if (object.max_hp > 0) std.math.clamp(object.hp / object.max_hp, 0, 1) else 1;
+            object.max_hp = stats.hp;
+            object.hp = if (object.active) stats.hp * pct else 0;
+            object.recent_damage = 0;
+            object.retreat_steps = 0;
+            object.idle_steps = 0;
+        }
+        self.version += 1;
+    }
 };
 
 pub const ObjectStats = struct {
@@ -246,13 +313,13 @@ pub const ObjectStats = struct {
 
 pub fn defaultStats(kind: ObjectKind) ObjectStats {
     return switch (kind) {
-        .citadel => .{ .hp = 1800, .range = 0, .damage_per_second = 0, .move_seconds = 999 },
-        .imperator => .{ .hp = 900, .range = 7.0, .damage_per_second = 42, .move_seconds = 0.55 },
-        .infantry => .{ .hp = 90, .range = 1.35, .damage_per_second = 12, .move_seconds = 0.30 },
-        .captain => .{ .hp = 160, .range = 2.2, .damage_per_second = 18, .move_seconds = 0.38 },
-        .artillery => .{ .hp = 120, .range = 4.8, .damage_per_second = 24, .move_seconds = 0.60 },
+        .citadel => .{ .hp = 2600, .range = 2.6, .damage_per_second = -24, .move_seconds = 999 },
+        .imperator => .{ .hp = 1250, .range = 7.0, .damage_per_second = 42, .move_seconds = 0.55 },
+        .infantry => .{ .hp = 170, .range = 1.35, .damage_per_second = 12, .move_seconds = 0.30 },
+        .captain => .{ .hp = 300, .range = 2.2, .damage_per_second = 18, .move_seconds = 0.38 },
+        .artillery => .{ .hp = 230, .range = 4.8, .damage_per_second = 24, .move_seconds = 0.60 },
         .portal => .{ .hp = 260, .range = 0, .damage_per_second = 0, .move_seconds = 999 },
-        .healing_pod => .{ .hp = 220, .range = 1.3, .damage_per_second = -20, .move_seconds = 999 },
+        .healing_pod => .{ .hp = 260, .range = 2.4, .damage_per_second = -30, .move_seconds = 999 },
         .obstacle => .{ .hp = 300, .range = 0, .damage_per_second = 0, .move_seconds = 999 },
         .outpost => .{ .hp = 360, .range = 3.2, .damage_per_second = 20, .move_seconds = 999 },
         .defense_grid => .{ .hp = 280, .range = 3.8, .damage_per_second = 22, .move_seconds = 999 },
@@ -285,5 +352,21 @@ test "painting void terrain creates a floor cutout" {
     const restored = game_map.paintTerrain(0, 0, 1, 2, true, 1);
     try std.testing.expect(restored);
     try std.testing.expect(!isVoidTerrain(game_map.terrain[0][0]));
+    try std.testing.expectEqual(@as(i16, 0), game_map.terrain[0][0].height);
+}
+
+test "painting shader terrain creates unwalkable floor hazards" {
+    var game_map = GameMap.initDefault();
+    const changed = game_map.paintTerrain(0, 0, LavaTerrainId, 4, false, 3);
+    try std.testing.expect(changed);
+    try std.testing.expect(isLavaTerrain(game_map.terrain[0][0]));
+    try std.testing.expect(!game_map.terrain[0][0].walkable);
+    try std.testing.expect(!game_map.terrain[0][0].buildable);
+    try std.testing.expectEqual(@as(u16, 0), game_map.terrain[0][0].asset_id);
+    try std.testing.expectEqual(@as(i16, 0), game_map.terrain[0][0].height);
+
+    const restored = game_map.paintTerrain(0, 0, 1, 2, true, 1);
+    try std.testing.expect(restored);
+    try std.testing.expect(!isShaderTerrain(game_map.terrain[0][0]));
     try std.testing.expectEqual(@as(i16, 0), game_map.terrain[0][0].height);
 }
