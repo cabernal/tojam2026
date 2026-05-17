@@ -42,6 +42,9 @@ const MaxLaserFxVertices = MaxLaserBeams * LaserBeamVertices + MaxLaserParticles
 const MaxShaderTileVertices = map_mod.MapW * map_mod.MapH * 6;
 const LaserBeamLife: f32 = 0.13;
 const LaserEmitterIdleSeconds: f32 = 0.75;
+const ReplayFrameSeconds: f32 = 0.25;
+const MaxReplayFrames = 2400;
+const MaxReplayShots = 6000;
 const StarParallaxLayers = [_]StarLayer{
     .{ .count = 880, .parallax = 0.010, .zoom_reactivity = 0.030, .drift_x = 8.0, .drift_y = 1.8, .radius_min = 0.46, .radius_range = 0.62, .alpha = 0.36, .tint = .{ 0.62, 0.78, 0.96 } },
     .{ .count = 720, .parallax = 0.022, .zoom_reactivity = 0.055, .drift_x = 13.0, .drift_y = 3.0, .radius_min = 0.56, .radius_range = 0.84, .alpha = 0.44, .tint = .{ 0.78, 0.84, 0.98 } },
@@ -104,6 +107,7 @@ const GameShellScreen = enum {
     map_editor,
     setup,
     battle,
+    replay,
 };
 
 const MaxGameMaps = 16;
@@ -243,6 +247,17 @@ const LaserEmitter = struct {
     idle_seconds: f32 = 0,
 };
 
+const ReplayFrame = struct {
+    time: f32 = 0,
+    object_count: usize = 0,
+    objects: [map_mod.MaxObjects]map_mod.MapObject = [_]map_mod.MapObject{.{}} ** map_mod.MaxObjects,
+};
+
+const ReplayShot = struct {
+    time: f32 = 0,
+    event: sim_mod.ShotEvent = .{},
+};
+
 const LaserFxVertex = extern struct {
     position: [2]f32 = .{ 0, 0 },
     color: [4]f32 = .{ 1, 1, 1, 1 },
@@ -344,6 +359,16 @@ pub const AppState = struct {
     last_sim_phase: sim_mod.Phase = .setup_player_one,
     game_over_toast: GameToast = .{},
     game_paused: bool = false,
+    replay_frames: std.ArrayList(ReplayFrame) = .empty,
+    replay_shots: std.ArrayList(ReplayShot) = .empty,
+    replay_recording: bool = false,
+    replay_available: bool = false,
+    replay_elapsed: f32 = 0,
+    replay_capture_accum: f32 = 0,
+    replay_playing: bool = false,
+    replay_playhead: f32 = 0,
+    replay_frame_index: usize = 0,
+    replay_shot_cursor: usize = 0,
 
     pub fn init(self: *AppState, allocator: std.mem.Allocator) void {
         self.allocator = allocator;
@@ -407,6 +432,8 @@ pub const AppState = struct {
         if (self.alpha_pipeline.id != 0) sgl.destroyPipeline(self.alpha_pipeline);
         self.object_sprites.deinit();
         self.catalog.deinit();
+        self.replay_frames.deinit(self.allocator);
+        self.replay_shots.deinit(self.allocator);
         self.game.deinit();
         self.audio.deinit();
         simgui.shutdown();
@@ -440,7 +467,11 @@ pub const AppState = struct {
             self.handleKeyboardCamera(dt);
             const sim_start = stime.now();
             const paused = self.battlePaused();
-            if (!paused) self.game.update(dt);
+            if (!paused) {
+                self.game.update(dt);
+                self.updateReplayRecording(dt);
+                self.updateReplayPlayback(dt);
+            }
             const sim_end = stime.now();
             const fx_start = stime.now();
             if (!paused) self.updateLaserFx(dt);
@@ -803,6 +834,7 @@ pub const AppState = struct {
             .map_editor => self.drawMapEditorShell(),
             .setup => self.drawSetupShell(),
             .battle => self.drawBattleShell(),
+            .replay => self.drawReplayShell(),
         }
         self.drawGameOverToast();
     }
@@ -1198,7 +1230,7 @@ pub const AppState = struct {
         const reason_z = self.gameOverReasonZ(&reason_buf);
 
         c.igSetNextWindowPos(uiV2(sapp.widthf() * 0.5, sapp.heightf() * 0.5), c.ImGuiCond_Always, uiV2(0.5, 0.5));
-        c.igSetNextWindowSize(uiV2(@min(460.0, @max(320.0, sapp.widthf() - 48.0)), 154), c.ImGuiCond_Always);
+        c.igSetNextWindowSize(uiV2(@min(460.0, @max(320.0, sapp.widthf() - 48.0)), 190), c.ImGuiCond_Always);
         c.igSetNextWindowBgAlpha(0.95);
         c.igPushStyleColor_U32(c.ImGuiCol_WindowBg, gameOverPanelColor(winner, 232));
         c.igPushStyleColor_U32(c.ImGuiCol_Border, gameOverAccentColor(winner, 255));
@@ -1218,8 +1250,51 @@ pub const AppState = struct {
         c.igPushStyleColor_U32(c.ImGuiCol_Button, gameOverAccentColor(winner, 255));
         c.igPushStyleColor_U32(c.ImGuiCol_ButtonHovered, gameOverAccentColor(winner, 220));
         c.igPushStyleColor_U32(c.ImGuiCol_Text, uiCol32(245, 248, 242, 255));
+        if (!self.replay_available) c.igBeginDisabled(true);
+        if (c.igButton("Watch Replay", uiV2(-1, 30))) self.enterReplayShell();
+        if (!self.replay_available) c.igEndDisabled();
         if (c.igButton("Back To Menu", uiV2(-1, 30))) self.cancelGameToMenu();
         c.igPopStyleColor(3);
+    }
+
+    fn drawReplayShell(self: *AppState) void {
+        const duration = self.replayDuration();
+        c.igSetNextWindowPos(uiV2(sapp.widthf() * 0.5, 24), c.ImGuiCond_Always, uiV2(0.5, 0));
+        c.igSetNextWindowSize(uiV2(@min(560.0, @max(340.0, sapp.widthf() - 48.0)), 132), c.ImGuiCond_Always);
+        c.igSetNextWindowBgAlpha(0.92);
+        self.pushShellStyle();
+        defer c.igPopStyleColor(3);
+        const flags = c.ImGuiWindowFlags_NoCollapse |
+            c.ImGuiWindowFlags_NoMove |
+            c.ImGuiWindowFlags_NoSavedSettings |
+            c.ImGuiWindowFlags_NoResize;
+        _ = c.igBegin("Replay##game-shell", null, flags);
+        defer c.igEnd();
+
+        var title_buf: [160]u8 = undefined;
+        const title_z = std.fmt.bufPrintZ(
+            &title_buf,
+            "Replay  {d}/{d} frames",
+            .{ self.replay_frame_index + 1, @max(@as(usize, 1), self.replay_frames.items.len) },
+        ) catch "Replay";
+        c.igTextUnformatted(title_z.ptr, null);
+
+        var time_buf: [64]u8 = undefined;
+        const time_z = std.fmt.bufPrintZ(&time_buf, "{d:.1}s / {d:.1}s", .{ self.replay_playhead, duration }) catch "";
+        var playhead = self.replay_playhead;
+        c.igSetNextItemWidth(-1);
+        if (c.igSliderFloat("##replay-time", &playhead, 0, @max(0.01, duration), time_z.ptr, 0)) {
+            self.seekReplay(playhead);
+        }
+
+        const play_label: [:0]const u8 = if (self.replay_playing) "Pause" else "Play";
+        if (c.igButton(play_label.ptr, uiV2(92, 28))) self.toggleReplayPlayback();
+        c.igSameLine(0, 8);
+        if (c.igButton("Restart", uiV2(92, 28))) self.restartReplay();
+        c.igSameLine(0, 8);
+        if (c.igButton("Back To Result", uiV2(134, 28))) self.exitReplayToResult();
+        c.igSameLine(0, 8);
+        if (c.igButton("Menu", uiV2(92, 28))) self.cancelGameToMenu();
     }
 
     fn drawPauseShell(self: *AppState) void {
@@ -1369,6 +1444,10 @@ pub const AppState = struct {
     }
 
     fn handleEscapeKey(self: *AppState) void {
+        if (self.game_shell_screen == .replay) {
+            self.exitReplayToResult();
+            return;
+        }
         if (self.game_shell_screen != .battle) return;
         if (self.game.simulation.phase == .game_over) {
             self.cancelGameToMenu();
@@ -1398,11 +1477,165 @@ pub const AppState = struct {
     fn cancelGameToMenu(self: *AppState) void {
         self.game_paused = false;
         self.painting = false;
+        self.clearReplay();
         self.game.simulation.resetSetup();
         self.last_sim_phase = self.game.simulation.phase;
         _ = self.loadSelectedMapForShell(false);
         self.enterMainMenuShell();
         self.editor.setStatus("Game cancelled.", .{});
+    }
+
+    fn clearReplay(self: *AppState) void {
+        self.replay_frames.clearRetainingCapacity();
+        self.replay_shots.clearRetainingCapacity();
+        self.replay_recording = false;
+        self.replay_available = false;
+        self.replay_elapsed = 0;
+        self.replay_capture_accum = 0;
+        self.replay_playing = false;
+        self.replay_playhead = 0;
+        self.replay_frame_index = 0;
+        self.replay_shot_cursor = 0;
+    }
+
+    fn startReplayRecording(self: *AppState) void {
+        self.clearReplay();
+        self.replay_recording = true;
+        self.replay_available = true;
+        self.captureReplayFrame(0) catch |err| {
+            self.replay_recording = false;
+            self.replay_available = false;
+            self.editor.setStatus("Replay recording failed: {s}", .{@errorName(err)});
+        };
+    }
+
+    fn updateReplayRecording(self: *AppState, dt: f32) void {
+        if (!self.replay_recording) return;
+        self.replay_elapsed += dt;
+        self.recordReplayShots();
+        if (self.game.simulation.phase == .playing) {
+            self.replay_capture_accum += dt;
+            if (self.replay_capture_accum >= ReplayFrameSeconds) {
+                self.replay_capture_accum = 0;
+                self.captureReplayFrame(self.replay_elapsed) catch |err| {
+                    self.replay_recording = false;
+                    self.editor.setStatus("Replay recording stopped: {s}", .{@errorName(err)});
+                };
+            }
+            return;
+        }
+        if (self.game.simulation.phase == .game_over) {
+            self.captureReplayFrame(self.replay_elapsed) catch {};
+            self.replay_recording = false;
+            self.replay_available = self.replay_frames.items.len > 1;
+        }
+    }
+
+    fn captureReplayFrame(self: *AppState, time: f32) !void {
+        if (self.replay_frames.items.len >= MaxReplayFrames) {
+            if (self.replay_frames.items.len > 0) self.replay_frames.items[self.replay_frames.items.len - 1] = self.makeReplayFrame(time);
+            return;
+        }
+        try self.replay_frames.append(self.allocator, self.makeReplayFrame(time));
+    }
+
+    fn makeReplayFrame(self: *const AppState, time: f32) ReplayFrame {
+        var replay_frame: ReplayFrame = .{ .time = time, .object_count = self.game.map.object_count };
+        for (self.game.map.objects[0..self.game.map.object_count], 0..) |object, i| {
+            replay_frame.objects[i] = object;
+        }
+        return replay_frame;
+    }
+
+    fn recordReplayShots(self: *AppState) void {
+        if (self.game.simulation.shot_event_count == 0) return;
+        const count = @min(self.game.simulation.shot_event_count, self.game.simulation.shot_events.len);
+        for (self.game.simulation.shot_events[0..count]) |event| {
+            if (self.replay_shots.items.len >= MaxReplayShots) return;
+            self.replay_shots.append(self.allocator, .{ .time = self.replay_elapsed, .event = event }) catch return;
+        }
+    }
+
+    fn enterReplayShell(self: *AppState) void {
+        if (!self.replay_available or self.replay_frames.items.len == 0) return;
+        self.game_shell_screen = .replay;
+        self.game_paused = false;
+        self.editor.enabled = false;
+        self.replay_playing = true;
+        self.seekReplay(0);
+        self.audio.playSfx(.panel_open);
+        self.editor.setStatus("Replay started.", .{});
+    }
+
+    fn exitReplayToResult(self: *AppState) void {
+        self.replay_playing = false;
+        self.clearLaserFx();
+        self.game_shell_screen = .battle;
+        self.audio.playSfx(.panel_close);
+        self.editor.setStatus("Replay closed.", .{});
+    }
+
+    fn toggleReplayPlayback(self: *AppState) void {
+        if (!self.replay_available) return;
+        if (!self.replay_playing and self.replay_playhead >= self.replayDuration()) self.seekReplay(0);
+        self.replay_playing = !self.replay_playing;
+        self.audio.playSfx(.click_confirm);
+    }
+
+    fn restartReplay(self: *AppState) void {
+        self.seekReplay(0);
+        self.replay_playing = true;
+        self.audio.playSfx(.click_confirm);
+    }
+
+    fn seekReplay(self: *AppState, time: f32) void {
+        const duration = self.replayDuration();
+        self.replay_playhead = std.math.clamp(time, 0, duration);
+        self.replay_frame_index = self.replayFrameIndexAt(self.replay_playhead);
+        self.replay_shot_cursor = self.replayShotIndexAt(self.replay_playhead);
+        self.clearLaserFx();
+    }
+
+    fn updateReplayPlayback(self: *AppState, dt: f32) void {
+        if (self.game_shell_screen != .replay or !self.replay_available or !self.replay_playing) return;
+        const duration = self.replayDuration();
+        const previous = self.replay_playhead;
+        self.replay_playhead = @min(duration, self.replay_playhead + dt);
+        self.replay_frame_index = self.replayFrameIndexAt(self.replay_playhead);
+        self.emitReplayShots(previous, self.replay_playhead);
+        if (self.replay_playhead >= duration) self.replay_playing = false;
+    }
+
+    fn emitReplayShots(self: *AppState, previous: f32, current: f32) void {
+        while (self.replay_shot_cursor < self.replay_shots.items.len) : (self.replay_shot_cursor += 1) {
+            const shot = self.replay_shots.items[self.replay_shot_cursor];
+            if (shot.time <= previous) continue;
+            if (shot.time > current) break;
+            self.spawnLaserShot(shot.event);
+        }
+    }
+
+    fn replayDuration(self: *const AppState) f32 {
+        if (self.replay_frames.items.len == 0) return 0;
+        return self.replay_frames.items[self.replay_frames.items.len - 1].time;
+    }
+
+    fn replayFrameIndexAt(self: *const AppState, time: f32) usize {
+        if (self.replay_frames.items.len == 0) return 0;
+        var index: usize = 0;
+        while (index + 1 < self.replay_frames.items.len and self.replay_frames.items[index + 1].time <= time) : (index += 1) {}
+        return index;
+    }
+
+    fn replayShotIndexAt(self: *const AppState, time: f32) usize {
+        var index: usize = 0;
+        while (index < self.replay_shots.items.len and self.replay_shots.items[index].time <= time) : (index += 1) {}
+        return index;
+    }
+
+    fn activeReplayFrame(self: *const AppState) ?*const ReplayFrame {
+        if (self.game_shell_screen != .replay or self.replay_frames.items.len == 0) return null;
+        return &self.replay_frames.items[@min(self.replay_frame_index, self.replay_frames.items.len - 1)];
     }
 
     fn enterChooseMapShell(self: *AppState) void {
@@ -1481,6 +1714,7 @@ pub const AppState = struct {
         self.editor.current_player = 0;
         self.syncEditorPlayerWithSetup();
         self.clearLaserFx();
+        self.clearReplay();
         self.audio.playSfx(.click_confirm);
         if (random) {
             self.editor.setStatus("Random map: {s}. Player 1 setup. Place entities, then choose Finish Setup.", .{map_name});
@@ -1519,6 +1753,7 @@ pub const AppState = struct {
                 self.game_paused = false;
                 self.editor.enabled = false;
                 self.clearLaserFx();
+                self.startReplayRecording();
                 self.audio.playSfx(.click_confirm);
                 self.editor.setStatus("Battle started.", .{});
             },
@@ -2423,18 +2658,28 @@ pub const AppState = struct {
     }
 
     fn drawObjects(self: *AppState) void {
-        for (self.game.map.objects[0..self.game.map.object_count]) |object| {
-            if (!object.active) continue;
-            if (!self.objectVisibleInPhase(object)) continue;
-            const center = self.worldToScreen(.{
-                .x = @as(f32, @floatFromInt(object.x)) + 0.5,
-                .y = @as(f32, @floatFromInt(object.y)) + 0.5,
-            });
-            if (!self.tryDrawObjectSprite(object, center)) {
-                self.drawObjectMarker(object, center);
+        if (self.activeReplayFrame()) |replay_frame| {
+            for (replay_frame.objects[0..replay_frame.object_count]) |object| {
+                self.drawWorldObject(object);
             }
-            if (self.editor.show_health) self.drawHealthBar(object, center);
+            return;
         }
+        for (self.game.map.objects[0..self.game.map.object_count]) |object| {
+            self.drawWorldObject(object);
+        }
+    }
+
+    fn drawWorldObject(self: *AppState, object: map_mod.MapObject) void {
+        if (!object.active) return;
+        if (!self.objectVisibleInPhase(object)) return;
+        const center = self.worldToScreen(.{
+            .x = @as(f32, @floatFromInt(object.x)) + 0.5,
+            .y = @as(f32, @floatFromInt(object.y)) + 0.5,
+        });
+        if (!self.tryDrawObjectSprite(object, center)) {
+            self.drawObjectMarker(object, center);
+        }
+        if (self.editor.show_health) self.drawHealthBar(object, center);
     }
 
     fn consumeShotEvents(self: *AppState) void {
@@ -2774,6 +3019,7 @@ pub const AppState = struct {
     }
 
     fn objectVisibleInPhase(self: *const AppState, object: map_mod.MapObject) bool {
+        if (self.game_shell_screen == .replay) return true;
         if (self.game_shell_screen != .disabled and self.game_shell_screen != .setup) return true;
         const setup_player = self.game.simulation.activeSetupPlayer() orelse return true;
         return object.team == setup_player or object.kind == .obstacle;
