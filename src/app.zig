@@ -94,6 +94,11 @@ const AppMode = enum {
     game,
 };
 
+const GamePlayerMode = enum {
+    one_player,
+    two_player,
+};
+
 const GameShellScreen = enum {
     disabled,
     menu,
@@ -151,6 +156,17 @@ const EntityCounts = struct {
     fn structures(self: EntityCounts) usize {
         return self.outpost + self.defense_grid;
     }
+};
+
+const MapCoord = struct {
+    x: i32,
+    y: i32,
+};
+
+const AiPlanEntry = struct {
+    kind: map_mod.ObjectKind,
+    x: i32,
+    y: i32,
 };
 
 pub const ObjectPlacementSummary = struct {
@@ -336,6 +352,7 @@ pub const AppState = struct {
     music_volume: f32 = 1.0,
     ambient_volume: f32 = 1.0,
     game_shell_screen: GameShellScreen = .disabled,
+    game_player_mode: GamePlayerMode = .two_player,
     rules_show_entities: bool = false,
     maps: [MaxGameMaps]GameMapChoice = [_]GameMapChoice{.{}} ** MaxGameMaps,
     map_count: usize = 0,
@@ -813,7 +830,7 @@ pub const AppState = struct {
 
         const panel_w = @min(420, @max(300, sapp.widthf() - 48));
         c.igSetNextWindowPos(uiV2(sapp.widthf() * 0.5, sapp.heightf() * 0.5), c.ImGuiCond_Always, uiV2(0.5, 0.5));
-        c.igSetNextWindowSize(uiV2(panel_w, 408), c.ImGuiCond_Always);
+        c.igSetNextWindowSize(uiV2(panel_w, 456), c.ImGuiCond_Always);
         c.igSetNextWindowBgAlpha(0.94);
         self.pushShellStyle();
         defer c.igPopStyleColor(3);
@@ -833,6 +850,16 @@ pub const AppState = struct {
         c.igTextUnformatted(selected_z.ptr, null);
         c.igSpacing();
 
+        c.igTextUnformatted("Mode", null);
+        const mode_button_w = (panel_w - 34) * 0.5;
+        self.drawPlayerModeButton(.one_player, "1 Player", mode_button_w);
+        c.igSameLine(0, 8);
+        self.drawPlayerModeButton(.two_player, "2 Player", mode_button_w);
+        var mode_buf: [96]u8 = undefined;
+        const mode_z = std.fmt.bufPrintZ(&mode_buf, "{s}", .{self.playerModeSummary()}) catch return;
+        c.igTextUnformatted(mode_z.ptr, null);
+        c.igSpacing();
+
         if (c.igButton("Select Level", uiV2(-1, 30))) self.enterChooseMapShell();
         if (c.igButton("Level Editor", uiV2(-1, 30))) self.enterMapEditorShell(self.selected_map_index);
         if (c.igButton("Sound", uiV2(-1, 30))) self.enterSoundShell();
@@ -847,6 +874,29 @@ pub const AppState = struct {
         c.igSpacing();
         c.igSeparator();
         c.igTextUnformatted(EventBlurb, null);
+    }
+
+    fn drawPlayerModeButton(self: *AppState, mode: GamePlayerMode, label: [:0]const u8, width: f32) void {
+        const selected = self.game_player_mode == mode;
+        if (selected) {
+            c.igPushStyleColor_U32(c.ImGuiCol_Button, uiCol32(42, 119, 174, 255));
+            c.igPushStyleColor_U32(c.ImGuiCol_ButtonHovered, uiCol32(54, 143, 204, 255));
+        }
+        defer {
+            if (selected) c.igPopStyleColor(2);
+        }
+
+        if (c.igButton(label.ptr, uiV2(width, 30))) {
+            self.game_player_mode = mode;
+            self.audio.playSfx(.click_confirm);
+        }
+    }
+
+    fn playerModeSummary(self: *const AppState) []const u8 {
+        return switch (self.game_player_mode) {
+            .one_player => "Player 2 setup: AI",
+            .two_player => "Player 2 setup: local",
+        };
     }
 
     fn drawSoundShell(self: *AppState) void {
@@ -933,7 +983,8 @@ pub const AppState = struct {
 
         c.igTextUnformatted("Setup", null);
         ruleBullet("Pick a selected level or start a random game from the start menu.");
-        ruleBullet("Player 1 places first, then Player 2 places. Both players get the same placement allotment, and erasing an entity refunds that slot.");
+        ruleBullet("1 Player: Player 1 places first, then the AI sets up Player 2 and the battle starts.");
+        ruleBullet("2 Player: Player 1 places first, then Player 2 places. Both players get the same placement allotment, and erasing an entity refunds that slot.");
         ruleBullet("The setup panel shows placed counts and remaining limits directly on the entity buttons.");
         c.igSpacing();
 
@@ -1107,7 +1158,12 @@ pub const AppState = struct {
         c.igPopStyleColor(1);
 
         c.igSameLine(0, 18);
-        const action_label: [:0]const u8 = if (self.game.simulation.phase == .setup_player_one) "Finish Setup" else "Start Game";
+        const action_label: [:0]const u8 = if (self.game.simulation.phase == .setup_player_one and self.game_player_mode == .one_player)
+            "Start vs AI"
+        else if (self.game.simulation.phase == .setup_player_one)
+            "Finish Setup"
+        else
+            "Start Game";
         c.igPushStyleColor_U32(c.ImGuiCol_Button, playerUiColor(active_player, 255));
         c.igPushStyleColor_U32(c.ImGuiCol_ButtonHovered, playerUiColor(active_player, 220));
         if (c.igButton(action_label.ptr, uiV2(136, 0))) self.advanceGameSetupAction();
@@ -1496,10 +1552,10 @@ pub const AppState = struct {
         self.syncEditorPlayerWithSetup();
         self.clearLaserFx();
         self.audio.playSfx(.click_confirm);
-        if (random) {
-            self.editor.setStatus("Random map: {s}. Player 1 setup. Place entities, then choose Finish Setup.", .{map_name});
-        } else {
-            self.editor.setStatus("Selected map: {s}. Player 1 setup. Place entities, then choose Finish Setup.", .{map_name});
+        const source_label = if (random) "Random map" else "Selected map";
+        switch (self.game_player_mode) {
+            .one_player => self.editor.setStatus("{s}: {s}. Player 1 setup. The AI will set up Player 2 after Start vs AI.", .{ source_label, map_name }),
+            .two_player => self.editor.setStatus("{s}: {s}. Player 1 setup. Place entities, then choose Finish Setup.", .{ source_label, map_name }),
         }
     }
 
@@ -1521,23 +1577,165 @@ pub const AppState = struct {
     fn advanceGameSetupAction(self: *AppState) void {
         switch (self.game.simulation.phase) {
             .setup_player_one => {
+                if (self.game_player_mode == .one_player) {
+                    const placed = self.setupAiOpponent();
+                    if (!self.activeObjectiveExists(.citadel, 1) or !self.activeObjectiveExists(.imperator, 1)) {
+                        self.audio.playSfx(.invalid_action);
+                        self.editor.setStatus("AI setup failed: Player 2 needs buildable space for a Citadel and Imperator.", .{});
+                        return;
+                    }
+                    self.startBattle();
+                    self.editor.setStatus("Battle started. AI placed {d} Player 2 entities.", .{placed});
+                    return;
+                }
                 self.game.simulation.phase = .setup_player_two;
                 self.syncEditorPlayerWithSetup();
                 self.audio.playSfx(.click_confirm);
                 self.editor.setStatus("Player 2 setup. Place entities, then start the game.", .{});
             },
             .setup_player_two => {
-                self.game.simulation.startPlaying();
-                self.last_sim_phase = self.game.simulation.phase;
-                self.game_shell_screen = .battle;
-                self.game_paused = false;
-                self.editor.enabled = false;
-                self.clearLaserFx();
-                self.audio.playSfx(.click_confirm);
+                self.startBattle();
                 self.editor.setStatus("Battle started.", .{});
             },
             else => {},
         }
+    }
+
+    fn startBattle(self: *AppState) void {
+        self.game.simulation.startPlaying();
+        self.last_sim_phase = self.game.simulation.phase;
+        self.game_shell_screen = .battle;
+        self.game_paused = false;
+        self.editor.enabled = false;
+        self.clearLaserFx();
+        self.audio.playSfx(.click_confirm);
+    }
+
+    fn setupAiOpponent(self: *AppState) usize {
+        const ai_player: u8 = 1;
+        _ = self.clearPlayerObjects(ai_player);
+
+        const anchor = self.aiOpponentAnchor();
+        const width_i: i32 = @intCast(self.game.map.width);
+        const height_i: i32 = @intCast(self.game.map.height);
+        const toward_center: i32 = if (anchor.x >= @divTrunc(width_i, 2)) -1 else 1;
+        const max_x = @max(2, width_i - 3);
+        const max_y = @max(2, height_i - 3);
+        const core_x = clampI32(anchor.x, 2, max_x);
+        const support_x = clampI32(anchor.x + toward_center * 2, 2, max_x);
+        const midfield_x = clampI32(anchor.x + toward_center * 5, 2, max_x);
+        const front_x = clampI32(anchor.x + toward_center * 8, 2, max_x);
+        const deep_x = clampI32(anchor.x + toward_center * 11, 2, max_x);
+        const top_y = clampI32(@divTrunc(height_i, 4), 2, max_y);
+        const upper_mid_y = clampI32(anchor.y - 3, 2, max_y);
+        const mid_y = clampI32(anchor.y, 2, max_y);
+        const lower_mid_y = clampI32(anchor.y + 3, 2, max_y);
+        const bottom_y = clampI32(@divTrunc(height_i * 3, 4), 2, max_y);
+
+        const plan = [_]AiPlanEntry{
+            .{ .kind = .citadel, .x = core_x, .y = mid_y },
+            .{ .kind = .imperator, .x = support_x, .y = mid_y },
+            .{ .kind = .healing_pod, .x = core_x, .y = upper_mid_y },
+            .{ .kind = .healing_pod, .x = core_x, .y = lower_mid_y },
+            .{ .kind = .portal, .x = front_x, .y = top_y + 1 },
+            .{ .kind = .portal, .x = front_x, .y = bottom_y - 1 },
+            .{ .kind = .outpost, .x = midfield_x, .y = top_y },
+            .{ .kind = .defense_grid, .x = support_x, .y = upper_mid_y },
+            .{ .kind = .defense_grid, .x = support_x, .y = lower_mid_y },
+            .{ .kind = .outpost, .x = midfield_x, .y = bottom_y },
+            .{ .kind = .captain, .x = front_x, .y = top_y },
+            .{ .kind = .artillery, .x = midfield_x, .y = top_y - 2 },
+            .{ .kind = .infantry, .x = deep_x, .y = top_y - 1 },
+            .{ .kind = .infantry, .x = front_x, .y = top_y + 2 },
+            .{ .kind = .infantry, .x = midfield_x, .y = top_y + 3 },
+            .{ .kind = .captain, .x = front_x, .y = mid_y },
+            .{ .kind = .artillery, .x = midfield_x, .y = mid_y },
+            .{ .kind = .infantry, .x = deep_x, .y = upper_mid_y },
+            .{ .kind = .infantry, .x = deep_x, .y = lower_mid_y },
+            .{ .kind = .captain, .x = support_x, .y = bottom_y - 3 },
+            .{ .kind = .captain, .x = front_x, .y = bottom_y },
+            .{ .kind = .artillery, .x = midfield_x, .y = bottom_y + 2 },
+            .{ .kind = .infantry, .x = deep_x, .y = bottom_y + 1 },
+            .{ .kind = .infantry, .x = front_x, .y = bottom_y - 2 },
+        };
+
+        var placed: usize = 0;
+        for (plan) |entry| {
+            if (self.placeAiObject(entry.kind, entry.x, entry.y, ai_player)) placed += 1;
+        }
+
+        self.assignObjectAssets(true);
+        self.game.rebuildPathing() catch {};
+        self.pathing_dirty = false;
+        return placed;
+    }
+
+    fn clearPlayerObjects(self: *AppState, player: u8) usize {
+        var removed: usize = 0;
+        var i: usize = 0;
+        while (i < self.game.map.object_count) {
+            if (self.game.map.objects[i].team == player) {
+                self.game.map.objects[i] = self.game.map.objects[self.game.map.object_count - 1];
+                self.game.map.object_count -= 1;
+                removed += 1;
+            } else {
+                i += 1;
+            }
+        }
+        if (removed > 0) self.game.map.version += 1;
+        return removed;
+    }
+
+    fn aiOpponentAnchor(self: *AppState) MapCoord {
+        const width_i: i32 = @intCast(self.game.map.width);
+        const height_i: i32 = @intCast(self.game.map.height);
+        const fallback = MapCoord{
+            .x = @max(2, width_i - 5),
+            .y = @divTrunc(height_i, 2),
+        };
+
+        const player_anchor = self.game.map.findObject(.citadel, 0) orelse
+            self.game.map.findObject(.imperator, 0) orelse
+            return fallback;
+        const max_x = @max(2, width_i - 3);
+        const max_y = @max(2, height_i - 3);
+        return .{
+            .x = clampI32(width_i - 1 - player_anchor.x, 2, max_x),
+            .y = clampI32(player_anchor.y, 2, max_y),
+        };
+    }
+
+    fn placeAiObject(self: *AppState, kind: map_mod.ObjectKind, preferred_x: i32, preferred_y: i32, player: u8) bool {
+        const tile = self.findAiPlacementTile(preferred_x, preferred_y) orelse return false;
+        const asset = self.defaultAssetForObjectKind(kind, self.defaultRockAsset());
+        return self.game.map.addObject(kind, tile.x, tile.y, player, player, asset) != null;
+    }
+
+    fn findAiPlacementTile(self: *AppState, preferred_x: i32, preferred_y: i32) ?MapCoord {
+        const max_radius: i32 = @intCast(@max(self.game.map.width, self.game.map.height));
+        var radius: i32 = 0;
+        while (radius <= max_radius) : (radius += 1) {
+            var dy: i32 = -radius;
+            while (dy <= radius) : (dy += 1) {
+                var dx: i32 = -radius;
+                while (dx <= radius) : (dx += 1) {
+                    if (@abs(dx) != radius and @abs(dy) != radius) continue;
+                    const x = preferred_x + dx;
+                    const y = preferred_y + dy;
+                    if (self.aiPlacementTileAvailable(x, y)) return .{ .x = x, .y = y };
+                }
+            }
+        }
+        return null;
+    }
+
+    fn aiPlacementTileAvailable(self: *AppState, x: i32, y: i32) bool {
+        if (!self.game.map.inBounds(x, y)) return false;
+        const ux: usize = @intCast(x);
+        const uy: usize = @intCast(y);
+        const terrain = self.game.map.terrain[uy][ux];
+        if (!terrain.buildable) return false;
+        return self.game.map.objectAt(x, y) == null;
     }
 
     fn refreshAvailableMaps(self: *AppState) void {
@@ -4069,6 +4267,10 @@ fn uiCol32(r: u8, g: u8, b: u8, a: u8) c.ImU32 {
         (@as(c.ImU32, g) << 8) |
         (@as(c.ImU32, b) << 16) |
         (@as(c.ImU32, a) << 24);
+}
+
+fn clampI32(value: i32, min_value: i32, max_value: i32) i32 {
+    return @min(@max(value, min_value), max_value);
 }
 
 fn playerUiColor(player: u8, alpha: u8) c.ImU32 {
