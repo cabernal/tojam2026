@@ -1,6 +1,7 @@
 const std = @import("std");
 
 const APP_NAME = "tojam2026";
+const ASSET_STUDIO_NAME = "tojam2026-asset-studio";
 
 const C_SOURCES = [_][]const u8{
     "sokol_log.c",
@@ -63,7 +64,7 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
     const native_sokol_clib = buildLibSokol(b, "sokol_clib_native", target, optimize, null);
-    const native_module = createAppModule(b, target, optimize, native_sokol_mod, null, app_mode, build_version);
+    const native_module = createAppModule(b, target, optimize, native_sokol_mod, null, b.path("src/main.zig"), app_mode, build_version);
     native_module.linkLibrary(native_sokol_clib);
 
     const exe = b.addExecutable(.{
@@ -81,6 +82,27 @@ pub fn build(b: *std.Build) void {
     addNativeRunMode(b, target, optimize, native_sokol_mod, native_sokol_clib, .integrated);
     addNativeRunMode(b, target, optimize, native_sokol_mod, native_sokol_clib, .editor);
     addNativeRunMode(b, target, optimize, native_sokol_mod, native_sokol_clib, .game);
+
+    const asset_studio_module = createAppModule(
+        b,
+        target,
+        optimize,
+        native_sokol_mod,
+        null,
+        b.path("src/asset_studio_main.zig"),
+        .integrated,
+        build_version,
+    );
+    asset_studio_module.linkLibrary(native_sokol_clib);
+    const asset_studio_exe = b.addExecutable(.{
+        .name = ASSET_STUDIO_NAME,
+        .root_module = asset_studio_module,
+    });
+    b.installArtifact(asset_studio_exe);
+
+    const asset_studio_run_cmd = b.addRunArtifact(asset_studio_exe);
+    asset_studio_run_cmd.setCwd(b.path("."));
+    b.step("run-asset-studio", "Run the native tile and sprite asset studio").dependOn(&asset_studio_run_cmd.step);
 
     const tests = b.addTest(.{
         .root_module = b.createModule(.{
@@ -111,7 +133,7 @@ pub fn build(b: *std.Build) void {
             optimize,
             emsdk_root,
         );
-        const web_module = createAppModule(b, web_target, optimize, web_sokol_mod, emsdk_root, app_mode, build_version);
+        const web_module = createAppModule(b, web_target, optimize, web_sokol_mod, emsdk_root, b.path("src/main.zig"), app_mode, build_version);
         web_module.linkLibrary(web_sokol_clib);
 
         const web_lib = b.addLibrary(.{
@@ -141,7 +163,7 @@ fn addNativeRunMode(
     native_sokol_clib: *std.Build.Step.Compile,
     app_mode: AppMode,
 ) void {
-    const module = createAppModule(b, target, optimize, native_sokol_mod, null, app_mode, "local-dev");
+    const module = createAppModule(b, target, optimize, native_sokol_mod, null, b.path("src/main.zig"), app_mode, "local-dev");
     module.linkLibrary(native_sokol_clib);
     const exe = b.addExecutable(.{
         .name = b.fmt("{s}-{s}", .{ APP_NAME, @tagName(app_mode) }),
@@ -158,6 +180,7 @@ fn createAppModule(
     optimize: std.builtin.OptimizeMode,
     mod_sokol: *std.Build.Module,
     emsdk_root: ?[]const u8,
+    root_source_file: std.Build.LazyPath,
     app_mode: AppMode,
     build_version: []const u8,
 ) *std.Build.Module {
@@ -176,7 +199,7 @@ fn createAppModule(
     options.addOption([]const u8, "build_version", build_version);
 
     const mod = b.createModule(.{
-        .root_source_file = b.path("src/main.zig"),
+        .root_source_file = root_source_file,
         .target = target,
         .optimize = optimize,
         .link_libc = true,
