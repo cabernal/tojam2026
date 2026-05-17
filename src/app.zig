@@ -65,18 +65,20 @@ const HitSfxGain: f32 = 0.22;
 const StaticEditableMaps = [_]struct {
     name: []const u8,
     rel_path: []const u8,
+    preview_rel_path: []const u8,
 }{
-    .{ .name = "Canyon Divide", .rel_path = "maps/generated/canyon_divide.json" },
-    .{ .name = "Oasis Ring", .rel_path = "maps/generated/oasis_ring.json" },
-    .{ .name = "Ruins Crossfire", .rel_path = "maps/generated/ruins_crossfire.json" },
-    .{ .name = "Open Dunes", .rel_path = "maps/generated/open_dunes.json" },
-    .{ .name = "Maze Warren", .rel_path = "maps/generated/maze_warren.json" },
-    .{ .name = "Island Chain", .rel_path = "maps/generated/island_chain.json" },
-    .{ .name = "Four Lanes", .rel_path = "maps/generated/four_lanes.json" },
-    .{ .name = "Crossfire Plaza", .rel_path = "maps/generated/crossfire_plaza.json" },
-    .{ .name = "Spiral Ruins", .rel_path = "maps/generated/spiral_ruins.json" },
-    .{ .name = "Twin Forts", .rel_path = "maps/generated/twin_forts.json" },
+    .{ .name = "Canyon Divide", .rel_path = "maps/generated/canyon_divide.json", .preview_rel_path = "runtime/map_previews/canyon_divide.png" },
+    .{ .name = "Oasis Ring", .rel_path = "maps/generated/oasis_ring.json", .preview_rel_path = "runtime/map_previews/oasis_ring.png" },
+    .{ .name = "Ruins Crossfire", .rel_path = "maps/generated/ruins_crossfire.json", .preview_rel_path = "runtime/map_previews/ruins_crossfire.png" },
+    .{ .name = "Open Dunes", .rel_path = "maps/generated/open_dunes.json", .preview_rel_path = "runtime/map_previews/open_dunes.png" },
+    .{ .name = "Maze Warren", .rel_path = "maps/generated/maze_warren.json", .preview_rel_path = "runtime/map_previews/maze_warren.png" },
+    .{ .name = "Island Chain", .rel_path = "maps/generated/island_chain.json", .preview_rel_path = "runtime/map_previews/island_chain.png" },
+    .{ .name = "Four Lanes", .rel_path = "maps/generated/four_lanes.json", .preview_rel_path = "runtime/map_previews/four_lanes.png" },
+    .{ .name = "Crossfire Plaza", .rel_path = "maps/generated/crossfire_plaza.json", .preview_rel_path = "runtime/map_previews/crossfire_plaza.png" },
+    .{ .name = "Spiral Ruins", .rel_path = "maps/generated/spiral_ruins.json", .preview_rel_path = "runtime/map_previews/spiral_ruins.png" },
+    .{ .name = "Twin Forts", .rel_path = "maps/generated/twin_forts.json", .preview_rel_path = "runtime/map_previews/twin_forts.png" },
 };
+const DefaultMapPreviewPath = "runtime/map_previews/default_map.png";
 
 const LoadingPhase = enum {
     intro,
@@ -118,12 +120,15 @@ const GameMapChoice = struct {
     path_len: usize = 0,
     name: [96]u8 = [_]u8{0} ** 96,
     name_len: usize = 0,
+    preview_path: [256]u8 = [_]u8{0} ** 256,
+    preview_path_len: usize = 0,
     protected: bool = false,
     builtin: bool = false,
 
-    fn set(self: *GameMapChoice, name: []const u8, path: []const u8, protected: bool, is_builtin: bool) void {
+    fn set(self: *GameMapChoice, name: []const u8, path: []const u8, preview_path: []const u8, protected: bool, is_builtin: bool) void {
         self.name_len = copyToBuffer(self.name[0..], name);
         self.path_len = copyToBuffer(self.path[0..], path);
+        self.preview_path_len = copyToBuffer(self.preview_path[0..], preview_path);
         self.protected = protected;
         self.builtin = is_builtin;
     }
@@ -134,6 +139,10 @@ const GameMapChoice = struct {
 
     fn pathSlice(self: *const GameMapChoice) []const u8 {
         return self.path[0..self.path_len];
+    }
+
+    fn previewPathSlice(self: *const GameMapChoice) []const u8 {
+        return self.preview_path[0..self.preview_path_len];
     }
 };
 
@@ -305,6 +314,7 @@ pub const AppState = struct {
     sprite_count: usize = 0,
     tojam_logo_sprite: Sprite = .{},
     tojam_goat_sprite: Sprite = .{},
+    map_preview_sprites: [MaxGameMaps]Sprite = [_]Sprite{.{}} ** MaxGameMaps,
     sampler: sg.Sampler = .{},
     alpha_pipeline: sgl.Pipeline = .{},
     pass_action: sg.PassAction = .{},
@@ -413,6 +423,7 @@ pub const AppState = struct {
         if (!self.initialized) return;
         destroySprite(&self.tojam_logo_sprite);
         destroySprite(&self.tojam_goat_sprite);
+        for (&self.map_preview_sprites) |*sprite| destroySprite(sprite);
         for (self.sprites[0..self.sprite_count]) |*sprite| destroySprite(sprite);
         if (self.shader_tile_vertex_buffer.id != 0) sg.destroyBuffer(self.shader_tile_vertex_buffer);
         if (self.shader_tile_pipeline.id != 0) sg.destroyPipeline(self.shader_tile_pipeline);
@@ -985,6 +996,7 @@ pub const AppState = struct {
         ruleBullet("Pick a selected level or start a random game from the start menu.");
         ruleBullet("1 Player: Player 1 places first, then the AI sets up Player 2 and the battle starts.");
         ruleBullet("2 Player: Player 1 places first, then Player 2 places. Both players get the same placement allotment, and erasing an entity refunds that slot.");
+        ruleBullet("During setup, you see your own entities and both Citadels. Enemy units and structures stay hidden until battle.");
         ruleBullet("The setup panel shows placed counts and remaining limits directly on the entity buttons.");
         c.igSpacing();
 
@@ -998,7 +1010,7 @@ pub const AppState = struct {
         c.igSpacing();
 
         c.igTextUnformatted("Placement Limits", null);
-        ruleBullet("Each player gets 1 Citadel, 1 Imperator, 14 total mobile units, 2 Portals, 2 Healing Pods, 4 total combat structures, and 12 Obstacles.");
+        ruleBullet("Each player gets 1 Citadel, 1 Imperator, 30 total mobile units, 4 Portals, 4 Healing Pods, 4 total combat structures, and 12 Obstacles.");
     }
 
     fn drawEntityRules(self: *AppState) void {
@@ -1070,8 +1082,10 @@ pub const AppState = struct {
     }
 
     fn drawChooseMapShell(self: *AppState) void {
+        const panel_w = @min(1120, @max(380, sapp.widthf() - 48));
+        const panel_h = @min(720, @max(430, sapp.heightf() - 48));
         c.igSetNextWindowPos(uiV2(sapp.widthf() * 0.5, sapp.heightf() * 0.5), c.ImGuiCond_Always, uiV2(0.5, 0.5));
-        c.igSetNextWindowSize(uiV2(@min(660, @max(360, sapp.widthf() - 56)), 430), c.ImGuiCond_Always);
+        c.igSetNextWindowSize(uiV2(panel_w, panel_h), c.ImGuiCond_Always);
         c.igSetNextWindowBgAlpha(0.94);
         self.pushShellStyle();
         defer c.igPopStyleColor(3);
@@ -1088,28 +1102,80 @@ pub const AppState = struct {
         if (self.map_count == 0) {
             c.igTextUnformatted("No maps found.", null);
         }
-        for (self.maps[0..self.map_count], 0..) |*choice, i| {
-            var label_buf: [192]u8 = undefined;
-            const selected = i == self.selected_map_index;
-            const label_z = std.fmt.bufPrintZ(&label_buf, "{s}{s}", .{ if (selected) "* " else "  ", choice.nameSlice() }) catch continue;
-            c.igTextUnformatted(label_z.ptr, null);
-            c.igSameLine(0, 8);
-            var select_buf: [48]u8 = undefined;
-            const select_z = std.fmt.bufPrintZ(&select_buf, "Select##map-{d}", .{i}) catch continue;
-            if (c.igButton(select_z.ptr, uiV2(78, 0))) {
-                self.selected_map_index = i;
-                _ = self.loadShellMap(i, false);
-                self.enterMainMenuShell();
-            }
-            c.igSameLine(0, 6);
-            var edit_buf: [48]u8 = undefined;
-            const edit_z = std.fmt.bufPrintZ(&edit_buf, "Edit##map-{d}", .{i}) catch continue;
-            if (c.igButton(edit_z.ptr, uiV2(62, 0))) {
-                self.enterMapEditorShell(i);
+        if (c.igBeginChild_Str("##level-preview-grid", uiV2(0, -42), c.ImGuiChildFlags_Borders, c.ImGuiWindowFlags_AlwaysVerticalScrollbar)) {
+            const avail = c.igGetContentRegionAvail();
+            const columns: usize = if (avail.x >= 900) 3 else if (avail.x >= 610) 2 else 1;
+            const gap: f32 = 12;
+            const total_gap = gap * @as(f32, @floatFromInt(columns - 1));
+            const card_w = @max(220.0, @floor((avail.x - total_gap) / @as(f32, @floatFromInt(columns))));
+            const preview_h = card_w * (355.0 / 560.0);
+            for (0..self.map_count) |i| {
+                if (i % columns != 0) c.igSameLine(0, gap);
+                self.drawMapPreviewCard(i, card_w, preview_h);
             }
         }
+        c.igEndChild();
         c.igSeparator();
         if (c.igButton("Back", uiV2(96, 0))) self.enterMainMenuShell();
+    }
+
+    fn drawMapPreviewCard(self: *AppState, index: usize, card_w: f32, preview_h: f32) void {
+        if (index >= self.map_count) return;
+        const choice = &self.maps[index];
+        const selected = index == self.selected_map_index;
+        const sprite = self.map_preview_sprites[index];
+
+        c.igPushID_Int(@intCast(index));
+        defer c.igPopID();
+
+        c.igBeginGroup();
+        defer c.igEndGroup();
+
+        c.igPushStyleVar_Vec2(c.ImGuiStyleVar_FramePadding, uiV2(3, 3));
+        if (selected) {
+            c.igPushStyleColor_U32(c.ImGuiCol_Button, uiCol32(42, 119, 174, 255));
+            c.igPushStyleColor_U32(c.ImGuiCol_ButtonHovered, uiCol32(54, 143, 204, 255));
+        } else {
+            c.igPushStyleColor_U32(c.ImGuiCol_Button, uiCol32(24, 27, 25, 255));
+            c.igPushStyleColor_U32(c.ImGuiCol_ButtonHovered, uiCol32(45, 61, 64, 255));
+        }
+        const preview_clicked = if (sprite.valid())
+            c.igImageButton(
+                "##preview",
+                imguiTextureRef(sprite, self.sampler),
+                uiV2(card_w, preview_h),
+                uiV2(0, 0),
+                uiV2(1, 1),
+                uiV4(0.02, 0.025, 0.023, 1.0),
+                uiV4(1, 1, 1, if (selected) 1.0 else 0.90),
+            )
+        else
+            c.igButton("Preview unavailable##preview", uiV2(card_w, preview_h));
+        c.igPopStyleColor(2);
+        c.igPopStyleVar(1);
+
+        if (preview_clicked) self.selectMapFromShell(index);
+
+        var label_buf: [128]u8 = undefined;
+        const label_z = std.fmt.bufPrintZ(&label_buf, "{s}{s}", .{ if (selected) "* " else "", choice.nameSlice() }) catch return;
+        c.igTextUnformatted(label_z.ptr, null);
+
+        const button_w = @max(72.0, (card_w - 8) * 0.5);
+        if (selected) {
+            c.igPushStyleColor_U32(c.ImGuiCol_Button, uiCol32(42, 119, 174, 255));
+            c.igPushStyleColor_U32(c.ImGuiCol_ButtonHovered, uiCol32(54, 143, 204, 255));
+        }
+        if (c.igButton("Select", uiV2(button_w, 28))) self.selectMapFromShell(index);
+        if (selected) c.igPopStyleColor(2);
+        c.igSameLine(0, 8);
+        if (c.igButton("Edit", uiV2(button_w, 28))) self.enterMapEditorShell(index);
+    }
+
+    fn selectMapFromShell(self: *AppState, index: usize) void {
+        if (index >= self.map_count) return;
+        self.selected_map_index = index;
+        _ = self.loadShellMap(index, false);
+        self.enterMainMenuShell();
     }
 
     fn drawMapEditorShell(self: *AppState) void {
@@ -1760,18 +1826,19 @@ pub const AppState = struct {
 
     fn refreshAvailableMaps(self: *AppState) void {
         self.map_count = 0;
-        self.addMapChoice("Default Map", "", true, true);
+        self.addMapChoice("Default Map", "", DefaultMapPreviewPath, true, true);
         self.addStaticEditableMaps();
         if (comptime !platform.is_web) self.scanNativeMaps();
         if (self.selected_map_index >= self.map_count) self.selected_map_index = 0;
         if (self.editing_map_index >= self.map_count) self.editing_map_index = self.selected_map_index;
+        self.loadMapPreviewSprites();
     }
 
     fn addStaticEditableMaps(self: *AppState) void {
         for (StaticEditableMaps) |entry| {
             var path_buf: [256]u8 = undefined;
             const path = self.assetRelativeMapPath(entry.rel_path, &path_buf);
-            self.addMapChoice(entry.name, path, false, false);
+            self.addMapChoice(entry.name, path, entry.preview_rel_path, false, false);
         }
     }
 
@@ -1794,16 +1861,16 @@ pub const AppState = struct {
             var path_buf: [256]u8 = undefined;
             const path = std.fmt.bufPrint(&path_buf, "{s}/{s}", .{ maps_root, entry.path }) catch continue;
             const name = std.fs.path.basename(entry.path);
-            self.addMapChoice(name, path, false, false);
+            self.addMapChoice(name, path, "", false, false);
         }
     }
 
-    fn addMapChoice(self: *AppState, name: []const u8, path: []const u8, protected: bool, is_builtin: bool) void {
+    fn addMapChoice(self: *AppState, name: []const u8, path: []const u8, preview_path: []const u8, protected: bool, is_builtin: bool) void {
         if (self.map_count >= self.maps.len) return;
         for (self.maps[0..self.map_count]) |choice| {
             if (std.mem.eql(u8, choice.pathSlice(), path)) return;
         }
-        self.maps[self.map_count].set(name, path, protected, is_builtin);
+        self.maps[self.map_count].set(name, path, preview_path, protected, is_builtin);
         self.map_count += 1;
     }
 
@@ -2330,14 +2397,23 @@ pub const AppState = struct {
 
     fn loadTojamBrandingSprites(self: *AppState) void {
         if (!self.tojam_logo_sprite.valid()) {
-            self.tojam_logo_sprite = self.loadBrandSprite("tojam/logo.png") catch .{};
+            self.tojam_logo_sprite = self.loadRuntimeSprite("tojam/logo.png") catch .{};
         }
         if (!self.tojam_goat_sprite.valid()) {
-            self.tojam_goat_sprite = self.loadBrandSprite("tojam/goat.png") catch .{};
+            self.tojam_goat_sprite = self.loadRuntimeSprite("tojam/goat.png") catch .{};
         }
     }
 
-    fn loadBrandSprite(self: *AppState, rel_path: []const u8) !Sprite {
+    fn loadMapPreviewSprites(self: *AppState) void {
+        for (self.maps[0..self.map_count], 0..) |choice, i| {
+            if (self.map_preview_sprites[i].valid()) continue;
+            const rel_path = choice.previewPathSlice();
+            if (rel_path.len == 0) continue;
+            self.map_preview_sprites[i] = self.loadRuntimeSprite(rel_path) catch .{};
+        }
+    }
+
+    fn loadRuntimeSprite(self: *AppState, rel_path: []const u8) !Sprite {
         var path_buf: [1024]u8 = undefined;
         const path = try std.fmt.bufPrint(&path_buf, "{s}/{s}", .{ platform.assetRoot(), rel_path });
         const image = try png_loader.loadRgba(self.allocator, path);
@@ -2373,7 +2449,7 @@ pub const AppState = struct {
     fn assignObjectAssets(self: *AppState, preserve_valid: bool) void {
         const rock_id = self.defaultRockAsset();
         for (self.game.map.objects[0..self.game.map.object_count]) |*object| {
-            if (preserve_valid and self.assetFitsObjectKind(object.kind, object.asset_id)) continue;
+            if (preserve_valid and object.kind == .obstacle and self.assetFitsObjectKind(object.kind, object.asset_id)) continue;
             object.asset_id = self.defaultAssetForObject(object.*, rock_id);
         }
     }
@@ -2398,8 +2474,8 @@ pub const AppState = struct {
 
     fn originalShowcaseAsset(self: *const AppState, object: map_mod.MapObject) ?u16 {
         return switch (object.kind) {
-            .outpost => self.originalBuilding(if (object.team == 0) 0 else 3),
-            .defense_grid => self.originalBuilding(if (object.team == 0) 1 else 2),
+            .outpost => self.originalBuilding(0),
+            .defense_grid => self.originalBuilding(1),
             .obstacle => self.originalBarrierAsset(object.id),
             else => null,
         };
@@ -3065,17 +3141,12 @@ pub const AppState = struct {
     fn objectVisibleInPhase(self: *const AppState, object: map_mod.MapObject) bool {
         if (self.game_shell_screen != .disabled and self.game_shell_screen != .setup) return true;
         const setup_player = self.game.simulation.activeSetupPlayer() orelse return true;
-        return object.team == setup_player or object.kind == .citadel or object.kind == .obstacle;
+        return object.team == setup_player or object.kind == .citadel or (object.team == 2 and object.kind == .obstacle);
     }
 
     fn tryDrawObjectSprite(self: *AppState, object: map_mod.MapObject, center: Vec2) bool {
         const def = self.object_sprites.get(object.kind);
-        const asset_id = if (self.assetFitsObjectKind(object.kind, object.asset_id))
-            object.asset_id
-        else if (def) |object_def|
-            object_def.asset_id orelse object.asset_id
-        else
-            object.asset_id;
+        const asset_id = self.displayAssetForObject(object, def);
 
         const sprite = self.spriteForAsset(asset_id) orelse return false;
         if (def) |object_def| {
@@ -3090,6 +3161,14 @@ pub const AppState = struct {
         const h = size.y * self.zoom;
         drawSpriteBottom(sprite, self.sampler, self.alpha_pipeline, center, w, h, 1.0);
         return true;
+    }
+
+    fn displayAssetForObject(self: *const AppState, object: map_mod.MapObject, def: ?*const sprite_defs.ObjectSpriteDef) u16 {
+        if (def) |object_def| {
+            if (object_def.asset_id) |asset_id| return asset_id;
+        }
+        if (object.kind == .obstacle and self.assetFitsObjectKind(object.kind, object.asset_id)) return object.asset_id;
+        return self.defaultAssetForObject(object, self.defaultRockAsset());
     }
 
     fn drawTeamBadge(self: *AppState, object: map_mod.MapObject, center: Vec2, def: *const sprite_defs.ObjectSpriteDef) void {
@@ -4280,6 +4359,17 @@ fn line(a: Vec2, b: Vec2) void {
 
 fn uiV2(x: f32, y: f32) c.ImVec2_c {
     return .{ .x = x, .y = y };
+}
+
+fn uiV4(x: f32, y: f32, z: f32, w: f32) c.ImVec4_c {
+    return .{ .x = x, .y = y, .z = z, .w = w };
+}
+
+fn imguiTextureRef(sprite: Sprite, sampler: sg.Sampler) c.ImTextureRef_c {
+    return .{
+        ._TexData = null,
+        ._TexID = simgui.imtextureidWithSampler(sprite.view, sampler),
+    };
 }
 
 fn uiCol32(r: u8, g: u8, b: u8, a: u8) c.ImU32 {
