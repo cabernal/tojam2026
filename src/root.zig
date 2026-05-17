@@ -4,8 +4,10 @@ pub const map = @import("map/map.zig");
 pub const map_io = @import("map/map_io.zig");
 pub const pathfinding = @import("pathfinding/mod.zig");
 pub const runtime = @import("runtime/game.zig");
+pub const asset_studio_png = @import("asset_studio/png_writer.zig");
 
 test {
+    _ = @import("asset_studio/png_writer.zig");
     _ = @import("assets/sprite_defs.zig");
     _ = @import("map/map_io.zig");
     _ = @import("pathfinding/astar.zig");
